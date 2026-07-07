@@ -116,7 +116,7 @@ I-kolom (btw/BCF) blijft leeg. Bladbeveiliging optioneel (beslispunt 8, nog te b
 
 ## 9. Beslispunt-keuzes (voorlopig, te bevestigen bij controle T01)
 
-1 historie 25/26 = bevroren waarden · 2 ritme = batches ~5 na T01 · 3 inwoners = nog
+1 historie 25/26 = bevroren waarden · 2 ritme = TAAKVELD VOOR TAAKVELD (geen batches) · 3 inwoners = nog
 aanleveren · 4 Inlees CODA + 2030 · 5 fte nog aanleveren · 6 opruimen na afloop ·
 7 T82 black box · 8 bladbeveiliging nog bepalen · 9 volgorde koppelen nog bepalen ·
 10 kolomgroei nog bepalen.

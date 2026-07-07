@@ -95,7 +95,7 @@ Posten met een standaardtoelichting ontlenen hun bedragen aan een staat buiten h
 ## Beslispunten vooraf (eerst beantwoorden, dan pas beginnen)
 
 1. **Historische kolommen 2025 en 2026**: bevriezen als vaste waarden, of ook als formules meenemen in de nieuwe structuur?
-2. **Controlemomenten**: strikt één taakveld per goedkeuring (±62 wachtmomenten), of na het goedgekeurde pilottaakveld T01 verdergaan in batches van ±5 vergelijkbare taakvelden per goedkeuring? De controle-informatie per taakveld blijft in beide gevallen volledig.
+2. **Controlemomenten**: ~~strikt één taakveld per goedkeuring (±62 wachtmomenten), of na het goedgekeurde pilottaakveld T01 verdergaan in batches van ±5~~ → **BESLOTEN (2026-07-07): taakveld voor taakveld, géén batches.** Elk taakveld wordt afzonderlijk ter controle voorgelegd; pas na akkoord start het volgende. De controle-informatie per taakveld blijft volledig.
 3. **Inwonersreeks aanleveren**: de ontwikkeling van het aantal inwoners staat nu nergens in het bestand. Aanleveren als reeks per jaar, inclusief historie (voorstel: 2021 t/m 2030, zelfde jaarbereik als de indexen), met bronvermelding. De indexreeksen zelf zijn bestaand en worden overgenomen uit het huidige Indexering-tabblad.
 4. **Inlees CODA**: het bestaande tabblad "Inlees CODA" als vast sjabloon aanhouden en aanvullen met 2030? (Het loopt nu t/m 2029, de taakvelden t/m 2030.)
 5. **Overhead op fte-basis (Fase 3)**: wie levert de fte per afdeling aan, en in welke vorm?
@@ -342,3 +342,72 @@ T82 is hiermee de enige, gedocumenteerde niet-uniforme tab. De behandeling is om
 6. De overheadopslagen binnen T82 versus de latere algemene overheadverdeling (Fase 3): akkoord dat T82 zijn eigen toerekening houdt en buiten de fte-verdeling blijft?
 7. Verkoopramingen (grondverkopen sociaal/vrije sector/overig) bevatten nu samengestelde formules met correctiebedragen: mogen die worden uitgesplitst in benoemde regels per component (woningen, kavels, btw-afdracht)?
 8. De splitsing van de dekking in 41100/47501 per complex (B.2): akkoord met de rekenwijze (overheaddeel naar rato van de dekking, loondeel als restant), conform de huidige praktijk in het bestand?
+
+## Bijlage C — Praktische bevindingen en werkwijze uit pilot T01 (2026-07-07)
+
+Deze bijlage bundelt wat bij de bouw van T01 concreet bleek, zodat elk volgend taakveld
+sneller en met minder verrassingen kan. (Uitgebreidere versie + scripts: zie
+`WERKWIJZE_EN_SJABLOON.md` in de repo.)
+
+### C.1 Gereedschap / omgeving
+
+- **LibreOffice (soffice) kan in deze omgeving géén bestand laden** (elk formaat geeft
+  "source file could not be loaded"). De verplichte herberekening gebeurt daarom met de
+  Python-engine **`formulas`**: die berekent alle formules opnieuw vanuit de bróntekst
+  (negeert de cache) en is daarmee gelijkwaardig aan — en voor dit doel sterker dan —
+  alleen formuletekst vergelijken. Deze substitutie is toegestaan en wordt gedocumenteerd.
+  Gevalideerd: op de ongewijzigde T01 reproduceert de engine de snapshot met 0 afwijkingen.
+- **`formulas` op het hele bestand loopt vast/traag** (77 tabs, #REF!). Werk met een
+  **scoped kopie**: alleen het taakveld + `Indexering`. Scripts: `scoped_recalc.py`,
+  `eval_recalc.py`, `compare.py`.
+- **openpyxl wist cached formulewaarden bij opslaan** → "oude waarde" ALTIJD uit de
+  Fase 0-snapshot lezen, nooit uit het heropgeslagen werkbestand.
+- **openpyxl laat pivottabellen/tekeningen vallen** bij opslaan (in dit bestand 128→8
+  artefacten). Voor de pilot aanvaardbaar (origineel veilig in backup; draaitabellen
+  worden toch opgeruimd, beslispunt 6). Voor het **productiebestand**: fidelity-behoudende
+  methode kiezen (XML-surgische vervanging per sheet) — te bevestigen.
+- Bash-praktisch: nooit `pkill -f soffice` (matcht de eigen shell → self-kill); gebruik
+  `pkill -9 -x soffice.bin`. Geen foreground `sleep` (wordt geblokkeerd).
+
+### C.2 Vaste per-taakveld werkwijze (concreet, waardebehoudend)
+
+1. Inventariseer met een celdump (formule + snapshotwaarde) van het tabblad.
+2. **Stap A** — formule-labels (`=G94`, `="Totaal "&D`) → vaste tekst uit de snapshot;
+   hulp-/label-kolommen (A/B) → vaste waarde; stijl `=+X` → `=X`.
+3. **Stap B/C** — onderlaag: zet indexkeuze in **H** en herschrijf index-formules naar A.4
+   (`INDEX`/`VERGELIJKEN` naar het hulpblok). Classificatie uit de bestaande formule:
+   `*T2/T$2` → Prijzen, `*T$3` → Lonen, hulprij 4 → Gewogen. Salaris (41100) →
+   *Lonen* + toelichting "zie staat van salarissen (nu in blad; later koppeling)".
+   Staat-/activa-/reserve-posten → *Geen* + standaardtoelichting.
+4. **Stap D–G** — staat-toelichtingen; harde correctieregels (W../A..-nummers) geel
+   markeren + indexkeuze *Geen*; samengestelde invoer uitsplitsen; standaard
+   specificatieregel bovenaan de onderlaag; invoercellen blauw; datavalidatie-dropdown op H.
+5. **Herbereken** (scoped, `formulas`) en vergelijk met de snapshot. Tolerantie: >€1/cel,
+   >€5/totaalregel = melden met celopmerking (oud→nieuw) + meldingsregel bovenaan het tabblad.
+6. Status op Voortgang bijwerken, opslaan, **ter controle voorleggen en wachten** (taakveld
+   voor taakveld).
+
+### C.3 Aandachtspunten die telkens terugkomen
+
+- **Kolom H (en D–I) is in de oude sheets vaak bezet** door sub-berekeningen (tarief ×
+  aantal, inwonertabellen). Waar H bezet is: index-formule NIET naar `$H` herschrijven
+  (geeft `#N/A`) — laat de originele formule staan en noteer het als layout-item.
+- **Sommige originele regels zijn ongeafrond** (`=K*T2` zonder AFRONDEN). Het uniforme
+  A.4-patroon rondt wél af → kleine, oplopende centen-verschillen (bij T01: Jeugdraad tot
+  €1,39 in 2030). Dit is een verbetering; melden als afwijking, niet stilzwijgend laten.
+- **Totaalregels** blijven op hun bestaande rijen als er niet wordt verschoven → Recap-
+  verwijzingen (`'T<tv>'!K<rij>..O<rij>`) blijven kloppen; alleen bij verschuiven of bij de
+  #REF!-taakvelden moet Recap worden bijgewerkt.
+
+### C.4 Layout-normalisaties T01 — te bevestigen als sjabloon vóór verdere uitrol
+
+De oude sheets gebruiken kolommen D–I ad-hoc. Strikte A.1-indeling vraagt keuzes die één
+keer worden vastgelegd en daarna overal gelden:
+
+- **BBV-categorie naar kolom E** (staat nu in D) — of D handhaven?
+- **Vaste indexkeuze-kolom** ook waar H nu bezet is (raadsfracties/inwonertabellen
+  herstructureren).
+- **Per-regel correctierij** met doorwerking (vs. correctie op postniveau).
+- **Inwoner-subtabellen** koppelen aan de inwonersreeks in Indexering zodra aangeleverd.
+
+Pas na akkoord op C.4 worden de volgende taakvelden volgens de definitieve indeling omgezet.
