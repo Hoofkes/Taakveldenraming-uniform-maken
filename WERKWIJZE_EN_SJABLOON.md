@@ -41,6 +41,13 @@ Nooit vergelijken tegen live werkbestand.
 - Lege resttabbladen: Blad1, Blad2, Blad3. Dubbele inhoudsopgave (Inhoudsopgave 2).
   Pas na afronding opruimen (beslispunt 6).
 
+## 2b. Geparkeerde/complexe taakvelden
+
+- **T82**: black box (Bijlage B.0), pas na akkoord collega.
+- **T04L / T04B / T04W**: complexe kostenverdeelstaat (overhead). Uitgesteld tot na de
+  standaardtaakvelden, samenhang met Fase 3 (fte-verdeling). Niet als "gewoon" taakveld
+  behandelen.
+
 ## 3. Recap-structuur (voor doorkoppeling per taakveld)
 
 - Lastenblok begint r3; batenblok begint ± r68 (na "Saldo lasten" r63). Batenrijen ± r99+.
@@ -113,6 +120,23 @@ I-kolom (btw/BCF) blijft leeg. Bladbeveiliging optioneel (beslispunt 8, nog te b
 aanleveren · 4 Inlees CODA + 2030 · 5 fte nog aanleveren · 6 opruimen na afloop ·
 7 T82 black box · 8 bladbeveiliging nog bepalen · 9 volgorde koppelen nog bepalen ·
 10 kolomgroei nog bepalen.
+
+## 9b. Geleerd bij T01 (toepassen op volgende)
+
+- **openpyxl wist cached formulewaarden bij save** → cache ALTIJD uit snapshot lezen.
+- **openpyxl-rondgang laat pivots/drawings vallen** (128→8 artefacten). Voor pilot ok
+  (backup veilig; draaitabellen worden toch opgeruimd). Voor productie: XML-surgische
+  vervanging per sheet overwegen.
+- **Kolom H (en D–I) is in de oude sheets soms bezet** door sub-berekeningen
+  (bijv. raadsfracties-tarief, inwonertabellen). Dan indexformule NIET herschrijven naar
+  `$H`-verwijzing (→ #N/A). Layout-normalisatie (E=categorie, vrije H) is sjabloon-
+  beslissing bij de review.
+- **Sommige originele regels waren ONGEAFROND** (`=K*T2` zonder ROUND). Het uniforme
+  A.4-patroon rondt af → kleine, oplopende verschillen (T01 Jeugdraad tot €1,39 in 2030).
+  Melden als afwijking; dit is een verbetering, geen fout.
+- Totaalregel-tolerantie €5 vangt −€1-afrondingen op Totaal lasten op.
+- T01 totaalregels blijven op rij 59 (lasten), 68 (baten), 70 (saldo) → Recap-verwijzingen
+  `'T01'!K59..O59` ongewijzigd; geen Recap-aanpassing nodig voor T01.
 
 ## 10. Per-taakveld checklist (Fase 1)
 
