@@ -6,7 +6,7 @@ Lees dit samen met het functioneel ontwerp (versie 3, `.md`). Dit document bevat
 
 ## Bestanden
 - Werkmap: `Stambestand_investeringskredieten_dashboard_stap4*.xlsm` (laatste versie van Michiel, kopie; origineel staat veilig).
-- `Dashboard_AlleMacros_17.bas` (nieuwste): alle macro's in een module (wordt via VBA-editor > Bestand importeren geladen; module eerst verwijderen).
+- `Dashboard_AlleMacros_18.bas` (nieuwste): alle macro's in een module (wordt via VBA-editor > Bestand importeren geladen; module eerst verwijderen).
 - In de kopie ontbreken de spiegelbladen (Financieel adviseur, Financiële administratie, Kredietoverzicht, Maatwerk, Activa bestaand). Bestaan wel in het origineel.
 - `vbaProject.bin` nooit rechtstreeks wijzigen via XML; macro's alleen via importeren of Excel-automatisering (Windows, Excel, "Vertrouwen in VBA-projectmodel").
 
