@@ -99,10 +99,11 @@ Werkwijze in elke schrijfmacro: nulmeting vooraf en achteraf (alleen datarijen, 
 - Meldingen uitgaven zijn vooral voor de financieel adviseur.
 
 ## Stap 12 - controle en kengetallen (Dashboard blok 5, rij 69-104)
-- `ControleblokPlaatsen` (via DashboardKnoppenPlaatsen): 19 controles in C72:C90 (formules waar mogelijk, functie `Rg` = bereik rij 2 t/m Par_LaatsteRij) en kengetallen vanaf rij 93 (alleen formules). Statusregel Dashboard C4: "OK - alles sluit aan" of "LET OP - n controle(s)" (groen/rood).
-- `ControlesVernieuwen` (knop D70, bij openen en na upload): spiegelbladen (aantal en rij-voor-rij, '-' als ze ontbreken), verdeelsleutel per groep = 100% (teksten in K overslaan), dubbel kredietnummer+activanummer (zonder bijdrageregels en 7999998), handmatige formules in Z/AA-AC/AE-AI, SUBTOTAL-regels onder de data.
-- Controles die nu vaak > 0 zullen zijn (bewust in de status): overschrijding lopend krediet, zonder activanummer/kredietnummer (mag bij intake), handmatige formules, SUBTOTAL-regels (rij 1474). Gebruiker beslist of die uit de status moeten.
-- Beslispunt FO 9.1 (deelkredieten over programma's heen) nog open; nu optie A (programma wint).
+- `ControleblokPlaatsen` (via DashboardKnoppenPlaatsen): 16 controles in C72:C87 (aantallen als formule, Formula2), kolom D 'Waar (rij in de Verzamellijst) / wat te doen' gevuld door `ControlesVernieuwen` (knop D70, bij openen, na upload). Kengetallen vanaf rij 90 (formules). Statusregel C4 groen/rood.
+- Controles: omschrijving te lang, verdeelsleutel != 100% (groepen met tekst in K overgeslagen), A met restant, zonder O/P/X/Y, dubbel C+X (zonder bijdrageregels, 7999998, activanr als tekst), te controleren/afgekeurd, hoofdletters I/J, werkbereik, status H, zonder C, 7999998 in begrotingsjaar, handmatige formules in bedragkolommen, SUBTOTAL-regels.
+- Zonder activanummer en zonder kredietnummer: geel, tellen niet mee voor LET OP (tijdelijk toegestaan). Overschrijding en spiegelbladen niet in het controleblok (op verzoek; spiegelbladen bestaan niet in het huidige bestand).
+- Herstelmacro's: `OmschrijvingenInkorten`, `FormulesNaarWaarden` (uitkomst ongewijzigd, formule in Logboek, nulmeting).
+- Open: SUBTOTAL-regels rij 1474 weghalen (toestemming gevraagd); FO 9.1 (deelkredieten over programma's) nu optie A.
 
 ## Openstaande stappen
 - 14: jaarrol (laatst, eerst op kopie).
