@@ -6532,7 +6532,7 @@ Public Sub JaarovergangUitvoeren()
     WerkStart                                    ' beveiliging even uit, daarna vanzelf weer aan
     Dim wv As Worksheet, wb As Worksheet, oud As Long, nieuw As Long, laatste As Long, r As Long, k As Long, nm As String
     Dim z As Variant, aa As Variant, ab As Variant, ac As Variant, ae As Variant, h As Variant, m As Variant, n As Variant
-    Dim oZ As Variant, oAA As Variant, oAB As Variant, oAC As Variant, oAE As Variant, oH As Variant, oM As Variant, oN As Variant
+    Dim oZ As Variant, oAA As Variant, oAB As Variant, oAC As Variant, oAE As Variant, oH As Variant, oStart As Variant, oEind As Variant
     Dim sZ As Double, sAE1 As Double, sW As Double, sAEtot As Double, sAFtot As Double, st As String, jr As Long, nRol As Long
     Dim cZ As Double, cW As Double, cAE As Double, afwijking As Boolean
 
@@ -6579,8 +6579,8 @@ Public Sub JaarovergangUitvoeren()
     oZ = wv.Range("Z2:Z" & laatste).Value: oAA = wv.Range("AA2:AA" & laatste).Value
     oAB = wv.Range("AB2:AB" & laatste).Value: oAC = wv.Range("AC2:AC" & laatste).Value
     oAE = wv.Range("AE2:AI" & laatste).Value: oH = wv.Range("H2:H" & laatste).Value
-    oM = wv.Range("M2:M" & laatste).Value: oN = wv.Range("N2:N" & laatste).Value
-    z = oZ: aa = oAA: ab = oAB: ac = oAC: ae = oAE: h = oH: m = oM: n = oN
+    oStart = wv.Range("M2:M" & laatste).Value: oEind = wv.Range("N2:N" & laatste).Value
+    z = oZ: aa = oAA: ab = oAB: ac = oAC: ae = oAE: h = oH: m = oStart: n = oEind
 
     For r = 1 To laatste - 1
         sZ = sZ + Nul(oZ(r, 1)): sAE1 = sAE1 + Nul(oAE(r, 1))
@@ -6602,8 +6602,8 @@ Public Sub JaarovergangUitvoeren()
             If Left$(st, 1) = "L" And jr > 0 And jr <= oud Then
                 h(r, 1) = "L" & nieuw
                 nRol = nRol + 1
-                If IsGetal(oM(r, 1)) Then m(r, 1) = Application.Max(CLng(oM(r, 1)) + 1, nieuw)
-                If IsGetal(oN(r, 1)) Then n(r, 1) = Application.Max(CLng(oN(r, 1)) + 1, nieuw)
+                If IsGetal(oStart(r, 1)) Then m(r, 1) = Application.Max(CLng(oStart(r, 1)) + 1, nieuw)
+                If IsGetal(oEind(r, 1)) Then n(r, 1) = Application.Max(CLng(oEind(r, 1)) + 1, nieuw)
             End If
         End If
     Next r
@@ -6630,7 +6630,7 @@ Public Sub JaarovergangUitvoeren()
         wv.Range("Z2:Z" & laatste).Value = oZ: wv.Range("AA2:AA" & laatste).Value = oAA
         wv.Range("AB2:AB" & laatste).Value = oAB: wv.Range("AC2:AC" & laatste).Value = oAC
         wv.Range("AE2:AI" & laatste).Value = oAE: wv.Range("H2:H" & laatste).Value = oH
-        wv.Range("M2:M" & laatste).Value = oM: wv.Range("N2:N" & laatste).Value = oN
+        wv.Range("M2:M" & laatste).Value = oStart: wv.Range("N2:N" & laatste).Value = oEind
         ThisWorkbook.Names("Par_LopendJaar").RefersToRange.Value = oud
         Application.DisplayAlerts = False
         wb.Unprotect WACHTWOORD
