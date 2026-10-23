@@ -8,6 +8,9 @@ Private cfMislukt As Boolean
 Private Const AANTAL As Long = 30
 Private Const BL_MELD As String = "Meldingen uitgaven"
 Private mMeld As Collection
+Private mVorige As Object          ' bedragen per kredietnummer en jaar uit de vorige upload
+Private mHeeftVorige As Boolean
+Private mAansl As String
 
 Private Type TKaart
     f(1 To 30) As Variant
@@ -3241,7 +3244,7 @@ Public Sub UitgavenBijwerken()
     Dim zk As Double, ni As Double, onb As Double, verwacht As Double, som As Double, kol As Long
     Dim m0 As Variant, m1 As Variant, arr() As Variant, rng As Range, tekst As String, alarm As Long
     Dim geschreven(0 To 1) As Boolean, oudKol(0 To 1) As Variant, sOud(0 To 1) As Double, sNieuw(0 To 1) As Double
-    Dim rv As Variant, grpBedrag As Object, g As Variant, vAD As Variant, rij0 As Long
+    Dim rv As Variant, grpBedrag As Object, g As Variant, vAD As Variant, rij0 As Long, bew() As Variant, nb As Long
 
     On Error GoTo Fout
     If Not HeeftRecht("Wijzigen") Then
@@ -3253,6 +3256,8 @@ Public Sub UitgavenBijwerken()
     lj = CLng(ThisWorkbook.Names("Par_LopendJaar").RefersToRange.Value)
     laatste = CLng(ThisWorkbook.Names("Par_LaatsteRij").RefersToRange.Value)
     Set mMeld = New Collection
+    mAansl = ""
+    VorigeUploadLezen
 
     ' 1. Bestand kiezen: nieuwste bestand uit de exportmap
     pad = KiesUitdraai(CStr(ThisWorkbook.Names("Par_PadUitgavenbestand").RefersToRange.Value))
@@ -3320,18 +3325,6 @@ Public Sub UitgavenBijwerken()
         MsgBox "De uitdraai heeft geen kolom voor het lopend jaar " & lj & ". Er is niets verwerkt.", vbExclamation
         GoTo Einde
     End If
-    tekst = "Bestand: " & Dir(pad) & vbCrLf & "Peildatum: " & Format$(peil, "dd-mm-yyyy") & vbCrLf & vbCrLf & _
-            "Kredietnummer: kolom " & Letter(cNr) & " (" & d(kop, cNr) & ")" & vbCrLf & _
-            "Kostensoort: kolom " & Letter(cKs) & " (" & d(kop, cKs) & ")" & vbCrLf & _
-            lj & " (lopend jaar, naar AC): kolom " & Letter(cJ(0)) & " (" & d(kop, cJ(0)) & ")" & vbCrLf
-    If cJ(1) > 0 Then
-        tekst = tekst & (lj - 1) & " (vorig jaar, naar AB): kolom " & Letter(cJ(1)) & " (" & d(kop, cJ(1)) & ")"
-        If peil > DateSerial(lj, 3, 31) Then tekst = tekst & " - alleen controle, jaarrekening is definitief"
-        tekst = tekst & vbCrLf
-    End If
-    If cBud > 0 Then tekst = tekst & "Budget: kolom " & Letter(cBud) & " (" & d(kop, cBud) & ")" & vbCrLf
-    Meld 5, "Herkende kolommen", lj, "", "", 0, Empty, Empty, Replace(tekst, vbCrLf, " | ")
-
     ' 4. Uitdraai optellen per kredietnummer
     Set nrIdx = CreateObject("Scripting.Dictionary")
     ReDim nrs(1 To nRij): ReDim bU(1 To nRij, 0 To 1): ReDim bI(1 To nRij, 0 To 1): ReDim bO(1 To nRij, 0 To 1)
@@ -3411,8 +3404,6 @@ Public Sub UitgavenBijwerken()
                 End If
             End If
         Next y
-    Else
-        Meld 5, "Info", lj, "", "", 0, Empty, Empty, "Geen eindtotaal in de uitdraai gevonden; controle op dubbeltelling alleen per kredietnummer."
     End If
 
     ' 5. Verzamellijst inlezen
@@ -3441,15 +3432,7 @@ Public Sub UitgavenBijwerken()
         If cJ(y) = 0 Then GoTo VolgendJaar
         kol = IIf(y = 0, 29, 28)                       ' AC = lopend jaar, AB = vorig jaar
         schrijven = (y = 0) Or (peil <= DateSerial(lj, 3, 31))
-        ' formules (bijv. handmatige verdeling =bedrag*40%) worden vervangen door de waarde uit de uitdraai; wel melden
-        If HeeftFormules(wv.Range(wv.Cells(2, kol), wv.Cells(laatste, kol))) And schrijven Then
-            For i = 2 To laatste
-                If wv.Cells(i, kol).HasFormula Then
-                    Meld 4, "Formule vervangen door waarde", lj - y, NrTekst(wv.Cells(i, 3).Value), CStr(wv.Cells(i, 4).Value), i, _
-                         wv.Cells(i, kol).Value, Empty, "Formule was: " & wv.Cells(i, kol).Formula
-                End If
-            Next i
-        End If
+        ' formules in de kolom (bijv. handmatige verdeling =bedrag*40%) worden vervangen door de waarde uit de uitdraai
         ReDim oud(1 To nS): ReDim nieuw(1 To nS): ReDim gezet(1 To nS)
         For i = 1 To nS
             If Not Leeg(vS(i, 1)) Then oud(i) = Nul(vS(i, kol))
@@ -3464,7 +3447,7 @@ Public Sub UitgavenBijwerken()
             If Not stamRij.Exists(nrs(i)) Then
                 If bU(i, y) <> 0 Or bI(i, y) <> 0 Then
                     zk = zk + bU(i, y) + bI(i, y)
-                    Meld 1, "ALARM: uitgaven zonder krediet", lj - y, nrs(i), "", 0, Empty, bU(i, y) + bI(i, y), _
+                    If Gemuteerd(nrs(i), lj - y, bU(i, y) + bI(i, y)) Then Meld 1, "ALARM: uitgaven zonder krediet", lj - y, nrs(i), "", 0, Empty, bU(i, y) + bI(i, y), _
                          "Kredietnummer staat niet in kolom C. Besluit nodig; rapporteren aan de raad, budgethouder in gebreke."
                 End If
                 GoTo VolgendNr
@@ -3493,10 +3476,6 @@ VolgendNr:
         For i = 1 To nS
             If Not gezet(i) And oud(i) <> 0 And Not Leeg(vS(i, 1)) Then
                 ni = ni + oud(i)
-                If schrijven Then
-                    Meld 4, "Niet in uitdraai, bedrag blijft staan", lj - y, NrTekst(vS(i, 3)), CStr(vS(i, 4)), i + 1, oud(i), Empty, _
-                         "Gemarkeerd met een notitie in " & Letter(kol) & (i + 1) & "."
-                End If
             End If
         Next i
 
@@ -3513,6 +3492,8 @@ VolgendNr:
                      "Verschil " & Format$(som - verwacht, "#,##0.00") & ". Jaar " & (lj - y) & " is NIET bijgewerkt."
                 GoTo VolgendJaar
             End If
+            mAansl = mAansl & "Aansluiting " & (lj - y) & ": uitdraai " & Format$(det(y), "#,##0.00") & ", verzamellijst " & _
+                     Format$(som, "#,##0.00") & IIf(Round(som - det(y), 2) <> 0, " (verschil verklaard door uitgaven zonder krediet / bedragen die blijven staan)", "") & ". Sluit.  "
             ReDim arr(1 To nS, 1 To 1)
             For i = 1 To nS
                 If Leeg(vS(i, 1)) Then arr(i, 1) = vS(i, kol) Else arr(i, 1) = nieuw(i)
@@ -3533,15 +3514,11 @@ VolgendNr:
                 End If
                 If gezet(i) And Round(nieuw(i) - oud(i), 2) <> 0 And UCase$(Left$(CStr(vS(i, 8)), 1)) = "A" Then
                     Meld 2, "Afgesloten krediet, toch uitgaven/inkomsten verwerkt", lj - y, NrTekst(vS(i, 3)), CStr(vS(i, 4)), i + 1, oud(i), nieuw(i), _
-                         "Status " & vS(i, 8) & ". Bedrag gewijzigd en wel verwerkt. Gemarkeerd met een notitie in " & Letter(kol) & (i + 1) & "."
+                         "Status " & vS(i, 8) & ". Bedrag gewijzigd en wel verwerkt. Gemarkeerd met een notitie in kolom '" & wv.Cells(1, kol).Text & "'."
                     wv.Cells(i + 1, kol).AddComment "Afgesloten krediet (" & vS(i, 8) & "): bedrag gewijzigd van " & Format$(oud(i), "#,##0.00") & _
                                                     " naar " & Format$(nieuw(i), "#,##0.00") & " (uitdraai " & Format$(peil, "dd-mm-yyyy") & ")."
                 End If
             Next i
-            Meld 5, "Aansluiting " & (lj - y), lj - y, "", "Uitdraai " & Format$(det(y), "#,##0.00"), 0, verwacht, som, _
-                 "Uitdraai " & Format$(det(y), "#,##0.00") & " - onbekende kostensoort " & Format$(onb, "#,##0.00") & _
-                 " - zonder krediet " & Format$(zk + geenNr(y), "#,##0.00") & " + blijft staan " & Format$(ni, "#,##0.00") & _
-                 " = " & Format$(verwacht, "#,##0.00") & ". Verzamellijst: " & Format$(som, "#,##0.00") & ". Verschil 0,00."
         Else
             ' Vorig jaar na 31-3: alleen controleren
             For Each g In stamRij.Keys
@@ -3554,9 +3531,9 @@ VolgendNr:
                     i = nrIdx(g)
                     v = bU(i, y) + bI(i, y)
                 End If
-                If Round(som - v, 2) <> 0 Then
+                If Round(som - v, 2) <> 0 And Gemuteerd(CStr(g), lj - y, v) Then
                     Meld 1, "ALARM: " & (lj - y) & " gewijzigd na 31-3, actie/herstel nodig", lj - y, CStr(g), CStr(vS(stamRij(g)(1), 4)), _
-                         stamRij(g)(1) + 1, som, v, "Jaarrekening is definitief. Kolom AB is NIET aangepast."
+                         stamRij(g)(1) + 1, som, v, "Jaarrekening is definitief. Kolom '" & wv.Cells(1, kol).Text & "' is NIET aangepast."
                 End If
             Next g
         End If
@@ -3572,21 +3549,7 @@ VolgendJaar:
         End If
     Next j
 
-    ' 8. Overschrijdingen zonder toelichting
-    vAD = wv.Range("AD2:AD" & laatste).Value
-    For i = 1 To nS
-        If Not Leeg(vS(i, 1)) And IsNumeric(vAD(i, 1)) And Not Leeg(vAD(i, 1)) Then
-            If Leeg(vS(i, 36)) Then
-                If Nul(vS(i, 26)) >= 0 And vAD(i, 1) < -0.005 Then
-                    Meld 3, "Uitgaven overschreden, toelichting ontbreekt", lj, NrTekst(vS(i, 3)), CStr(vS(i, 4)), i + 1, Empty, vAD(i, 1), _
-                         "Uitleg door de vakafdeling nodig in kolom AJ."
-                ElseIf Nul(vS(i, 26)) < 0 And vAD(i, 1) > 0.005 Then
-                    Meld 3, "Meer inkomsten dan geraamd, toelichting ontbreekt", lj, NrTekst(vS(i, 3)), CStr(vS(i, 4)), i + 1, Empty, vAD(i, 1), _
-                         "Uitleg door de vakafdeling nodig in kolom AJ."
-                End If
-            End If
-        End If
-    Next i
+    Application.Calculate
 
     ' 9. Vastleggen
     ThisWorkbook.Names("Par_PadUitgavenbestand").RefersToRange.Value = pad
@@ -3597,9 +3560,22 @@ VolgendJaar:
             wv.Cells(1, kol).ClearComments
             wv.Cells(1, kol).AddComment "Bijgewerkt uit " & Dir(pad) & ", kolom '" & d(kop, cJ(y)) & "', peildatum " & _
                                         Format$(peil, "dd-mm-yyyy") & ", op " & Format$(Now, "dd-mm-yyyy hh:mm") & "."
-            LogRegel "werkelijke uitgaven bijwerken", , , Letter(kol), Format$(sOud(y), "0.00"), Format$(sNieuw(y), "0.00"), Dir(pad) & " (" & (lj - y) & ")"
+            LogRegel "werkelijke uitgaven bijwerken", , , wv.Cells(1, kol).Text, Format$(sOud(y), "0.00"), Format$(sNieuw(y), "0.00"), Dir(pad) & " (" & (lj - y) & ")"
         End If
     Next y
+    ' bedragen van deze upload bewaren als vergelijking voor de volgende keer
+    ReDim bew(1 To 2 * nN + 1, 1 To 3)
+    For i = 1 To nN
+        For y = 0 To 1
+            If cJ(y) > 0 Then
+                If Round(bU(i, y) + bI(i, y) + bO(i, y), 2) <> 0 Then
+                    nb = nb + 1
+                    bew(nb, 1) = nrs(i): bew(nb, 2) = lj - y: bew(nb, 3) = Round(bU(i, y) + bI(i, y) + bO(i, y), 2)
+                End If
+            End If
+        Next y
+    Next i
+    VorigeUploadSchrijven bew, nb, Dir(pad)
     UitgavenOpmaakAanmaken
     alarm = MeldingenSchrijven(Dir(pad), peil)
     Application.ScreenUpdating = True
@@ -3638,21 +3614,11 @@ Private Sub VerdeelNummer(ByVal vS As Variant, ByVal rijen As Collection, ByVal 
     Next r
     If bR.Count = 0 Then
         Verdeel vS, uR, uit + ink, nieuw, False
-        If ink <> 0 Then Meld 4, "Inkomsten zonder bijdrageregel", jaar, nr, CStr(vS(uR(1), 4)), uR(1) + 1, Empty, ink, _
-                              "Inkomsten op de uitgavenregel gezet (saldo). Ontbreekt een bijdrageregel?"
-        If uR.Count > 1 And uit + ink <> 0 Then Meld 5, "Zelf verdeeld naar budget", jaar, nr, CStr(vS(uR(1), 4)), uR(1) + 1, Empty, uit + ink, _
-                              "Meerdere regels; verdeeld naar verhouding van het budget."
     ElseIf uR.Count = 0 Then
         Verdeel vS, bR, uit + ink, nieuw, True
-        If uit <> 0 Then Meld 4, "Uitgaven zonder uitgavenregel", jaar, nr, CStr(vS(bR(1), 4)), bR(1) + 1, Empty, uit, _
-                              "Alleen bijdrageregels; uitgaven op de bijdrageregel gezet."
     Else
         Verdeel vS, uR, uit, nieuw, False
         Verdeel vS, bR, ink, nieuw, True
-        If uR.Count > 1 And uit <> 0 Then Meld 5, "Zelf verdeeld naar budget", jaar, nr, CStr(vS(uR(1), 4)), uR(1) + 1, Empty, uit, _
-                              "Uitgaven over " & uR.Count & " uitgavenregels verdeeld naar verhouding van het budget."
-        If bR.Count > 1 And ink <> 0 Then Meld 5, "Zelf verdeeld naar budget", jaar, nr, CStr(vS(bR(1), 4)), bR(1) + 1, Empty, ink, _
-                              "Inkomsten over " & bR.Count & " bijdrageregels verdeeld naar verhouding van het budget."
     End If
 End Sub
 
@@ -3667,8 +3633,6 @@ Private Sub VerdeelGroep(ByVal vS As Variant, ByVal rijen As Collection, ByVal b
     Next r
     If somK <= 0 Then
         nieuw(rijen(1)) = bedrag
-        Meld 4, "Samengesteld krediet zonder sleutel", jaar, NrTekst(vS(rijen(1), 3)), CStr(vS(rijen(1), 4)), rijen(1) + 1, Empty, bedrag, _
-             "Groep " & grp & ": sleutel K is leeg of 0; alles op de eerste regel gezet."
         Exit Sub
     End If
     rest = bedrag
@@ -3680,8 +3644,6 @@ Private Sub VerdeelGroep(ByVal vS As Variant, ByVal rijen As Collection, ByVal b
         End If
     Next r
     nieuw(laatsteR) = Round(rest, 2)
-    If bedrag <> 0 Then Meld 5, "Zelf verdeeld via sleutel K", jaar, NrTekst(vS(rijen(1), 3)), CStr(vS(rijen(1), 4)), rijen(1) + 1, Empty, bedrag, _
-                            "Samengesteld krediet groep " & grp & ": uitgaven en inkomsten van de groep via sleutel K verdeeld."
 End Sub
 
 ' Verdeelt een bedrag over regels naar verhouding van het budget (bij bijdrageregels het negatieve budget).
@@ -3838,6 +3800,47 @@ End Function
 Private Function Letter(ByVal k As Long) As String
     Letter = Split(ThisWorkbook.Worksheets(1).Cells(1, k).Address(True, False), "$")(0)
 End Function
+
+' Leest de bedragen van de vorige upload (verborgen blad 'Vorige upload'). Geen blad = eerste upload.
+Private Sub VorigeUploadLezen()
+    Dim ws As Worksheet, r As Long, laatste As Long
+    Set mVorige = CreateObject("Scripting.Dictionary")
+    mHeeftVorige = BladBestaat("Vorige upload")
+    If Not mHeeftVorige Then Exit Sub
+    Set ws = ThisWorkbook.Worksheets("Vorige upload")
+    laatste = ws.Cells(ws.Rows.Count, 1).End(xlUp).Row
+    For r = 3 To laatste
+        mVorige(CStr(ws.Cells(r, 1).Value) & "|" & CStr(ws.Cells(r, 2).Value)) = Nul(ws.Cells(r, 3).Value)
+    Next r
+End Sub
+
+' True als het bedrag anders is dan bij de vorige upload. Eerste upload: alleen het lopend jaar telt
+' (vorige jaren zijn al beoordeeld en worden de beginstand).
+Private Function Gemuteerd(ByVal nr As String, ByVal jaar As Long, ByVal bedrag As Double) As Boolean
+    Dim vorigBedrag As Double
+    If Not mHeeftVorige Then
+        Gemuteerd = (jaar = CLng(ThisWorkbook.Names("Par_LopendJaar").RefersToRange.Value))
+        Exit Function
+    End If
+    If mVorige.Exists(nr & "|" & jaar) Then vorigBedrag = mVorige(nr & "|" & jaar)
+    Gemuteerd = (Round(bedrag - vorigBedrag, 2) <> 0)
+End Function
+
+Private Sub VorigeUploadSchrijven(ByRef bew() As Variant, ByVal nb As Long, ByVal bestand As String)
+    Dim ws As Worksheet
+    If Not BladBestaat("Vorige upload") Then
+        Set ws = ThisWorkbook.Worksheets.Add(After:=ThisWorkbook.Worksheets(ThisWorkbook.Worksheets.Count))
+        ws.Name = "Vorige upload"
+    Else
+        Set ws = ThisWorkbook.Worksheets("Vorige upload")
+    End If
+    ws.Cells.Clear
+    ws.Range("A1").Value = "Bedragen per kredietnummer en jaar uit de laatste upload (" & bestand & "). Niet wijzigen: hiermee worden mutaties herkend."
+    ws.Range("A2:C2").Value = Array("Kredietnummer", "Jaar", "Bedrag")
+    ws.Columns("A").NumberFormat = "@"
+    If nb > 0 Then ws.Range("A3").Resize(nb, 3).Value = bew
+    ws.Visible = xlSheetHidden
+End Sub
 
 ' Meldingen: 1 = ALARM, 2 = niet toegestaan, 3 = toelichting nodig, 4 = let op, 5 = info.
 Private Sub Meld(ByVal prio As Long, ByVal soort As String, ByVal jaar As Long, ByVal nr As String, ByVal oms As String, _
