@@ -1781,6 +1781,8 @@ Public Sub DashboardKnoppenPlaatsen()
     b.OnAction = "Verwerken"
     UitdraaiBlokPlaatsen
     KoppenStartEindjaar
+    TabbladenOrdenen
+    ws.Activate
 End Sub
 
 ' Een knop voor toevoegen en wijzigen: is er een regel geladen om te wijzigen, dan wordt de wijziging opgeslagen,
@@ -5253,10 +5255,12 @@ Private Function UitvraagBlad(ByVal naam As String) As Worksheet
     Set UitvraagBlad = ws
 End Function
 
-' Controle en Voertuigen altijd als laatste tabbladen.
-Private Sub TabbladenOrdenen()
+' Tabbladvolgorde: Dashboard altijd vooraan, Voertuigen en Controle altijd als laatste.
+' Draait bij openen, na elk overzicht en bij DashboardKnoppenPlaatsen; ook met de hand te starten.
+Public Sub TabbladenOrdenen()
     Dim naam As Variant
     On Error Resume Next
+    ThisWorkbook.Worksheets("Dashboard").Move Before:=ThisWorkbook.Worksheets(1)
     For Each naam In Array("Voertuigen", "Controle")
         If BladBestaatStil(CStr(naam)) Then
             ThisWorkbook.Worksheets(CStr(naam)).Move After:=ThisWorkbook.Worksheets(ThisWorkbook.Worksheets.Count)
