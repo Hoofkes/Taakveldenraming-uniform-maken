@@ -4550,11 +4550,12 @@ Public Sub UitdraaiBlokPlaatsen()
     Next i
 End Sub
 
-' Koppen van M en N in de verzamellijst (korte, duidelijke namen).
+' Koppen van M en N in de verzamellijst (korte, duidelijke namen) en kolom A (volgnummer) gecentreerd.
 Private Sub KoppenStartEindjaar()
     With ThisWorkbook.Worksheets("Verzamellijst alle kredieten")
         .Range("M1").Value = "Startjaar uitgaven"
         .Range("N1").Value = "Eindjaar uitgaven"
+        .Range("A1:A" & CLng(ThisWorkbook.Names("Par_MaxRij").RefersToRange.Value)).HorizontalAlignment = xlCenter   ' volgnummer gecentreerd
     End With
 End Sub
 
