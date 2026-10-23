@@ -6688,7 +6688,7 @@ End Sub
 ' ======================================================================
 ' Uitleg bij de knoppen
 ' ======================================================================
-' Naast elke knop op het Dashboard een blauw vraagteken; met de muis erop verschijnt de uitleg (scherminfo).
+' Naast elke knop op het Dashboard een knopje "?"; klikken toont de uitleg van die knop.
 Public Sub KnoppenUitlegPlaatsen()
     WerkStart                                    ' beveiliging even uit, daarna vanzelf weer aan
     Dim ws As Worksheet
@@ -6722,31 +6722,37 @@ Public Sub KnoppenUitlegPlaatsen()
     KnopUitleg ws, "btnNaarTabblad", "Ga naar tabblad: gaat naar het tabblad dat in G2 is gekozen."
 End Sub
 
-' Vraagteken naast de knop met de uitleg als scherminfo (verschijnt als de muis erop staat).
-' Het vraagteken is niet vergrendeld (Locked = False): op een beveiligd blad blijft de scherminfo dan werken.
-' Klikken selecteert alleen de cel onder het vraagteken; er springt niets.
+' Klein knopje "?" naast de knop. Klikken toont de uitleg in een venster. Dit is een gewone formulierknop, net als de
+' andere knoppen, zodat het ook op het beveiligde Dashboard werkt (scherminfo bij zweven is in Excel niet betrouwbaar).
 Private Sub KnopUitleg(ByVal ws As Worksheet, ByVal knop As String, ByVal tekst As String)
-    Dim b As Object, shp As Object
+    Dim b As Object, q As Object, had As Boolean
     On Error Resume Next
-    Set b = ws.Shapes(knop)
+    Set b = ws.Buttons(knop)
     If b Is Nothing Then Exit Sub
-    Set shp = ws.Shapes("uitleg_" & knop)
-    If shp Is Nothing Then b.Width = b.Width - 18 Else shp.Delete   ' ruimte voor het vraagteken (maar een keer)
-    Set shp = Nothing
-    Set shp = ws.Shapes.AddShape(9, b.Left + b.Width + 2, b.Top + (b.Height - 14) / 2, 14, 14)   ' 9 = ovaal
-    shp.Name = "uitleg_" & knop
-    shp.Fill.ForeColor.RGB = RGB(0, 73, 118)
-    shp.Line.Visible = False
-    With shp.TextFrame2
-        .MarginLeft = 0: .MarginRight = 0: .MarginTop = 0: .MarginBottom = 0
-        .TextRange.Text = "?"
-        .TextRange.Font.Size = 9
-        .TextRange.Font.Bold = True
-        .TextRange.Font.Fill.ForeColor.RGB = RGB(255, 255, 255)
-        .TextRange.ParagraphFormat.Alignment = 2
-        .VerticalAnchor = 3
-    End With
-    shp.Placement = xlFreeFloating
-    shp.Locked = False
-    ws.Hyperlinks.Add Anchor:=shp, Address:="", SubAddress:="'" & ws.Name & "'!" & shp.TopLeftCell.Address, ScreenTip:=Left$(tekst, 255)
+    Set q = ws.Shapes("uitleg_" & knop)
+    had = Not q Is Nothing
+    If had Then q.Delete Else b.Width = b.Width - 20     ' ruimte voor het vraagteken (maar een keer)
+    Set q = ws.Buttons.Add(b.Left + b.Width + 2, b.Top, 18, b.Height)
+    q.Name = "uitleg_" & knop
+    q.Caption = "?"
+    q.OnAction = "KnopUitlegTonen"
+    UitlegBewaren ws, "uitleg_" & knop, tekst
+End Sub
+
+' De uitleg wordt bewaard in een verborgen naam per knop, zodat hij ook na sluiten en openen beschikbaar is.
+Private Sub UitlegBewaren(ByVal ws As Worksheet, ByVal naam As String, ByVal tekst As String)
+    ThisWorkbook.Names.Add Name:="Uitleg_" & Mid$(naam, Len("uitleg_") + 1), RefersTo:="=""" & Replace(tekst, """", "'") & """", Visible:=False
+End Sub
+
+' Klik op een vraagteken: toont de uitleg van de knop ernaast.
+Public Sub KnopUitlegTonen()
+    Dim naam As String, knop As String, tekst As String, titel As String
+    On Error Resume Next
+    naam = CStr(Application.Caller)
+    knop = Mid$(naam, Len("uitleg_") + 1)
+    tekst = Evaluate(ThisWorkbook.Names("Uitleg_" & knop).RefersTo)
+    titel = ActiveSheet.Buttons(knop).Caption
+    On Error GoTo 0
+    If Len(tekst) = 0 Then Exit Sub
+    MsgBox tekst, vbInformation, "Uitleg" & IIf(Len(titel) > 0, ": " & titel, "")
 End Sub
