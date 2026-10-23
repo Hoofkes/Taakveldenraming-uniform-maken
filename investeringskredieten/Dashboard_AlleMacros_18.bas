@@ -131,8 +131,11 @@ Fout:
 End Sub
 
 Public Sub Auto_Open()
-    ' beveiliging opnieuw aanzetten (macro's mogen schrijven, gebruikers niet)
+    ' beveiliging opnieuw aanzetten (macro's mogen schrijven, gebruikers niet) en oude overzichtbladen opruimen
     BeveiligingAan
+    On Error Resume Next
+    OudeOverzichtbladenOpruimen
+    On Error GoTo 0
     ' keuzeopties verversen bij het openen (niet als het bestand alleen-lezen is geopend)
     On Error Resume Next
     If Not ThisWorkbook.ReadOnly Then KeuzelijstenVerversen True
@@ -5018,15 +5021,17 @@ End Sub
 
 ' Haalt bladen weg die eerdere versies van de overzichtmacro hebben gemaakt (een blad per opvraging).
 ' Alleen bladen met een naam volgens dat patroon EN de titel van het overzicht in A1; andere bladen blijven staan.
-Private Sub OudeOverzichtbladenOpruimen()
+' Draait bij openen en bij elk nieuw overzicht; ook met de hand te starten.
+Public Sub OudeOverzichtbladenOpruimen()
     Dim i As Long, ws As Worksheet, nm As String, titel As String
     Application.DisplayAlerts = False
     For i = ThisWorkbook.Worksheets.Count To 1 Step -1
         Set ws = ThisWorkbook.Worksheets(i)
         nm = ws.Name
         titel = CStr(ws.Range("A1").Value)
-        If (nm Like "Kredietoverzicht ##-##-####*" Or nm Like "Krediet * ##-##-##*" Or nm Like "Jaarrekening #### ##-##-##*") _
-           And (titel Like "Kredietoverzicht investeringskredieten*" Or titel Like "Kredietoverzicht jaarrekening*") Then
+        ' naam begint met "Krediet" of "Jaarrekening" (afgekapt op 31 tekens kan de datum half zijn), maar nooit de vaste bladen
+        If (nm Like "Krediet*" Or nm Like "Jaarrekening*") And nm <> "Kredietoverzicht" And nm <> BL_OVERZICHT _
+           And nm <> BL_OVERZICHT_NAAM And (titel Like "Kredietoverzicht investeringskredieten*" Or titel Like "Kredietoverzicht jaarrekening*") Then
             ws.Unprotect WACHTWOORD
             ws.Delete
         End If
