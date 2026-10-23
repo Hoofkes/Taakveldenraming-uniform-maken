@@ -4013,7 +4013,7 @@ Public Sub KredietoverzichtMaken()
     Set ws = OverzichtMaken("raad", ThisWorkbook.Worksheets("Verzamellijst alle kredieten"), lj, 0, "")
     If ws Is Nothing Then Exit Sub
     ' elke opvraging bewaren in de map met kredietoverzichten
-    map = MapStambestand("03 kredietoverzichten jaarrekening")
+    map = MapStambestand("03 kredietoverzichten")
     If Len(map) > 0 Then BladOpslaan ws, map, "Kredietoverzicht " & Format$(Date, "dd-mm-yyyy")
     ws.Activate
 End Sub
@@ -4062,7 +4062,7 @@ Public Sub KredietoverzichtJaarrekening()
     End If
     Set ws = OverzichtMaken("jaarrekening", best, jaar, 0, "")
     If ws Is Nothing Then Exit Sub
-    map = MapStambestand("03 kredietoverzichten jaarrekening")
+    map = MapStambestand("03 kredietoverzichten")
     If Len(map) > 0 Then
         BladOpslaan ws, map, "31-12-" & jaar & " Kredietoverzicht jaarrekening"
         ws.Activate
@@ -4540,7 +4540,7 @@ End Sub
 ' Opslaan in de SharePoint-mappen onder 'Stambestand kredieten'
 '   01 Applicatiebeheer Tijdschrijven : overzicht voor de beheerder tijdschrijven
 '   02 Budgetbeheerders en projectleiders : kredietoverzichten op naam
-'   03 kredietoverzichten jaarrekening : kredietoverzicht per 31-12
+'   03 kredietoverzichten : kredietoverzicht per 31-12
 ' De hoofdmap is de map boven 'export coda' (uit Par_PadUitgavenbestand), anders eenmalig kiezen.
 ' ----------------------------------------------------------------------
 

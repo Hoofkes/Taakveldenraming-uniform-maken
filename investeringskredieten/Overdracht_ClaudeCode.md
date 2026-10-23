@@ -64,7 +64,7 @@ Werkwijze in elke schrijfmacro: nulmeting vooraf en achteraf (alleen datarijen, 
 - Op naam: alleen L-kredieten, kredietnummer i.p.v. volgnr; opgeslagen in 02\<naam>\. Raad: volgnr, geen kredietnummer, A lopend jaar wel tonen.
 - Raadsoverzicht wordt bij elke opvraging bewaard in map 03 als "Kredietoverzicht <datum>".
 - Raad- en jaarrekeningoverzicht zien er hetzelfde uit (alleen de stand verschilt). Kolom Melding wordt verborgen als er geen meldingen zijn.
-- Mappen onder 'Stambestand kredieten' (map boven 'export coda', bewaard in naam `Par_MapStambestand`): 01 Applicatiebeheer Tijdschrijven (`OverzichtTijdschrijven`: lopende kredieten per kredietnummer, actie nieuw/gewijzigd/afgesloten t.o.v. nieuwste vorige bestand), 02 Budgetbeheerders en projectleiders (overzicht op naam, en `KredietoverzichtAlleBudgethouders`), 03 kredietoverzichten jaarrekening ("31-12-<jaar> Kredietoverzicht jaarrekening").
+- Mappen onder 'Stambestand kredieten' (map boven 'export coda', bewaard in naam `Par_MapStambestand`): 01 Applicatiebeheer Tijdschrijven (`OverzichtTijdschrijven`: lopende kredieten per kredietnummer, actie nieuw/gewijzigd/afgesloten t.o.v. nieuwste vorige bestand), 02 Budgetbeheerders en projectleiders (overzicht op naam, en `KredietoverzichtAlleBudgethouders`), 03 kredietoverzichten ("31-12-<jaar> Kredietoverzicht jaarrekening").
 - Afgesloten krediet (A): restant = 0 (formule AD via `RestantFormuleBijwerken`, eenmalig; vervangt handmatige nullen). In de overzichten kolom "Vrijval (+) / overschrijding (-) bij afsluiten" = budget - werkelijk, zodat budget = werkelijk + restant + vrijval altijd sluit.
 - `ToelichtingVoertuigenWissen`: eenmalig, toelichting bij voertuigen leeg (25 regels; leaseconstructie verwarrend, apart probleem).
 
