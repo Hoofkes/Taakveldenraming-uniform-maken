@@ -1812,6 +1812,7 @@ Public Sub DashboardKnoppenPlaatsen()
     KoppenStartEindjaar
     TabbladkiezerPlaatsen
     KnoppenTerugPlaatsen
+    KnoppenUitlegPlaatsen
     TabbladenOrdenen
     ws.Activate
 End Sub
@@ -4710,7 +4711,7 @@ Public Sub UitdraaiBlokPlaatsen()
     ws.Rows(67).RowHeight = 26
     namen = Array("btnOverzichtRaad", "btnOverzichtJaarrekening", "btnUitvraag", "btnAlleBudgethouders", "btnTijdschrijven", "btnActualisatie", "btnJaarovergang")
     titels = Array("Kredietoverzicht raad", "Kredietoverzicht jaarrekening", "Uitvraag kadernota/begroting", _
-                   "Overzichten alle budgethouders", "Overzicht tijdschrijven", "Actualisatie verwerken (C59)", "Jaarovergang uitvoeren")
+                   "Overzichten alle budgethouders", "Overzicht tijdschrijven", "Uitvraag verwerken (naam C59)", "Jaarovergang uitvoeren")
     acties = Array("KredietoverzichtMaken", "KredietoverzichtJaarrekening", "UitvraagBegroting", _
                    "KredietoverzichtAlleBudgethouders", "OverzichtTijdschrijven", "ActualisatieVerwerken", "JaarovergangUitvoeren")
     For i = 0 To 6
@@ -6675,4 +6676,66 @@ Private Sub JaarovergangSignaleren()
     Else
         MsgBox "Het lopend jaar in dit bestand is nog " & lj & ". De financieel adviseur moet de jaarovergang nog uitvoeren.", vbInformation
     End If
+End Sub
+
+' ======================================================================
+' Uitleg bij de knoppen
+' ======================================================================
+' Naast elke knop op het Dashboard een blauw vraagteken. Met de muis erop verschijnt de uitleg (hyperlink-scherminfo;
+' een knop zelf kan in Excel geen scherminfo tonen). Klikken op het vraagteken doet niets bijzonders.
+Public Sub KnoppenUitlegPlaatsen()
+    WerkStart                                    ' beveiliging even uit, daarna vanzelf weer aan
+    Dim ws As Worksheet
+    Set ws = ThisWorkbook.Worksheets("Dashboard")
+    KnopUitleg ws, "btnWijzigen", "Krediet wijzigen: zoek een bestaand krediet (op kredietnummer, omschrijving, activanummer of volgnummer). " & _
+               "Het komt op de invoerkaart; pas aan en klik op 'Ingevuld? Verwerken!'."
+    KnopUitleg ws, "btnKaartWissen", "Scherm leegmaken: maakt de invoerkaart leeg, er wordt niets opgeslagen."
+    KnopUitleg ws, "btnVerwijderen", "Krediet verwijderen: haalt het geladen krediet helemaal weg, alleen bij echte fouten en zonder werkelijke " & _
+               "uitgaven. Alleen financieel adviseur. De gegevens gaan naar het Logboek."
+    KnopUitleg ws, "btnUitgaven", "Werkelijke uitgaven bijwerken: leest de nieuwste uitdraai uit de map 'export coda' en werkt de werkelijke " & _
+               "uitgaven bij. Meldingen komen op het blad 'Meldingen uitgaven'; daarna wordt het kredietoverzicht raad gemaakt."
+    KnopUitleg ws, "btnTijdschrijvers", "Tijdschrijvers kiezen: kies een of meer tijdschrijvers voor dit krediet uit de lijst."
+    KnopUitleg ws, "btnVerwerken", "Ingevuld? Verwerken!: slaat de invoerkaart op. Nieuw krediet = toevoegen, geladen krediet = wijziging opslaan."
+    KnopUitleg ws, "btnOverzichtNaam", "Kredietoverzicht op naam: kies in C58 de rol en in C59 de naam. Alleen lopende kredieten. " & _
+               "Wordt ook bewaard in map 02 (submap per persoon)."
+    KnopUitleg ws, "btnOverzichtRaad", "Kredietoverzicht raad, stand vandaag: lopende kredieten t/m dit jaar plus de in dit jaar afgesloten " & _
+               "kredieten, zonder subsidies en bijdragen. Wordt bewaard in map 03."
+    KnopUitleg ws, "btnOverzichtJaarrekening", "Kredietoverzicht jaarrekening: stand per 31-12 van vorig jaar (uit de back-up van de jaarovergang). " & _
+               "Wordt bewaard in map 03."
+    KnopUitleg ws, "btnUitvraag", "Uitvraag kadernota/begroting: maakt per budgetbeheerder een bestand in map 02 waarin de teamleider " & _
+               "de budgetten per jaar actualiseert en toelicht."
+    KnopUitleg ws, "btnAlleBudgethouders", "Overzichten alle budgethouders: maakt voor elke budgetbeheerder een kredietoverzicht en bewaart het in map 02."
+    KnopUitleg ws, "btnTijdschrijven", "Overzicht tijdschrijven: voor de beheerder tijdschrijven, alleen nieuwe, gewijzigde en afgesloten " & _
+               "kredieten. Wordt bewaard in map 01."
+    KnopUitleg ws, "btnActualisatie", "Uitvraag verwerken: zet C58 op Budgetbeheerder en kies in C59 de teamleider. Het ingevulde uitvraagbestand " & _
+               "uit zijn map wordt na een samenvatting en uw akkoord verwerkt in de verzamellijst en in het mutatieregister."
+    KnopUitleg ws, "btnJaarovergang", "Jaarovergang: back-up per 31-12, bedragen schuiven een jaar op, lopende kredieten naar het nieuwe jaar. " & _
+               "Alleen financieel adviseur; eerst op een kopie testen."
+    KnopUitleg ws, "btnControles", "Controles vernieuwen: rekent de controles in blok 5 opnieuw uit en toont per controle waar het zit."
+    KnopUitleg ws, "btnNaarTabblad", "Ga naar tabblad: gaat naar het tabblad dat in G2 is gekozen."
+End Sub
+
+Private Sub KnopUitleg(ByVal ws As Worksheet, ByVal knop As String, ByVal tekst As String)
+    Dim b As Object, shp As Object, had As Boolean
+    On Error Resume Next
+    Set b = ws.Shapes(knop)
+    If b Is Nothing Then Exit Sub
+    Set shp = ws.Shapes("uitleg_" & knop)
+    had = Not shp Is Nothing
+    If had Then shp.Delete Else b.Width = b.Width - 18     ' ruimte maken voor het vraagteken (maar een keer)
+    Set shp = ws.Shapes.AddShape(9, b.Left + b.Width + 3, b.Top + (b.Height - 14) / 2, 14, 14)   ' 9 = ovaal
+    shp.Name = "uitleg_" & knop
+    shp.Fill.ForeColor.RGB = RGB(0, 73, 118)
+    shp.Line.Visible = False
+    With shp.TextFrame2
+        .MarginLeft = 0: .MarginRight = 0: .MarginTop = 0: .MarginBottom = 0
+        .TextRange.Text = "?"
+        .TextRange.Font.Size = 9
+        .TextRange.Font.Bold = True
+        .TextRange.Font.Fill.ForeColor.RGB = RGB(255, 255, 255)
+        .TextRange.ParagraphFormat.Alignment = 2                  ' midden
+        .VerticalAnchor = 3                                       ' midden
+    End With
+    shp.Placement = xlFreeFloating
+    ws.Hyperlinks.Add Anchor:=shp, Address:="", SubAddress:="'" & ws.Name & "'!" & b.TopLeftCell.Address, ScreenTip:=Left$(tekst, 255)
 End Sub
