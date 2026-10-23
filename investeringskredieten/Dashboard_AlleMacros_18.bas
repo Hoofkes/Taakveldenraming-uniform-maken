@@ -5457,12 +5457,14 @@ Private Function UitvraagBlad(ByVal naam As String) As Worksheet
             ws.Range(ws.Cells(k, 7), ws.Cells(k, 12)).Locked = False
             ws.Cells(k, 14).Locked = False
             ' teksten: "Budget vervallen" (alles naar 0), "Budget 2028 vervallen" (alleen jaarschijf naar 0),
-            ' "Budget verhoogd/verlaagd met EUR x", eventueel gevolgd door ", van 2027 naar 2028" bij een verschuiving
+            ' "Budget 2028 verhoogd/verlaagd met EUR x" (met het jaar), of bij een verschuiving
+            ' "Budget verlaagd met EUR x, van 2027 naar 2028" (oud en nieuw jaar)
             fWijz = "=LET(n,G#:K#,o,P#:T#,j,{" & jaren & "},d,SUM(n)-SUM(o)," & _
                     "van,TEXTJOIN("", "",TRUE,IF(n<o,j,"""")),naar,TEXTJOIN("", "",TRUE,IF(n>o,j,""""))," & _
                     "vv,TEXTJOIN("", "",TRUE,IF((n=0)*(o<>0),j,""""))," & _
                     "vs,IF(AND(van<>"""",naar<>""""),""van ""&van&"" naar ""&naar,"""")," & _
-                    "bd,IF(d>0,""Budget verhoogd met " & eur & " ""&FIXED(d,0),IF(d<0,""Budget verlaagd met " & eur & " ""&FIXED(-d,0),""""))," & _
+                    "jr,IF(vs="""",IF(naar<>"""",naar,van)&"" "","""")," & _
+                    "bd,IF(d>0,""Budget ""&jr&""verhoogd met " & eur & " ""&FIXED(d,0),IF(d<0,""Budget ""&jr&""verlaagd met " & eur & " ""&FIXED(-d,0),""""))," & _
                     "IF(AND(SUM(o)<>0,SUM(n)=0),""Budget vervallen""," & _
                     "IF(AND(naar="""",van<>"""",van=vv),""Budget ""&vv&"" vervallen""," & _
                     "IF(bd="""",IF(vs="""","""",""Budget ""&vs),bd&IF(vs="""","""","", ""&vs)))))"
