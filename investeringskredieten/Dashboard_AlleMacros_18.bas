@@ -3441,9 +3441,14 @@ Public Sub UitgavenBijwerken()
         If cJ(y) = 0 Then GoTo VolgendJaar
         kol = IIf(y = 0, 29, 28)                       ' AC = lopend jaar, AB = vorig jaar
         schrijven = (y = 0) Or (peil <= DateSerial(lj, 3, 31))
-        If HeeftFormules(wv.Range(wv.Cells(2, kol), wv.Cells(laatste, kol))) Then
-            MsgBox "Kolom " & Letter(kol) & " bevat formules. Er is niets verwerkt voor " & (lj - y) & ".", vbCritical
-            GoTo VolgendJaar
+        ' formules (bijv. handmatige verdeling =bedrag*40%) worden vervangen door de waarde uit de uitdraai; wel melden
+        If HeeftFormules(wv.Range(wv.Cells(2, kol), wv.Cells(laatste, kol))) And schrijven Then
+            For i = 2 To laatste
+                If wv.Cells(i, kol).HasFormula Then
+                    Meld 4, "Formule vervangen door waarde", lj - y, NrTekst(wv.Cells(i, 3).Value), CStr(wv.Cells(i, 4).Value), i, _
+                         wv.Cells(i, kol).Value, Empty, "Formule was: " & wv.Cells(i, kol).Formula
+                End If
+            Next i
         End If
         ReDim oud(1 To nS): ReDim nieuw(1 To nS): ReDim gezet(1 To nS)
         For i = 1 To nS
@@ -3513,7 +3518,7 @@ VolgendNr:
                 If Leeg(vS(i, 1)) Then arr(i, 1) = vS(i, kol) Else arr(i, 1) = nieuw(i)
             Next i
             Set rng = wv.Range(wv.Cells(2, kol), wv.Cells(laatste, kol))
-            oudKol(y) = rng.Value
+            oudKol(y) = rng.Formula                     ' formules bewaren voor terugzetten
             rng.Value = arr
             geschreven(y) = True
             sOud(y) = 0: sNieuw(y) = som
@@ -3615,7 +3620,7 @@ Fout:
     On Error Resume Next
     If Not wbU Is Nothing Then wbU.Close SaveChanges:=False
     For y = 0 To 1
-        If geschreven(y) Then wv.Range(wv.Cells(2, IIf(y = 0, 29, 28)), wv.Cells(laatste, IIf(y = 0, 29, 28))).Value = oudKol(y)
+        If geschreven(y) Then wv.Range(wv.Cells(2, IIf(y = 0, 29, 28)), wv.Cells(laatste, IIf(y = 0, 29, 28))).Formula = oudKol(y)
     Next y
     Application.ScreenUpdating = True
     MsgBox "Fout: " & foutTekst & vbCrLf & "Er is niets gewijzigd.", vbCritical
