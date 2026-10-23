@@ -5447,12 +5447,16 @@ Private Function UitvraagBlad(ByVal naam As String) As Worksheet
             ws.Cells(k, 14).Interior.Color = RGB(255, 255, 204)
             ws.Range(ws.Cells(k, 7), ws.Cells(k, 12)).Locked = False
             ws.Cells(k, 14).Locked = False
+            ' teksten: "Budget vervallen" (alles naar 0), "Budget 2028 vervallen" (alleen jaarschijf naar 0),
+            ' "Budget verhoogd/verlaagd met EUR x", eventueel gevolgd door ", van 2027 naar 2028" bij een verschuiving
             fWijz = "=LET(n,G#:K#,o,P#:T#,j,{" & jaren & "},d,SUM(n)-SUM(o)," & _
                     "van,TEXTJOIN("", "",TRUE,IF(n<o,j,"""")),naar,TEXTJOIN("", "",TRUE,IF(n>o,j,""""))," & _
+                    "vv,TEXTJOIN("", "",TRUE,IF((n=0)*(o<>0),j,""""))," & _
                     "vs,IF(AND(van<>"""",naar<>""""),""van ""&van&"" naar ""&naar,"""")," & _
-                    "bd,IF(d>0,""bedrag verhoogd met " & eur & " ""&FIXED(d,0),IF(d<0,""bedrag verlaagd met " & eur & " ""&FIXED(-d,0),""""))," & _
-                    "t,IF(AND(SUM(o)>0,SUM(n)=0),""krediet vervalt"",TEXTJOIN("", "",TRUE,vs,bd))," & _
-                    "IF(t="""","""",UPPER(LEFT(t,1))&MID(t,2,500)))"
+                    "bd,IF(d>0,""Budget verhoogd met " & eur & " ""&FIXED(d,0),IF(d<0,""Budget verlaagd met " & eur & " ""&FIXED(-d,0),""""))," & _
+                    "IF(AND(SUM(o)<>0,SUM(n)=0),""Budget vervallen""," & _
+                    "IF(AND(naar="""",van<>"""",van=vv),""Budget ""&vv&"" vervallen""," & _
+                    "IF(bd="""",IF(vs="""","""",""Budget ""&vs),bd&IF(vs="""","""","", ""&vs)))))"
             ws.Cells(k, 13).Formula2 = Replace(fWijz, "#", CStr(k))
             With ws.Cells(k, 13).FormatConditions.Add(Type:=xlCellValue, Operator:=xlNotEqual, Formula1:="=""""")
                 .Interior.Color = RGB(255, 200, 120)          ' markering: er is iets gewijzigd
