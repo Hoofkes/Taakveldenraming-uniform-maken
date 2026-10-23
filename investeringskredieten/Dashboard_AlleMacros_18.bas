@@ -11,6 +11,7 @@ Private mMeld As Collection
 Private mVorige As Object          ' bedragen per kredietnummer en jaar uit de vorige upload
 Private mHeeftVorige As Boolean
 Private mAansl As String
+Private mStil As Boolean             ' geen meldingen tijdens een reeks overzichten
 
 Private Type TKaart
     f(1 To 30) As Variant
@@ -4006,7 +4007,7 @@ Public Sub KredietoverzichtMaken()
 End Sub
 
 Public Sub KredietoverzichtOpNaam()
-    Dim wd As Worksheet, rol As String, naam As String, kol As Long, lj As Long
+    Dim wd As Worksheet, rol As String, naam As String, kol As Long, lj As Long, ws As Worksheet, map As String
     Set wd = ThisWorkbook.Worksheets("Dashboard")
     rol = Trim$(CStr(wd.Range("C58").Value))
     naam = Trim$(CStr(wd.Range("C59").Value))
@@ -4023,11 +4024,18 @@ Public Sub KredietoverzichtOpNaam()
         Exit Sub
     End If
     lj = CLng(ThisWorkbook.Names("Par_LopendJaar").RefersToRange.Value)
-    OverzichtMaken "naam", ThisWorkbook.Worksheets("Verzamellijst alle kredieten"), lj, kol, naam
+    Set ws = OverzichtMaken("naam", ThisWorkbook.Worksheets("Verzamellijst alle kredieten"), lj, kol, naam)
+    If ws Is Nothing Then Exit Sub
+    map = MapStambestand("02 Budgetbeheerders en projectleiders")
+    If Len(map) > 0 Then
+        BladOpslaan ws, map, "Kredietoverzicht " & naam & " " & Format$(Date, "dd-mm-yyyy")
+        ws.Activate
+        MsgBox "Opgeslagen in:" & vbCrLf & map, vbInformation
+    End If
 End Sub
 
 Public Sub KredietoverzichtJaarrekening()
-    Dim ws As Worksheet, jaar As Long, best As Worksheet, j As Long
+    Dim ws As Worksheet, jaar As Long, best As Worksheet, j As Long, map As String
     For Each ws In ThisWorkbook.Worksheets
         If ws.Name Like "Verzamellijst t/m ####" Then
             j = CLng(Right$(ws.Name, 4))
@@ -4039,11 +4047,18 @@ Public Sub KredietoverzichtJaarrekening()
                "Het jaarrekeningoverzicht kan pas daarna worden gemaakt.", vbInformation
         Exit Sub
     End If
-    OverzichtMaken "jaarrekening", best, jaar, 0, ""
+    Set ws = OverzichtMaken("jaarrekening", best, jaar, 0, "")
+    If ws Is Nothing Then Exit Sub
+    map = MapStambestand("03 kredietoverzichten jaarrekening")
+    If Len(map) > 0 Then
+        BladOpslaan ws, map, "31-12-" & jaar & " Kredietoverzicht jaarrekening"
+        ws.Activate
+        MsgBox "Opgeslagen in:" & vbCrLf & map, vbInformation
+    End If
 End Sub
 
 ' Maakt het overzicht. soort = "raad", "naam" of "jaarrekening"; jaar = het jaar waarop de selectie is gebaseerd.
-Private Sub OverzichtMaken(ByVal soort As String, ByVal bron As Worksheet, ByVal jaar As Long, ByVal naamKol As Long, ByVal naam As String)
+Private Function OverzichtMaken(ByVal soort As String, ByVal bron As Worksheet, ByVal jaar As Long, ByVal naamKol As Long, ByVal naam As String) As Worksheet
     Dim v As Variant, laatste As Long, r As Long, n As Long, i As Long, k As Long, c As Long
     Dim sel() As Long, sleutel() As String, toek() As Boolean, nSel As Long
     Dim stLetter As String, sj As Long, neem As Boolean, toekomst As Boolean, b As Double
@@ -4106,7 +4121,7 @@ Private Sub OverzichtMaken(ByVal soort As String, ByVal bron As Worksheet, ByVal
         End If
     Next r
     If nSel = 0 Then
-        MsgBox "Geen kredieten gevonden voor deze selectie.", vbInformation
+        If Not mStil Then MsgBox "Geen kredieten gevonden voor deze selectie.", vbInformation
         GoTo Einde
     End If
     SorteerSleutels sleutel, sel, toek, 1, nSel
@@ -4163,7 +4178,12 @@ Private Sub OverzichtMaken(ByVal soort As String, ByVal bron As Worksheet, ByVal
     ws.Cells.Font.Name = "Tahoma"
     ws.Cells.Font.Size = 10
 
-    ws.Range("A1").Value = IIf(soort = "jaarrekening", "Kredietoverzicht jaarrekening " & jaar, "Kredietoverzicht investeringskredieten")
+    ' raad en jaarrekening zien er hetzelfde uit; alleen de stand verschilt (gedurende het jaar of per 31-12)
+    Select Case soort
+        Case "jaarrekening": ws.Range("A1").Value = "Kredietoverzicht investeringskredieten - stand 31-12-" & jaar
+        Case "raad":         ws.Range("A1").Value = "Kredietoverzicht investeringskredieten - stand " & Format$(Date, "dd-mm-yyyy")
+        Case Else:           ws.Range("A1").Value = "Kredietoverzicht investeringskredieten " & naam & " - stand " & Format$(Date, "dd-mm-yyyy")
+    End Select
     ws.Range("A1").Font.Bold = True
     ws.Range("A1").Font.Size = 14
     ws.Range("A2").Value = "Selectie: " & selTekst & ". " & nSel & " kredieten. Gemaakt op " & Format$(Now, "dd-mm-yyyy hh:mm") & _
@@ -4280,6 +4300,9 @@ Private Sub OverzichtMaken(ByVal soort As String, ByVal bron As Worksheet, ByVal
     ws.Range(ws.Cells(5, 1), ws.Cells(rij, nK + 7)).VerticalAlignment = xlTop
     ws.Range(ws.Cells(eersteData, 1), ws.Cells(rij, nK + 7)).Rows.AutoFit
 
+    ' kolom Melding alleen tonen als er meldingen zijn
+    If Application.WorksheetFunction.CountA(ws.Range(ws.Cells(eersteData, cMeld), ws.Cells(rij, cMeld))) = 0 Then ws.Columns(cMeld).Hidden = True
+
     ' 7. Aansluitcontrole restantkrediet
     If Round(somRest - somBron, 2) = 0 Then
         tekst = "Aansluiting restantkrediet: overzicht " & Format$(somRest, "#,##0") & " = verzamellijst " & Format$(somBron, "#,##0") & ". Sluit."
@@ -4310,14 +4333,15 @@ Private Sub OverzichtMaken(ByVal soort As String, ByVal bron As Worksheet, ByVal
         .CenterFooter = "Pagina &P van &N"
     End With
     On Error GoTo Fout
+    Set OverzichtMaken = ws
     LogRegel "kredietoverzicht", , , soort, , , ws.Name & " | " & selTekst & " | " & nSel & " kredieten"
 Einde:
     Application.ScreenUpdating = True
-    Exit Sub
+    Exit Function
 Fout:
     Application.ScreenUpdating = True
     MsgBox "Fout bij het maken van het overzicht: " & Err.Description, vbCritical
-End Sub
+End Function
 
 ' Tussentotaalregel met SUBTOTAL over de bedragkolommen. niveau 1 = programma, 2 = investeringsgroep, 3 = samengesteld krediet.
 Private Sub Tussentotaal(ByVal ws As Worksheet, ByRef rij As Long, ByVal vanRij As Long, ByVal label As String, _
@@ -4411,16 +4435,19 @@ Public Sub UitdraaiBlokPlaatsen()
         .Interior.Color = RGB(255, 255, 204)
     End With
     On Error Resume Next
-    For Each naam In Array("btnOverzichtRaad", "btnOverzichtNaam", "btnOverzichtJaarrekening")
+    For Each naam In Array("btnOverzichtRaad", "btnOverzichtNaam", "btnOverzichtJaarrekening", "btnAlleBudgethouders", "btnTijdschrijven")
         ws.Shapes(CStr(naam)).Delete
     Next naam
     On Error GoTo 0
     ws.Rows(61).RowHeight = 26
-    namen = Array("btnOverzichtRaad", "btnOverzichtNaam", "btnOverzichtJaarrekening")
-    titels = Array("Kredietoverzicht raad", "Kredietoverzicht op naam", "Kredietoverzicht jaarrekening")
-    acties = Array("KredietoverzichtMaken", "KredietoverzichtOpNaam", "KredietoverzichtJaarrekening")
-    For i = 0 To 2
-        Set b = ws.Buttons.Add(ws.Range("B61").Left + i * 170, ws.Range("B61").Top + 2, 165, 22)
+    ws.Rows(62).RowHeight = 26
+    namen = Array("btnOverzichtRaad", "btnOverzichtNaam", "btnOverzichtJaarrekening", "btnAlleBudgethouders", "btnTijdschrijven")
+    titels = Array("Kredietoverzicht raad", "Kredietoverzicht op naam", "Kredietoverzicht jaarrekening", _
+                   "Overzichten alle budgethouders", "Overzicht tijdschrijven")
+    acties = Array("KredietoverzichtMaken", "KredietoverzichtOpNaam", "KredietoverzichtJaarrekening", _
+                   "KredietoverzichtAlleBudgethouders", "OverzichtTijdschrijven")
+    For i = 0 To 4
+        Set b = ws.Buttons.Add(ws.Range("B61").Left + (i Mod 3) * 170, ws.Range("B61").Offset(i \ 3, 0).Top + 2, 165, 22)
         b.Name = namen(i)
         b.Caption = titels(i)
         b.OnAction = acties(i)
@@ -4461,3 +4488,271 @@ Public Sub ToelichtingVoertuigenWissen()
     Next r
     MsgBox "Toelichting gewist bij " & n & " voertuigen.", vbInformation
 End Sub
+
+' ----------------------------------------------------------------------
+' Opslaan in de SharePoint-mappen onder 'Stambestand kredieten'
+'   01 Applicatiebeheer Tijdschrijven : overzicht voor de beheerder tijdschrijven
+'   02 Budgetbeheerders en projectleiders : kredietoverzichten op naam
+'   03 kredietoverzichten jaarrekening : kredietoverzicht per 31-12
+' De hoofdmap is de map boven 'export coda' (uit Par_PadUitgavenbestand), anders eenmalig kiezen.
+' ----------------------------------------------------------------------
+
+' Geeft het pad van een submap van 'Stambestand kredieten' (met \ aan het eind); maakt de submap zo nodig aan. Leeg = afgebroken.
+Private Function MapStambestand(ByVal submap As String) As String
+    Dim basis As String, pad As String
+    On Error Resume Next
+    basis = Evaluate(ThisWorkbook.Names("Par_MapStambestand").RefersTo)
+    On Error GoTo 0
+    If Not MapBestaat(basis) Then
+        pad = CStr(ThisWorkbook.Names("Par_PadUitgavenbestand").RefersToRange.Value)
+        If InStrRev(pad, "\") > 0 Then
+            pad = Left$(pad, InStrRev(pad, "\") - 1)          ' map export coda
+            If InStrRev(pad, "\") > 0 Then basis = Left$(pad, InStrRev(pad, "\"))
+        End If
+    End If
+    If Not MapBestaat(basis) Then
+        With Application.FileDialog(4)
+            .Title = "Kies de map 'Stambestand kredieten'"
+            If .Show <> -1 Then Exit Function
+            basis = .SelectedItems(1)
+        End With
+    End If
+    If Right$(basis, 1) <> "\" Then basis = basis & "\"
+    ThisWorkbook.Names.Add Name:="Par_MapStambestand", RefersTo:="=""" & basis & """"
+    pad = basis & submap
+    If Not MapBestaat(pad) Then MkDir pad
+    MapStambestand = pad & "\"
+End Function
+
+' Bewaart een kopie van het blad als los Excelbestand. Bestaat het bestand al, dan wordt het overschreven.
+Private Function BladOpslaan(ByVal ws As Worksheet, ByVal map As String, ByVal bestand As String) As Boolean
+    Dim wb As Workbook, t As Variant
+    For Each t In Array("\", "/", "?", "*", "[", "]", ":", """", "<", ">", "|")
+        bestand = Replace(bestand, CStr(t), "-")
+    Next t
+    ws.Copy
+    Set wb = ActiveWorkbook
+    Application.DisplayAlerts = False
+    wb.SaveAs Filename:=map & bestand & ".xlsx", FileFormat:=51
+    wb.Close SaveChanges:=False
+    Application.DisplayAlerts = True
+    ThisWorkbook.Activate
+    BladOpslaan = True
+End Function
+
+' Maakt per budgetbeheerder (kolom O) een kredietoverzicht en bewaart het in map 02. De bladen blijven niet in de werkmap.
+Public Sub KredietoverzichtAlleBudgethouders()
+    Dim wv As Worksheet, r As Long, laatste As Long, namen As Object, nm As Variant, ws As Worksheet
+    Dim map As String, lj As Long, n As Long
+    Set wv = ThisWorkbook.Worksheets("Verzamellijst alle kredieten")
+    laatste = CLng(ThisWorkbook.Names("Par_LaatsteRij").RefersToRange.Value)
+    Set namen = CreateObject("Scripting.Dictionary")
+    For r = 2 To laatste
+        If Not Leeg(wv.Cells(r, 1).Value) And Not Leeg(wv.Cells(r, 15).Value) Then namen(Trim$(CStr(wv.Cells(r, 15).Value))) = True
+    Next r
+    If MsgBox("Voor " & namen.Count & " budgetbeheerders een kredietoverzicht maken en opslaan in map '02 Budgetbeheerders en projectleiders'?", _
+              vbYesNo + vbQuestion, "Kredietoverzichten budgethouders") <> vbYes Then Exit Sub
+    map = MapStambestand("02 Budgetbeheerders en projectleiders")
+    If Len(map) = 0 Then Exit Sub
+    lj = CLng(ThisWorkbook.Names("Par_LopendJaar").RefersToRange.Value)
+    mStil = True
+    For Each nm In namen.Keys
+        Set ws = OverzichtMaken("naam", wv, lj, 15, CStr(nm))
+        If Not ws Is Nothing Then
+            BladOpslaan ws, map, "Kredietoverzicht " & nm & " " & Format$(Date, "dd-mm-yyyy")
+            Application.DisplayAlerts = False
+            ws.Delete
+            Application.DisplayAlerts = True
+            n = n + 1
+        End If
+    Next nm
+    mStil = False
+    ThisWorkbook.Worksheets("Dashboard").Activate
+    MsgBox n & " kredietoverzichten opgeslagen in:" & vbCrLf & map, vbInformation
+End Sub
+
+' Overzicht voor de beheerder tijdschrijven: een regel per kredietnummer van alle lopende kredieten (L),
+' met projectleider en tijdschrijvers in een cel, en per regel de actie ten opzichte van het vorige overzicht
+' (nieuw / gewijzigd / afgesloten). Wordt als los bestand bewaard in map 01.
+Public Sub OverzichtTijdschrijven()
+    Dim wv As Worksheet, map As String, f As String, vorigBestand As String, dt As Date
+    Dim laatste As Long, r As Long, nr As String, i As Long, n As Long
+    Dim huidig As Object, vorig As Object, toegevoegd As Object, rec As Variant, oudRec As Variant
+    Dim wb As Workbook, ws As Worksheet, d As Variant, rij As Long, actie As String, st As String
+    Dim nNieuw As Long, nGewijzigd As Long, nAfgesloten As Long, sleutels As Variant
+
+    On Error GoTo Fout
+    map = MapStambestand("01 Applicatiebeheer Tijdschrijven")
+    If Len(map) = 0 Then Exit Sub
+    Set wv = ThisWorkbook.Worksheets("Verzamellijst alle kredieten")
+    laatste = CLng(ThisWorkbook.Names("Par_LaatsteRij").RefersToRange.Value)
+
+    ' huidige stand per kredietnummer: omschrijving, status, projectleider, tijdschrijvers
+    Set huidig = CreateObject("Scripting.Dictionary")
+    For r = 2 To laatste
+        nr = NrTekst(wv.Cells(r, 3).Value)
+        st = Trim$(CStr(wv.Cells(r, 8).Value))
+        If Len(nr) > 0 And nr <> "7999998" And UCase$(Left$(st, 1)) = "L" Then
+            If Not huidig.Exists(nr) Then
+                huidig(nr) = Array(CStr(wv.Cells(r, 4).Value), st, Trim$(CStr(wv.Cells(r, 16).Value)), _
+                                   NamenSamenvoegen("", CStr(wv.Cells(r, 17).Value)), CStr(wv.Cells(r, 47).Value))
+            Else
+                rec = huidig(nr)
+                rec(3) = NamenSamenvoegen(CStr(rec(3)), CStr(wv.Cells(r, 17).Value))
+                huidig(nr) = rec
+            End If
+        End If
+    Next r
+
+    ' vorig overzicht: nieuwste bestand in de map
+    Set vorig = CreateObject("Scripting.Dictionary")
+    Set toegevoegd = CreateObject("Scripting.Dictionary")
+    f = Dir(map & "*.xlsx")
+    Do While Len(f) > 0
+        If Left$(f, 2) <> "~$" Then
+            If Len(vorigBestand) = 0 Or FileDateTime(map & f) > dt Then vorigBestand = map & f: dt = FileDateTime(map & f)
+        End If
+        f = Dir()
+    Loop
+    If Len(vorigBestand) > 0 Then
+        Set wb = Workbooks.Open(Filename:=vorigBestand, ReadOnly:=True, UpdateLinks:=0)
+        d = wb.Worksheets(1).UsedRange.Value
+        wb.Close SaveChanges:=False
+        ThisWorkbook.Activate
+        If IsArray(d) Then
+            For i = 5 To UBound(d, 1)
+                nr = Trim$(Tkst(d(i, 1)))
+                If Len(nr) > 0 And LCase$(Tkst(d(i, 6))) <> "afgesloten" Then
+                    vorig(nr) = Array(Tkst(d(i, 2)), Tkst(d(i, 3)), Tkst(d(i, 4)), Tkst(d(i, 5)))
+                    If UBound(d, 2) >= 7 Then toegevoegd(nr) = Tkst(d(i, 7))
+                End If
+            Next i
+        End If
+    End If
+
+    ' nieuw overzicht opbouwen
+    Set wb = Workbooks.Add(xlWBATWorksheet)
+    Set ws = wb.Worksheets(1)
+    ws.Name = "Tijdschrijven"
+    ws.Cells.Font.Name = "Tahoma"
+    ws.Cells.Font.Size = 10
+    ws.Range("A1").Value = "Kredieten voor tijdschrijven (alle lopende kredieten)"
+    ws.Range("A1").Font.Bold = True
+    ws.Range("A1").Font.Size = 14
+    ws.Range("A2").Value = "Gemaakt op " & Format$(Now, "dd-mm-yyyy hh:mm") & " door " & ThisWorkbook.Names("Par_HuidigeGebruiker").RefersToRange.Value & _
+                           ". Vergeleken met: " & IIf(Len(vorigBestand) > 0, Dir(vorigBestand), "geen vorig overzicht (alle regels nieuw)") & "."
+    ws.Range("A2").Font.Italic = True
+    ws.Range("A4:G4").Value = Array("Kredietnummer", "Omschrijving", "Status", "Projectleider", "Tijdschrijvers", "Actie", "Toegevoegd op")
+    With ws.Range("A4:G4")
+        .Font.Bold = True
+        .Interior.Color = RGB(208, 208, 208)
+        .Borders(xlEdgeBottom).LineStyle = xlContinuous
+    End With
+    ws.Columns("A").NumberFormat = "@"
+    rij = 5
+    sleutels = huidig.Keys
+    For i = 0 To huidig.Count - 1
+        nr = sleutels(i)
+        rec = huidig(nr)
+        actie = ""
+        If Not vorig.Exists(nr) Then
+            actie = "nieuw": nNieuw = nNieuw + 1
+        Else
+            oudRec = vorig(nr)
+            If oudRec(0) <> rec(0) Or oudRec(2) <> rec(2) Or NamenSamenvoegen("", CStr(oudRec(3))) <> rec(3) Then
+                actie = "gewijzigd": nGewijzigd = nGewijzigd + 1
+            End If
+        End If
+        ws.Cells(rij, 1).Value = nr
+        ws.Cells(rij, 2).Value = rec(0)
+        ws.Cells(rij, 3).Value = rec(1)
+        ws.Cells(rij, 4).Value = rec(2)
+        ws.Cells(rij, 5).Value = rec(3)
+        ws.Cells(rij, 6).Value = actie
+        If toegevoegd.Exists(nr) And Len(toegevoegd(nr)) > 0 Then
+            ws.Cells(rij, 7).Value = toegevoegd(nr)
+        ElseIf Len(rec(4)) > 0 And actie <> "nieuw" Then
+            ws.Cells(rij, 7).Value = rec(4)
+        Else
+            ws.Cells(rij, 7).Value = Format$(Date, "dd-mm-yyyy")
+        End If
+        If actie = "nieuw" Then ws.Range(ws.Cells(rij, 1), ws.Cells(rij, 7)).Interior.Color = RGB(198, 239, 206)
+        If actie = "gewijzigd" Then ws.Range(ws.Cells(rij, 1), ws.Cells(rij, 7)).Interior.Color = RGB(255, 235, 156)
+        rij = rij + 1
+    Next i
+    ' afgesloten: stond in het vorige overzicht, is nu geen lopend krediet meer
+    sleutels = vorig.Keys
+    For i = 0 To vorig.Count - 1
+        nr = sleutels(i)
+        If Not huidig.Exists(nr) Then
+            oudRec = vorig(nr)
+            ws.Cells(rij, 1).Value = nr
+            ws.Cells(rij, 2).Value = oudRec(0)
+            ws.Cells(rij, 3).Value = HuidigeStatus(wv, laatste, nr)
+            ws.Cells(rij, 4).Value = oudRec(2)
+            ws.Cells(rij, 5).Value = oudRec(3)
+            ws.Cells(rij, 6).Value = "afgesloten"
+            If toegevoegd.Exists(nr) Then ws.Cells(rij, 7).Value = toegevoegd(nr)
+            ws.Range(ws.Cells(rij, 1), ws.Cells(rij, 7)).Interior.Color = RGB(255, 199, 206)
+            nAfgesloten = nAfgesloten + 1
+            rij = rij + 1
+        End If
+    Next i
+    ws.Range("A3").Value = huidig.Count & " lopende kredieten: " & nNieuw & " nieuw, " & nGewijzigd & " gewijzigd, " & nAfgesloten & " afgesloten."
+    ws.Range("A3").Font.Bold = True
+    ws.Columns("A").ColumnWidth = 14
+    ws.Columns("B").ColumnWidth = 40
+    ws.Columns("C").ColumnWidth = 9
+    ws.Columns("D").ColumnWidth = 22
+    ws.Columns("E").ColumnWidth = 50
+    ws.Columns("F").ColumnWidth = 11
+    ws.Columns("G").ColumnWidth = 13
+    ws.Range("A5:G" & rij).VerticalAlignment = xlTop
+    ws.Range("B5:B" & rij & ",E5:E" & rij).WrapText = True
+    ws.Range("A4:G" & Application.Max(5, rij - 1)).AutoFilter
+    ws.Range("A5:G" & rij).Rows.AutoFit
+    Application.DisplayAlerts = False
+    wb.SaveAs Filename:=map & "Tijdschrijven kredieten " & Format$(Date, "yyyy-mm-dd") & ".xlsx", FileFormat:=51
+    wb.Close SaveChanges:=False
+    Application.DisplayAlerts = True
+    ThisWorkbook.Activate
+    LogRegel "overzicht tijdschrijven", , , "", , , nNieuw & " nieuw, " & nGewijzigd & " gewijzigd, " & nAfgesloten & " afgesloten"
+    MsgBox "Overzicht tijdschrijven opgeslagen in:" & vbCrLf & map & vbCrLf & vbCrLf & _
+           nNieuw & " nieuw, " & nGewijzigd & " gewijzigd, " & nAfgesloten & " afgesloten.", vbInformation
+    Exit Sub
+Fout:
+    Application.DisplayAlerts = True
+    MsgBox "Fout bij het overzicht tijdschrijven: " & Err.Description, vbCritical
+End Sub
+
+' Voegt namen (gescheiden door komma's) samen, zonder dubbele, op alfabet.
+Private Function NamenSamenvoegen(ByVal a As String, ByVal b As String) As String
+    Dim lijst As Object, deel As Variant, k As Variant, i As Long, j As Long, arr() As String, t As String
+    Set lijst = CreateObject("Scripting.Dictionary")
+    lijst.CompareMode = vbTextCompare
+    For Each deel In Split(Replace(a & "," & b, ";", ","), ",")
+        If Len(Trim$(CStr(deel))) > 0 Then lijst(Trim$(CStr(deel))) = True
+    Next deel
+    If lijst.Count = 0 Then Exit Function
+    ReDim arr(0 To lijst.Count - 1)
+    For Each k In lijst.Keys
+        arr(i) = CStr(k): i = i + 1
+    Next k
+    For i = 1 To UBound(arr)
+        t = arr(i): j = i - 1
+        Do While j >= 0
+            If StrComp(arr(j), t, vbTextCompare) <= 0 Then Exit Do
+            arr(j + 1) = arr(j): j = j - 1
+        Loop
+        arr(j + 1) = t
+    Next i
+    NamenSamenvoegen = Join(arr, ", ")
+End Function
+
+Private Function HuidigeStatus(ByVal wv As Worksheet, ByVal laatste As Long, ByVal nr As String) As String
+    Dim r As Long
+    For r = 2 To laatste
+        If NrTekst(wv.Cells(r, 3).Value) = nr Then HuidigeStatus = CStr(wv.Cells(r, 8).Value): Exit Function
+    Next r
+    HuidigeStatus = "niet meer in lijst"
+End Function
