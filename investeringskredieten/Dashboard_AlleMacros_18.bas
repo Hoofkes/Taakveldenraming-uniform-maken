@@ -2,7 +2,8 @@ Option Explicit
 
 ' Alle macros voor het Dashboard investeringskredieten in een module.
 
-Private Const VL As String = "'Verzamellijst alle kredieten'!"
+Private Const BL_VZ As String = "Verzamellijst"
+Private Const VL As String = "'Verzamellijst'!"
 Private Const EERSTE As Long = 9          ' eerste kaartrij op het Dashboard
 Private cfMislukt As Boolean
 Private Const AANTAL As Long = 30
@@ -13,6 +14,8 @@ Private mHeeftVorige As Boolean
 Private mAansl As String
 Private Const BL_OVERZICHT As String = "Laatste kredietoverzicht"          ' raad en jaarrekening
 Private Const BL_OVERZICHT_NAAM As String = "Laatste overzicht op naam"  ' budgethouder / projectleider
+Private Const BL_UITVRAAG As String = "Laatste uitvraag begroting"
+Private Const BL_TIJD As String = "Laatste overzicht tijdschrijven"
 Private Const WACHTWOORD As String = "Best"      ' bladbeveiliging (zet ook een wachtwoord op het VBA-project)
 Private mStil As Boolean
 Private mProef As Boolean             ' proefversie jaarrekening (niet opslaan)             ' geen meldingen tijdens een reeks overzichten
@@ -131,6 +134,7 @@ Fout:
 End Sub
 
 Public Sub Auto_Open()
+    VerzamellijstHernoemen
     ' beveiliging opnieuw aanzetten (macro's mogen schrijven, gebruikers niet) en oude overzichtbladen opruimen
     BeveiligingAan
     On Error Resume Next
@@ -405,7 +409,7 @@ End Sub
 ' Getallen in J blijven ongemoeid. Met nulmeting vooraf en achteraf; bij verschil terugdraaien.
 
 Public Sub LijstwaardenNormaliseren()
-    Const BLAD As String = "Verzamellijst alle kredieten"
+    Const BLAD As String = BL_VZ
     Dim ws As Worksheet
     Dim laatste As Long, r As Long, n As Long, i As Long
     Dim kol As Variant, v As Variant, nieuw As String
@@ -509,7 +513,7 @@ End Sub
 ' Met nulmeting vooraf en achteraf. Bij een verschil worden de nieuwe formules weer gewist.
 
 Public Sub WerkbereikVerruimen()
-    Const BLAD As String = "Verzamellijst alle kredieten"
+    Const BLAD As String = BL_VZ
     Dim ws As Worksheet, sp As Worksheet
     Dim laatsteRij As Long, maxRij As Long, doelRij As Long, bronRij As Long
     Dim standaard As Long, antw As String
@@ -667,7 +671,7 @@ Public Function CtlTeControleren() As String
 End Function
 
 Public Sub ControlekolommenAanmaken()
-    Const BLAD As String = "Verzamellijst alle kredieten"
+    Const BLAD As String = BL_VZ
     Dim ws As Worksheet
     Dim laatste As Long, maxRij As Long, i As Long
     Dim koppen As Variant
@@ -758,7 +762,7 @@ Public Sub KeuzelijstenVerversen(Optional ByVal stil As Boolean = False)
     Dim cfg As Variant
 
     On Error GoTo Fout
-    Set wsV = ThisWorkbook.Worksheets("Verzamellijst alle kredieten")
+    Set wsV = ThisWorkbook.Worksheets(BL_VZ)
     Set wsP = ThisWorkbook.Worksheets("Parameters")
     laatste = wsV.Cells(wsV.Rows.Count, "A").End(xlUp).Row
     Application.ScreenUpdating = False
@@ -1458,7 +1462,7 @@ Public Sub KredietToevoegen()
         Exit Sub
     End If
     Set wd = ThisWorkbook.Worksheets("Dashboard")
-    Set wv = ThisWorkbook.Worksheets("Verzamellijst alle kredieten")
+    Set wv = ThisWorkbook.Worksheets(BL_VZ)
     If Len(CStr(wd.Range("Kaart_Rijnummer").Value)) > 0 Then
         MsgBox "Er is een regel geladen om te wijzigen. Gebruik eerst Scherm leegmaken.", vbExclamation
         Exit Sub
@@ -1752,6 +1756,7 @@ End Sub
 Public Sub DashboardKnoppenPlaatsen()
     Dim ws As Worksheet, b As Object, naam As Variant, i As Long
     Dim namen As Variant, titels As Variant, acties As Variant
+    VerzamellijstHernoemen
     Set ws = ThisWorkbook.Worksheets("Dashboard")
     On Error Resume Next
     For Each naam In Array("btnToevoegen", "btnWijzigen", "btnOpslaan", "btnKaartWissen", "btnLijsten", "btnVerwerken", "btnTijdschrijvers", "spnAfschrijving", "btnVerwijderen", "btnUitgaven")
@@ -1781,6 +1786,8 @@ Public Sub DashboardKnoppenPlaatsen()
     b.OnAction = "Verwerken"
     UitdraaiBlokPlaatsen
     KoppenStartEindjaar
+    TabbladkiezerPlaatsen
+    KnoppenTerugPlaatsen
     TabbladenOrdenen
     ws.Activate
 End Sub
@@ -1803,7 +1810,7 @@ Public Sub ProefregelWissen()
         MsgBox "Alleen financieel adviseurs mogen dit.", vbExclamation
         Exit Sub
     End If
-    Set wv = ThisWorkbook.Worksheets("Verzamellijst alle kredieten")
+    Set wv = ThisWorkbook.Worksheets(BL_VZ)
     r = CLng(ThisWorkbook.Names("Par_LaatsteRij").RefersToRange.Value)
     If r < 271 Then
         MsgBox "Er is geen nieuw toegevoegde regel om te wissen.", vbExclamation
@@ -2004,7 +2011,7 @@ Private Function ControleerKaart(ByRef k As TKaart, ByVal wijzigRij As Long) As 
     Dim cel As Range
 
     Set wd = ThisWorkbook.Worksheets("Dashboard")
-    Set wv = ThisWorkbook.Worksheets("Verzamellijst alle kredieten")
+    Set wv = ThisWorkbook.Worksheets(BL_VZ)
     For i = 1 To AANTAL
         k.f(i) = wd.Cells(KaartRij(i), 3).Value
     Next i
@@ -2200,7 +2207,7 @@ Public Sub KredietWijzigen()
         MsgBox "Alleen financieel adviseurs en de financi" & ChrW(235) & "le administratie mogen kredieten wijzigen.", vbExclamation
         Exit Sub
     End If
-    Set wv = ThisWorkbook.Worksheets("Verzamellijst alle kredieten")
+    Set wv = ThisWorkbook.Worksheets(BL_VZ)
     Set wd = ThisWorkbook.Worksheets("Dashboard")
     If Len(CStr(wd.Range("Kaart_Rijnummer").Value)) > 0 Then
         If MsgBox("Er staat al een regel op de kaart. Vervangen?", vbYesNo + vbQuestion, "Krediet wijzigen") <> vbYes Then Exit Sub
@@ -2277,7 +2284,7 @@ End Sub
 Private Sub ToonOpKaart(ByVal r As Long)
     Dim wd As Worksheet, wv As Worksheet, h As String, v As Variant
     Set wd = ThisWorkbook.Worksheets("Dashboard")
-    Set wv = ThisWorkbook.Worksheets("Verzamellijst alle kredieten")
+    Set wv = ThisWorkbook.Worksheets(BL_VZ)
     KaartWissen
     wd.Range("Kaart_Rijnummer").Value = r
     ZetKaartVeld wd, 1, CodeNaarWeergave("Tbl_Programma", wv.Cells(r, 2).Value)
@@ -2368,7 +2375,7 @@ Public Sub WijzigingOpslaan()
         Exit Sub
     End If
     Set wd = ThisWorkbook.Worksheets("Dashboard")
-    Set wv = ThisWorkbook.Worksheets("Verzamellijst alle kredieten")
+    Set wv = ThisWorkbook.Worksheets(BL_VZ)
     If Len(CStr(wd.Range("Kaart_Rijnummer").Value)) = 0 Then
         MsgBox "Er is geen regel geladen. Gebruik eerst Krediet wijzigen.", vbExclamation
         Exit Sub
@@ -2600,7 +2607,7 @@ Public Sub ControleLijstVernieuwen()
     Dim wc As Worksheet, wv As Worksheet, r As Long, laatste As Long, rij As Long, st As String
     If Not BladBestaat("Controle") Then Exit Sub
     Set wc = ThisWorkbook.Worksheets("Controle")
-    Set wv = ThisWorkbook.Worksheets("Verzamellijst alle kredieten")
+    Set wv = ThisWorkbook.Worksheets(BL_VZ)
     laatste = CLng(ThisWorkbook.Names("Par_LaatsteRij").RefersToRange.Value)
     wc.Range("A6:I2000").ClearContents
     wc.Range("A6:I2000").Font.Color = RGB(0, 0, 0)
@@ -2640,7 +2647,7 @@ Private Function ControleGekozenRij() As Long
         Exit Function
     End If
     Set wc = ThisWorkbook.Worksheets("Controle")
-    Set wv = ThisWorkbook.Worksheets("Verzamellijst alle kredieten")
+    Set wv = ThisWorkbook.Worksheets(BL_VZ)
     x = Selection.Row
     If x < 6 Then
         MsgBox "Selecteer een regel in de lijst.", vbExclamation
@@ -2680,7 +2687,7 @@ Public Sub RegelBevestigen()
     End If
     r = ControleGekozenRij()
     If r = 0 Then Exit Sub
-    Set wv = ThisWorkbook.Worksheets("Verzamellijst alle kredieten")
+    Set wv = ThisWorkbook.Worksheets(BL_VZ)
     st = CStr(wv.Cells(r, 42).Value)
     If st = CtlGecontroleerd() Then
         MsgBox "Deze regel is al gecontroleerd.", vbInformation
@@ -2714,7 +2721,7 @@ Public Sub RegelAfkeuren()
     End If
     r = ControleGekozenRij()
     If r = 0 Then Exit Sub
-    Set wv = ThisWorkbook.Worksheets("Verzamellijst alle kredieten")
+    Set wv = ThisWorkbook.Worksheets(BL_VZ)
     If CStr(wv.Cells(r, 42).Value) = CtlGecontroleerd() Then
         If MsgBox("Deze regel is al gecontroleerd. Toch afkeuren?", vbYesNo + vbExclamation + vbDefaultButton2, "Afkeuren") <> vbYes Then Exit Sub
     End If
@@ -2951,7 +2958,7 @@ Public Sub KredietVerwijderen()
         Exit Sub
     End If
     Set wd = ThisWorkbook.Worksheets("Dashboard")
-    Set wv = ThisWorkbook.Worksheets("Verzamellijst alle kredieten")
+    Set wv = ThisWorkbook.Worksheets(BL_VZ)
     If Len(CStr(wd.Range("Kaart_Rijnummer").Value)) = 0 Then
         MsgBox "Laad eerst het krediet met Krediet wijzigen. Klik daarna op Krediet verwijderen.", vbExclamation
         Exit Sub
@@ -3004,7 +3011,7 @@ Public Sub VervallenRegelsOpruimen()
         MsgBox "Alleen financieel adviseurs mogen dit.", vbExclamation
         Exit Sub
     End If
-    Set wv = ThisWorkbook.Worksheets("Verzamellijst alle kredieten")
+    Set wv = ThisWorkbook.Worksheets(BL_VZ)
     laatste = CLng(ThisWorkbook.Names("Par_LaatsteRij").RefersToRange.Value)
     For i = 2 To laatste
         If Not Leeg(wv.Cells(i, 1).Value) And UCase$(Left$(CStr(wv.Cells(i, 8).Value), 1)) = "V" Then
@@ -3129,7 +3136,7 @@ End Function
 ' Haalt het filter en de knop Sort van het tabblad Verzamellijst alle kredieten. Werken gaat via het Dashboard.
 Public Sub VerzamellijstOpschonen()
     Dim ws As Worksheet
-    Set ws = ThisWorkbook.Worksheets("Verzamellijst alle kredieten")
+    Set ws = ThisWorkbook.Worksheets(BL_VZ)
     On Error Resume Next
     If ws.FilterMode Then ws.ShowAllData
     ws.AutoFilterMode = False
@@ -3273,7 +3280,7 @@ Public Sub UitgavenBijwerken()
         MsgBox "U heeft geen recht om de werkelijke uitgaven bij te werken.", vbExclamation
         Exit Sub
     End If
-    Set wv = ThisWorkbook.Worksheets("Verzamellijst alle kredieten")
+    Set wv = ThisWorkbook.Worksheets(BL_VZ)
     Set wsP = ThisWorkbook.Worksheets("Parameters")
     lj = CLng(ThisWorkbook.Names("Par_LopendJaar").RefersToRange.Value)
     laatste = CLng(ThisWorkbook.Names("Par_LaatsteRij").RefersToRange.Value)
@@ -3884,7 +3891,7 @@ Private Function MeldingenSchrijven(ByVal bestand As String, ByVal peil As Date)
     Dim ws As Worksheet, rij As Long, p As Long, m As Variant, kleur As Long, alarm As Long
     Dim wv As Worksheet, stat As Object, r As Long, laatste As Long, nrT As String
     ' status (kolom H) per kredietnummer, voor de kolom Status
-    Set wv = ThisWorkbook.Worksheets("Verzamellijst alle kredieten")
+    Set wv = ThisWorkbook.Worksheets(BL_VZ)
     Set stat = CreateObject("Scripting.Dictionary")
     laatste = CLng(ThisWorkbook.Names("Par_LaatsteRij").RefersToRange.Value)
     For r = 2 To laatste
@@ -3967,13 +3974,14 @@ Private Function MeldingenSchrijven(ByVal bestand As String, ByVal peil As Date)
     ws.Columns("G:I").ColumnWidth = 16
     ws.Columns("J").ColumnWidth = 80
     ws.Range("A4:J" & rij).VerticalAlignment = xlTop
+    KnopTerug ws, ws.Range("D1")
     MeldingenSchrijven = alarm
 End Function
 
 ' Voorwaardelijke opmaak op de verzamellijst. Wordt eenmalig aangemaakt (herkend aan de regel op AD2).
 Public Sub UitgavenOpmaakAanmaken()
     Dim wv As Worksheet, maxRij As Long, fc As Object, f As Object, vorig As Object
-    Set wv = ThisWorkbook.Worksheets("Verzamellijst alle kredieten")
+    Set wv = ThisWorkbook.Worksheets(BL_VZ)
     For Each f In wv.Range("AD2").FormatConditions
         If f.Type = xlExpression Then
             If InStr(f.Formula1, "$AD2") > 0 And InStr(f.Formula1, "$Z2") > 0 Then Exit Sub
@@ -4038,7 +4046,7 @@ End Sub
 Private Sub RaadsoverzichtMaken()
     Dim lj As Long, ws As Worksheet, map As String
     lj = CLng(ThisWorkbook.Names("Par_LopendJaar").RefersToRange.Value)
-    Set ws = OverzichtMaken("raad", ThisWorkbook.Worksheets("Verzamellijst alle kredieten"), lj, 0, "")
+    Set ws = OverzichtMaken("raad", ThisWorkbook.Worksheets(BL_VZ), lj, 0, "")
     If ws Is Nothing Then Exit Sub
     ' elke opvraging bewaren in de map met kredietoverzichten
     map = MapStambestand("03 kredietoverzichten")
@@ -4064,7 +4072,7 @@ Public Sub KredietoverzichtOpNaam()
         Exit Sub
     End If
     lj = CLng(ThisWorkbook.Names("Par_LopendJaar").RefersToRange.Value)
-    Set ws = OverzichtMaken("naam", ThisWorkbook.Worksheets("Verzamellijst alle kredieten"), lj, kol, naam)
+    Set ws = OverzichtMaken("naam", ThisWorkbook.Worksheets(BL_VZ), lj, kol, naam)
     If ws Is Nothing Then Exit Sub
     map = MapStambestand("02 Budgetbeheerders en projectleiders")
     If Len(map) > 0 Then
@@ -4092,7 +4100,7 @@ Public Sub KredietoverzichtJaarrekening()
                   "Een PROEF maken op basis van de huidige verzamellijst, om de opmaak te bekijken? (wordt niet opgeslagen)", _
                   vbYesNo + vbQuestion, "Kredietoverzicht jaarrekening") <> vbYes Then Exit Sub
         mProef = True
-        OverzichtMaken "jaarrekening", ThisWorkbook.Worksheets("Verzamellijst alle kredieten"), _
+        OverzichtMaken "jaarrekening", ThisWorkbook.Worksheets(BL_VZ), _
                        CLng(ThisWorkbook.Names("Par_LopendJaar").RefersToRange.Value), 0, ""
         mProef = False
         Exit Sub
@@ -4398,13 +4406,15 @@ Private Function OverzichtMaken(ByVal soort As String, ByVal bron As Worksheet, 
     If Round(somRest - somBron, 2) <> 0 Or Round(somBud - somWerk - somRest - somAfs, 2) <> 0 Then
         tekst = "LET OP: aansluiting sluit niet (restant overzicht " & Format$(somRest, "#,##0") & ", verzamellijst " & _
                 Format$(somBron, "#,##0") & "). Overzicht NIET definitief."
-        ws.Range("A3").Value = tekst
-        ws.Range("A3").Font.Bold = True
-        ws.Range("A3").Font.Color = RGB(255, 255, 255)
-        ws.Range("A3").Interior.Color = RGB(192, 0, 0)
+        ws.Range("A4").Value = tekst
+        ws.Range("A4").Font.Bold = True
+        ws.Range("A4").Font.Color = RGB(255, 255, 255)
+        ws.Range("A4").Interior.Color = RGB(192, 0, 0)
+        ws.Rows(4).RowHeight = 15
         MsgBox tekst, vbCritical
     End If
 
+    KnopTerug ws, ws.Range("A3")
     ' raad en jaarrekening: alleen t/m het jaar, dus geen budgetkolommen voor latere jaren
     If soort <> "naam" Then ws.Range(ws.Columns(nK + 1), ws.Columns(nK + 5)).Delete
 
@@ -4557,7 +4567,7 @@ End Sub
 
 ' Koppen van M en N in de verzamellijst (korte, duidelijke namen) en kolom A (volgnummer) gecentreerd.
 Private Sub KoppenStartEindjaar()
-    With ThisWorkbook.Worksheets("Verzamellijst alle kredieten")
+    With ThisWorkbook.Worksheets(BL_VZ)
         .Range("M1").Value = "Startjaar uitgaven"
         .Range("N1").Value = "Eindjaar uitgaven"
         .Range("A1:A" & CLng(ThisWorkbook.Names("Par_MaxRij").RefersToRange.Value)).HorizontalAlignment = xlCenter   ' volgnummer gecentreerd
@@ -4571,7 +4581,7 @@ Public Sub ToelichtingVoertuigenWissen()
         MsgBox "U heeft geen recht om dit te doen.", vbExclamation
         Exit Sub
     End If
-    Set wv = ThisWorkbook.Worksheets("Verzamellijst alle kredieten")
+    Set wv = ThisWorkbook.Worksheets(BL_VZ)
     laatste = CLng(ThisWorkbook.Names("Par_LaatsteRij").RefersToRange.Value)
     For r = 2 To laatste
         If LCase$(Trim$(CStr(wv.Cells(r, 9).Value))) = "voertuigen" And Not Leeg(wv.Cells(r, 36).Value) Then n = n + 1
@@ -4634,6 +4644,12 @@ Private Function BladOpslaan(ByVal ws As Worksheet, ByVal map As String, ByVal b
     Next t
     ws.Copy
     Set wb = ActiveWorkbook
+    ' knoppen (Terug naar dashboard) horen niet in het losse bestand
+    On Error Resume Next
+    wb.Worksheets(1).Unprotect WACHTWOORD
+    wb.Worksheets(1).Buttons.Delete
+    If ws.ProtectContents Then wb.Worksheets(1).Protect Password:=WACHTWOORD, AllowFiltering:=True
+    On Error GoTo 0
     Application.DisplayAlerts = False
     wb.SaveAs Filename:=map & bestand & ".xlsx", FileFormat:=51
     wb.Close SaveChanges:=False
@@ -4650,7 +4666,7 @@ Public Sub KredietoverzichtAlleBudgethouders()
         MsgBox "Dit wordt gedaan door de financieel adviseur.", vbExclamation
         Exit Sub
     End If
-    Set wv = ThisWorkbook.Worksheets("Verzamellijst alle kredieten")
+    Set wv = ThisWorkbook.Worksheets(BL_VZ)
     laatste = CLng(ThisWorkbook.Names("Par_LaatsteRij").RefersToRange.Value)
     Set namen = CreateObject("Scripting.Dictionary")
     For r = 2 To laatste
@@ -4691,7 +4707,7 @@ Public Sub OverzichtTijdschrijven()
     On Error GoTo Fout
     map = MapStambestand("01 Applicatiebeheer Tijdschrijven")
     If Len(map) = 0 Then Exit Sub
-    Set wv = ThisWorkbook.Worksheets("Verzamellijst alle kredieten")
+    Set wv = ThisWorkbook.Worksheets(BL_VZ)
     laatste = CLng(ThisWorkbook.Names("Par_LaatsteRij").RefersToRange.Value)
 
     ' huidige stand per kredietnummer: omschrijving, status, projectleider, tijdschrijvers
@@ -4737,10 +4753,16 @@ Public Sub OverzichtTijdschrijven()
         End If
     End If
 
-    ' nieuw overzicht opbouwen
-    Set wb = Workbooks.Add(xlWBATWorksheet)
-    Set ws = wb.Worksheets(1)
-    ws.Name = "Tijdschrijven"
+    ' nieuw overzicht opbouwen op het blad 'Laatste overzicht tijdschrijven' (vorige opvraging wordt vervangen)
+    If BladBestaatStil(BL_TIJD) Then
+        Application.DisplayAlerts = False
+        ThisWorkbook.Worksheets(BL_TIJD).Unprotect WACHTWOORD
+        ThisWorkbook.Worksheets(BL_TIJD).Delete
+        Application.DisplayAlerts = True
+    End If
+    Set ws = ThisWorkbook.Worksheets.Add(After:=ThisWorkbook.Worksheets(ThisWorkbook.Worksheets.Count))
+    ws.Name = BL_TIJD
+    ws.Tab.Color = RGB(0, 73, 118)
     ws.Cells.Font.Name = "Tahoma"
     ws.Cells.Font.Size = 10
     ws.Range("A1").Value = "Kredieten voor tijdschrijven (alle lopende kredieten)"
@@ -4818,11 +4840,10 @@ Public Sub OverzichtTijdschrijven()
     ws.Range("B5:B" & rij & ",E5:E" & rij).WrapText = True
     ws.Range("A4:G" & Application.Max(5, rij - 1)).AutoFilter
     ws.Range("A5:G" & rij).Rows.AutoFit
-    Application.DisplayAlerts = False
-    wb.SaveAs Filename:=map & "Tijdschrijven kredieten " & Format$(Date, "yyyy-mm-dd") & ".xlsx", FileFormat:=51
-    wb.Close SaveChanges:=False
-    Application.DisplayAlerts = True
-    ThisWorkbook.Activate
+    KnopTerug ws, ws.Range("F1")
+    BladOpslaan ws, map, "Tijdschrijven kredieten " & Format$(Date, "yyyy-mm-dd")
+    TabbladenOrdenen
+    ws.Activate
     LogRegel "overzicht tijdschrijven", , , "", , , nNieuw & " nieuw, " & nGewijzigd & " gewijzigd, " & nAfgesloten & " afgesloten"
     MsgBox "Overzicht tijdschrijven opgeslagen in:" & vbCrLf & map & vbCrLf & vbCrLf & _
            nNieuw & " nieuw, " & nGewijzigd & " gewijzigd, " & nAfgesloten & " afgesloten.", vbInformation
@@ -4875,7 +4896,7 @@ Public Sub RestantFormuleBijwerken()
     End If
     If MsgBox("In kolom 'Nog uit te geven' overal de formule zetten: bij een afgesloten krediet (A) is het restant 0, " & _
               "anders budget min werkelijke uitgaven. Doorgaan?", vbYesNo + vbQuestion, "Formule restant") <> vbYes Then Exit Sub
-    Set wv = ThisWorkbook.Worksheets("Verzamellijst alle kredieten")
+    Set wv = ThisWorkbook.Worksheets(BL_VZ)
     maxRij = CLng(ThisWorkbook.Names("Par_MaxRij").RefersToRange.Value)
     voor = MeetStap8(wv, CLng(ThisWorkbook.Names("Par_LaatsteRij").RefersToRange.Value))
     calcOud = Application.Calculation
@@ -4951,7 +4972,7 @@ End Sub
 Public Sub BeveiligingAan()
     Dim naam As Variant
     On Error Resume Next
-    For Each naam In Array("Verzamellijst alle kredieten", "Logboek", "Vorige upload", "Parameters", "Dashboard", "Controle", _
+    For Each naam In Array(BL_VZ, "Logboek", "Vorige upload", "Parameters", "Dashboard", "Controle", _
                            BL_MELD, BL_OVERZICHT, BL_OVERZICHT_NAAM)
         If BladBestaatStil(CStr(naam)) Then BladBeveiligen ThisWorkbook.Worksheets(CStr(naam))
     Next naam
@@ -5002,7 +5023,8 @@ Private Sub BladBeveiligen(ByVal ws As Worksheet)
                 Next k
             Next j
             ws.Range("C58:C59").Locked = False
-        Case "Verzamellijst alle kredieten"
+            ws.Range("G2").Locked = False                         ' tabbladkiezer
+        Case BL_VZ
             If Not ws.AutoFilterMode Then
                 laatste = CLng(ThisWorkbook.Names("Par_LaatsteRij").RefersToRange.Value)
                 ws.Range("A1:AW" & laatste).AutoFilter
@@ -5074,7 +5096,7 @@ Public Sub UitvraagBegroting()
         MsgBox "De uitvraag wordt gemaakt door de financieel adviseur.", vbExclamation
         Exit Sub
     End If
-    Set wv = ThisWorkbook.Worksheets("Verzamellijst alle kredieten")
+    Set wv = ThisWorkbook.Worksheets(BL_VZ)
     laatste = CLng(ThisWorkbook.Names("Par_LaatsteRij").RefersToRange.Value)
     Set namen = CreateObject("Scripting.Dictionary")
     For r = 2 To laatste
@@ -5104,12 +5126,11 @@ End Sub
 
 ' Bouwt het blad 'Laatste uitvraag begroting' voor een budgetbeheerder (of iedereen als naam leeg is).
 Private Function UitvraagBlad(ByVal naam As String) As Worksheet
-    Const BL_UITVRAAG As String = "Laatste uitvraag begroting"
     Dim wv As Worksheet, ws As Worksheet, v As Variant, laatste As Long, n As Long, r As Long, i As Long, k As Long, c As Long
     Dim sel() As Long, sl() As String, tk() As Boolean, nSel As Long, lj As Long, bronKol As Variant, kop As Variant
     Dim rij As Long, eersteData As Long, vBh As String, bh As String, startBh As Long, nK As Long
 
-    Set wv = ThisWorkbook.Worksheets("Verzamellijst alle kredieten")
+    Set wv = ThisWorkbook.Worksheets(BL_VZ)
     lj = CLng(ThisWorkbook.Names("Par_LopendJaar").RefersToRange.Value)
     laatste = CLng(ThisWorkbook.Names("Par_LaatsteRij").RefersToRange.Value)
     v = wv.Range("A2:AW" & laatste).Value
@@ -5236,6 +5257,7 @@ Private Function UitvraagBlad(ByVal naam As String) As Worksheet
     ws.Range(ws.Cells(eersteData, 1), ws.Cells(rij, nK)).Rows.AutoFit
     RijhoogteBijstellen ws, eersteData, rij, Array(2, 3, 4)
     LogoPlaatsen ws, 12
+    KnopTerug ws, ws.Range("A3")
     ws.Activate
     ActiveWindow.FreezePanes = False
     ws.Range("C6").Select
@@ -5255,15 +5277,137 @@ Private Function UitvraagBlad(ByVal naam As String) As Worksheet
     Set UitvraagBlad = ws
 End Function
 
-' Tabbladvolgorde: Dashboard altijd vooraan, Voertuigen en Controle altijd als laatste.
+' Tabbladvolgorde: Dashboard, Verzamellijst, Laatste overzicht op naam, Laatste kredietoverzicht, Laatste uitvraag begroting,
+' Laatste overzicht tijdschrijven, Meldingen uitgaven, daarna de overige bladen, en Voertuigen en Controle als laatste.
 ' Draait bij openen, na elk overzicht en bij DashboardKnoppenPlaatsen; ook met de hand te starten.
 Public Sub TabbladenOrdenen()
-    Dim naam As Variant
+    Dim naam As Variant, pos As Long, actief As Object
     On Error Resume Next
-    ThisWorkbook.Worksheets("Dashboard").Move Before:=ThisWorkbook.Worksheets(1)
+    Set actief = ActiveSheet
+    pos = 0
+    For Each naam In Array("Dashboard", BL_VZ, BL_OVERZICHT_NAAM, BL_OVERZICHT, BL_UITVRAAG, BL_TIJD, BL_MELD)
+        If BladBestaatStil(CStr(naam)) Then
+            pos = pos + 1
+            If ThisWorkbook.Worksheets(CStr(naam)).Index <> pos Then
+                ThisWorkbook.Worksheets(CStr(naam)).Move Before:=ThisWorkbook.Worksheets(pos)
+            End If
+        End If
+    Next naam
     For Each naam In Array("Voertuigen", "Controle")
         If BladBestaatStil(CStr(naam)) Then
             ThisWorkbook.Worksheets(CStr(naam)).Move After:=ThisWorkbook.Worksheets(ThisWorkbook.Worksheets.Count)
         End If
     Next naam
+    If Not actief Is Nothing Then actief.Activate
+    TabbladkiezerVullen
+End Sub
+
+' ======================================================================
+' Navigatie: knop "Terug naar dashboard" op elk blad en een tabbladkiezer op het Dashboard
+' ======================================================================
+
+' Eenmalig/bij openen: 'Verzamellijst alle kredieten' heet voortaan 'Verzamellijst'.
+' Formules, namen en spiegelbladen passen zich in Excel vanzelf aan.
+Public Sub VerzamellijstHernoemen()
+    On Error Resume Next
+    If BladBestaatStil("Verzamellijst alle kredieten") And Not BladBestaatStil(BL_VZ) Then
+        ThisWorkbook.Worksheets("Verzamellijst alle kredieten").Name = BL_VZ
+    End If
+End Sub
+
+Public Sub NaarDashboard()
+    ThisWorkbook.Worksheets("Dashboard").Activate
+    ThisWorkbook.Worksheets("Dashboard").Range("A1").Select
+End Sub
+
+Public Sub NaarTabblad()
+    Dim naam As String
+    naam = Trim$(CStr(ThisWorkbook.Worksheets("Dashboard").Range("G2").Value))
+    If Len(naam) = 0 Or Not BladBestaatStil(naam) Then
+        MsgBox "Kies eerst in cel G2 een tabblad.", vbExclamation
+        Exit Sub
+    End If
+    If ThisWorkbook.Worksheets(naam).Visible <> xlSheetVisible Then
+        MsgBox "Dit tabblad is verborgen.", vbExclamation
+        Exit Sub
+    End If
+    ThisWorkbook.Worksheets(naam).Activate
+End Sub
+
+' Zet de knop "Terug naar dashboard" op een blad (een bestaande knop wordt vervangen).
+Private Sub KnopTerug(ByVal ws As Worksheet, ByVal cel As Range)
+    Dim b As Object, beveiligd As Boolean
+    If ws.Name = "Dashboard" Then Exit Sub
+    On Error Resume Next
+    beveiligd = ws.ProtectContents
+    If beveiligd Then ws.Unprotect WACHTWOORD
+    ws.Buttons("btnTerug").Delete
+    Set b = ws.Buttons.Add(cel.Left + 1, cel.Top + 1, 130, 18)
+    b.Name = "btnTerug"
+    b.Caption = "Terug naar dashboard"
+    b.OnAction = "NaarDashboard"
+    b.Placement = xlFreeFloating
+    If beveiligd Then BladBeveiligen ws
+End Sub
+
+' Knop "Terug naar dashboard" op alle zichtbare bladen.
+Public Sub KnoppenTerugPlaatsen()
+    Dim ws As Worksheet, c As Long
+    For Each ws In ThisWorkbook.Worksheets
+        If ws.Visible = xlSheetVisible And ws.Name <> "Dashboard" Then
+            Select Case ws.Name
+                Case BL_VZ
+                    ws.Range("A1:B1").VerticalAlignment = xlBottom
+                    If ws.Rows(1).RowHeight < 45 Then ws.Rows(1).RowHeight = 45
+                    KnopTerug ws, ws.Range("A1")
+                Case "Controle"
+                    KnopTerug ws, ws.Range("A2").Offset(0, 0)
+                    ws.Buttons("btnTerug").Left = ws.Range("A2").Left + 4 * 160
+                    ws.Buttons("btnTerug").Top = ws.Range("A2").Top + 2
+                Case BL_MELD, BL_TIJD
+                    KnopTerug ws, ws.Range(IIf(ws.Name = BL_MELD, "D1", "F1"))
+                Case BL_OVERZICHT, BL_OVERZICHT_NAAM, BL_UITVRAAG
+                    KnopTerug ws, ws.Range("A3")
+                Case Else
+                    ' rechts naast het gebruikte deel van rij 1
+                    c = ws.Cells(1, ws.Columns.Count).End(xlToLeft).Column + 1
+                    If c < 3 Then c = 3
+                    KnopTerug ws, ws.Cells(1, c)
+            End Select
+        End If
+    Next ws
+End Sub
+
+' Tabbladkiezer op het Dashboard: F2 tekst, G2 keuzelijst, H2 knop.
+Public Sub TabbladkiezerPlaatsen()
+    Dim ws As Worksheet, b As Object
+    Set ws = ThisWorkbook.Worksheets("Dashboard")
+    ws.Range("F2").Value = "Naar tabblad:"
+    ws.Range("F2").HorizontalAlignment = xlRight
+    ws.Range("G2").Interior.Color = RGB(255, 255, 204)
+    If ws.Columns("G").ColumnWidth < 30 Then ws.Columns("G").ColumnWidth = 30
+    On Error Resume Next
+    ws.Buttons("btnNaarTabblad").Delete
+    On Error GoTo 0
+    Set b = ws.Buttons.Add(ws.Range("H2").Left + 2, ws.Range("H2").Top + 1, 90, 18)
+    b.Name = "btnNaarTabblad"
+    b.Caption = "Ga naar tabblad"
+    b.OnAction = "NaarTabblad"
+    TabbladkiezerVullen
+End Sub
+
+' Keuzelijst in G2 met alle zichtbare tabbladen behalve het Dashboard.
+Private Sub TabbladkiezerVullen()
+    Dim ws As Worksheet, lijst As String
+    On Error Resume Next
+    For Each ws In ThisWorkbook.Worksheets
+        If ws.Visible = xlSheetVisible And ws.Name <> "Dashboard" And InStr(ws.Name, ",") = 0 Then
+            lijst = lijst & IIf(Len(lijst) > 0, ",", "") & ws.Name
+        End If
+    Next ws
+    If Len(lijst) > 255 Then lijst = Left$(lijst, InStrRev(Left$(lijst, 255), ",") - 1)
+    With ThisWorkbook.Worksheets("Dashboard").Range("G2").Validation
+        .Delete
+        .Add Type:=xlValidateList, AlertStyle:=xlValidAlertStop, Formula1:=lijst
+    End With
 End Sub
