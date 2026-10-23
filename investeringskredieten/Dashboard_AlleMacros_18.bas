@@ -5532,4 +5532,8 @@ Private Sub TabbladkiezerVullen()
         .Delete
         .Add Type:=xlValidateList, AlertStyle:=xlValidAlertStop, Formula1:=lijst
     End With
+    ' voorselectie: het eerste tabblad uit de lijst (Verzamellijst) als er nog niets (geldigs) staat
+    With ThisWorkbook.Worksheets("Dashboard").Range("G2")
+        If Len(Trim$(CStr(.Value))) = 0 Or Not BladBestaatStil(CStr(.Value)) Then .Value = Split(lijst, ",")(0)
+    End With
 End Sub
