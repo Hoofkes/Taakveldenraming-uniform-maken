@@ -5767,7 +5767,8 @@ Public Sub TabbladkiezerPlaatsen()
     On Error Resume Next
     ws.Buttons("btnNaarTabblad").Delete
     On Error GoTo 0
-    Set b = ws.Buttons.Add(ws.Range("H2").Left + 22, ws.Range("H2").Top + 1, 90, 18)   ' ruimte voor het keuzepijltje van G2
+    If ws.Rows(2).RowHeight < 22 Then ws.Rows(2).RowHeight = 22
+    Set b = ws.Buttons.Add(ws.Range("H2").Left + 22, ws.Range("H2").Top + 2, 90, 18)   ' ruimte voor het keuzepijltje van G2
     b.Name = "btnNaarTabblad"
     b.Caption = "Ga naar tabblad"
     b.OnAction = "NaarTabblad"
@@ -6204,7 +6205,8 @@ Public Sub ControleblokPlaatsen()
     On Error Resume Next
     ws.Buttons("btnControles").Delete
     On Error GoTo 0
-    Set b = ws.Buttons.Add(ws.Range("D70").Left + 2, ws.Range("D70").Top + 1, 150, 18)
+    ws.Rows(70).RowHeight = 24                       ' knop past binnen de rij en loopt niet door de kopregel eronder
+    Set b = ws.Buttons.Add(ws.Range("D70").Left + 2, ws.Range("D70").Top + 3, 150, 18)
     b.Name = "btnControles"
     b.Caption = "Controles vernieuwen"
     b.OnAction = "ControlesVernieuwen"
@@ -6727,8 +6729,9 @@ Private Sub KnopUitleg(ByVal ws As Worksheet, ByVal knop As String, ByVal tekst 
     If b Is Nothing Then Exit Sub
     Set shp = ws.Shapes("uitleg_" & knop)
     had = Not shp Is Nothing
-    If had Then shp.Delete Else b.Width = b.Width - 18     ' ruimte maken voor het vraagteken (maar een keer)
-    Set shp = ws.Shapes.AddShape(9, b.Left + b.Width + 3, b.Top + (b.Height - 14) / 2, 14, 14)   ' 9 = ovaal
+    If had Then shp.Delete Else b.Width = b.Width - 18     ' ruimte binnen de oude knopbreedte voor het vraagteken (maar een keer)
+    ' het vraagteken valt zo binnen de ruimte die de knop al had en komt dus niet over tekst in de cellen ernaast
+    Set shp = ws.Shapes.AddShape(9, b.Left + b.Width + 2, b.Top + (b.Height - 14) / 2, 14, 14)   ' 9 = ovaal
     shp.Name = "uitleg_" & knop
     shp.Fill.ForeColor.RGB = RGB(0, 73, 118)
     shp.Line.Visible = False
