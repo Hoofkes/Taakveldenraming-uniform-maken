@@ -134,6 +134,11 @@ Public Sub Auto_Open()
     If Not ThisWorkbook.ReadOnly Then KeuzelijstenVerversen True
     On Error GoTo 0
     If TabelBestaat() Then WieWerktEr
+    ' altijd op het Dashboard beginnen
+    On Error Resume Next
+    ThisWorkbook.Worksheets("Dashboard").Activate
+    ThisWorkbook.Worksheets("Dashboard").Range("A1").Select
+    On Error GoTo 0
 End Sub
 
 Public Sub WieWerktEr()
