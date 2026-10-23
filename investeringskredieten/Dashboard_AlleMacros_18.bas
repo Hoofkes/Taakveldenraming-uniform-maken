@@ -3905,7 +3905,7 @@ End Function
 Private Sub VorigeUploadSchrijven(ByRef bew() As Variant, ByVal nb As Long, ByVal bestand As String)
     Dim ws As Worksheet
     If Not BladBestaat("Vorige upload") Then
-        Set ws = ThisWorkbook.Worksheets.Add(After:=ThisWorkbook.Worksheets(ThisWorkbook.Worksheets.Count))
+        Set ws = NieuwBlad()
         ws.Name = "Vorige upload"
     Else
         Set ws = ThisWorkbook.Worksheets("Vorige upload")
@@ -3938,7 +3938,7 @@ Private Function MeldingenSchrijven(ByVal bestand As String, ByVal peil As Date)
         If Len(nrT) > 0 And Not stat.Exists(nrT) Then stat.Add nrT, CStr(wv.Cells(r, 8).Value)
     Next r
     If Not BladBestaat(BL_MELD) Then
-        Set ws = ThisWorkbook.Worksheets.Add(After:=ThisWorkbook.Worksheets("Controle"))
+        Set ws = NieuwBlad()
         ws.Name = BL_MELD
     Else
         Set ws = ThisWorkbook.Worksheets(BL_MELD)
@@ -4284,7 +4284,7 @@ Private Function OverzichtMaken(ByVal soort As String, ByVal bron As Worksheet, 
         ThisWorkbook.Worksheets(bladNaam).Delete
         Application.DisplayAlerts = True
     End If
-    Set ws = ThisWorkbook.Worksheets.Add(After:=ThisWorkbook.Worksheets(ThisWorkbook.Worksheets.Count))
+    Set ws = NieuwBlad()
     ws.Name = bladNaam
     ws.Tab.Color = RGB(0, 73, 118)
     ActiveWindow.DisplayGridlines = False
@@ -4799,7 +4799,7 @@ Public Sub OverzichtTijdschrijven()
         ThisWorkbook.Worksheets(BL_TIJD).Delete
         Application.DisplayAlerts = True
     End If
-    Set ws = ThisWorkbook.Worksheets.Add(After:=ThisWorkbook.Worksheets(ThisWorkbook.Worksheets.Count))
+    Set ws = NieuwBlad()
     ws.Name = BL_TIJD
     ws.Tab.Color = RGB(0, 73, 118)
     ActiveWindow.DisplayGridlines = False
@@ -4896,7 +4896,7 @@ Public Sub OverzichtTijdschrijven()
 
     ' nieuwe stand bewaren (alle lopende kredieten), met de datum 'toegevoegd op'
     If beginstand Then
-        Set wst = ThisWorkbook.Worksheets.Add(After:=ThisWorkbook.Worksheets(ThisWorkbook.Worksheets.Count))
+        Set wst = NieuwBlad()
         wst.Name = BL_STAND
     Else
         Set wst = ThisWorkbook.Worksheets(BL_STAND)
@@ -5308,7 +5308,7 @@ Private Function UitvraagBlad(ByVal naam As String) As Worksheet
         ThisWorkbook.Worksheets(BL_UITVRAAG).Delete
         Application.DisplayAlerts = True
     End If
-    Set ws = ThisWorkbook.Worksheets.Add(After:=ThisWorkbook.Worksheets(ThisWorkbook.Worksheets.Count))
+    Set ws = NieuwBlad()
     ws.Name = BL_UITVRAAG
     ws.Tab.Color = RGB(0, 73, 118)
     ActiveWindow.DisplayGridlines = False
@@ -5534,8 +5534,13 @@ Public Sub TabbladenOrdenen()
     Next naam
     ' Voertuigen en daarna Controle helemaal achteraan; alleen verplaatsen als het nog niet zo staat
     If BladBestaatStil("Controle") And BladBestaatStil("Voertuigen") Then
-        If ThisWorkbook.Worksheets("Voertuigen").Index <> ThisWorkbook.Worksheets.Count - 1 _
-           Or ThisWorkbook.Worksheets("Controle").Index <> ThisWorkbook.Worksheets.Count Then
+        Dim w As Worksheet, moet As Boolean
+        moet = (ThisWorkbook.Worksheets("Controle").Index < ThisWorkbook.Worksheets("Voertuigen").Index)
+        For Each w In ThisWorkbook.Worksheets           ' een zichtbaar ander blad achter Voertuigen? (verborgen bladen tellen niet)
+            If w.Visible = xlSheetVisible And w.Name <> "Voertuigen" And w.Name <> "Controle" _
+               And w.Index > ThisWorkbook.Worksheets("Voertuigen").Index Then moet = True
+        Next w
+        If moet Then
             ThisWorkbook.Worksheets("Voertuigen").Move After:=ThisWorkbook.Worksheets(ThisWorkbook.Worksheets.Count)
             ThisWorkbook.Worksheets("Controle").Move After:=ThisWorkbook.Worksheets(ThisWorkbook.Worksheets.Count)
         End If
@@ -5860,7 +5865,7 @@ Public Sub ActualisatieVerwerken()
     ' 4. voorstellen nieuwe kredieten naar een eigen blad
     If nNieuw > 0 Then
         If Not BladBestaatStil(BL_VOORSTEL) Then
-            Set wsVs = ThisWorkbook.Worksheets.Add(After:=ThisWorkbook.Worksheets(ThisWorkbook.Worksheets.Count))
+            Set wsVs = NieuwBlad()
             wsVs.Name = BL_VOORSTEL
             wsVs.Cells.Font.Name = "Arial"
             wsVs.Cells.Font.Size = 10
@@ -5949,7 +5954,7 @@ Private Sub MutatieRegistreren(ByVal naam As String, ByVal volgnr As Variant, By
                                ByVal oud As Double, ByVal nieuw As Double, ByVal act As String, ByVal toel As String, ByVal bestand As String)
     Dim ws As Worksheet, rij As Long
     If Not BladBestaatStil(BL_MUTREG) Then
-        Set ws = ThisWorkbook.Worksheets.Add(After:=ThisWorkbook.Worksheets(ThisWorkbook.Worksheets.Count))
+        Set ws = NieuwBlad()
         ws.Name = BL_MUTREG
         ws.Cells.Font.Name = "Arial"
         ws.Cells.Font.Size = 10
@@ -6036,3 +6041,15 @@ Public Sub OpbrengstenActivaMarkeren()
     Next r
     MsgBox n & " regel(s) gemarkeerd als opbrengst activa.", vbInformation
 End Sub
+
+' Nieuw tabblad voor Voertuigen en Controle (die blijven achteraan). Zo hoeven Voertuigen en Controle niet steeds
+' verplaatst te worden; verplaatsen maakt een blad actief, waardoor het Controle-blad even in beeld kwam.
+Private Function NieuwBlad() As Worksheet
+    If BladBestaatStil("Voertuigen") Then
+        Set NieuwBlad = ThisWorkbook.Worksheets.Add(Before:=ThisWorkbook.Worksheets("Voertuigen"))
+    ElseIf BladBestaatStil("Controle") Then
+        Set NieuwBlad = ThisWorkbook.Worksheets.Add(Before:=ThisWorkbook.Worksheets("Controle"))
+    Else
+        Set NieuwBlad = ThisWorkbook.Worksheets.Add(After:=ThisWorkbook.Worksheets(ThisWorkbook.Worksheets.Count))
+    End If
+End Function
