@@ -13,6 +13,7 @@ Private mHeeftVorige As Boolean
 Private mAansl As String
 Private Const BL_OVERZICHT As String = "Laatste kredietoverzicht"          ' raad en jaarrekening
 Private Const BL_OVERZICHT_NAAM As String = "Laatste overzicht op naam"  ' budgethouder / projectleider
+Private Const WACHTWOORD As String = "Best"      ' bladbeveiliging (zet ook een wachtwoord op het VBA-project)
 Private mStil As Boolean             ' geen meldingen tijdens een reeks overzichten
 
 Private Type TKaart
@@ -129,6 +130,8 @@ Fout:
 End Sub
 
 Public Sub Auto_Open()
+    ' beveiliging opnieuw aanzetten (macro's mogen schrijven, gebruikers niet)
+    BeveiligingAan
     ' keuzeopties verversen bij het openen (niet als het bestand alleen-lezen is geopend)
     On Error Resume Next
     If Not ThisWorkbook.ReadOnly Then KeuzelijstenVerversen True
@@ -253,6 +256,7 @@ Private Function RegistreerNieuweGebruiker(ByVal lo As ListObject, ByVal windows
         rol = "financi" & ChrW(235) & "le administratie": toev = "nee": wijz = "ja": bev = "ja"
     End If
 
+    lo.Parent.Unprotect WACHTWOORD                  ' tabel kan niet groeien op een beveiligd blad
     Set lr = lo.ListRows.Add
     lr.Range.Cells(1, 1).Value = naam
     lr.Range.Cells(1, 2).Value = windows
@@ -260,6 +264,7 @@ Private Function RegistreerNieuweGebruiker(ByVal lo As ListObject, ByVal windows
     lr.Range.Cells(1, 4).Value = toev
     lr.Range.Cells(1, 5).Value = wijz
     lr.Range.Cells(1, 6).Value = bev
+    BladBeveiligen lo.Parent
     ZetGebruiker naam
     LogRegel "gebruiker toegevoegd", , , "Rol", , rol, naam & " heeft zichzelf toegevoegd (Windows-naam " & windows & ")"
     MsgBox naam & " is toegevoegd als " & rol & ".", vbInformation
@@ -377,7 +382,9 @@ Public Sub GebruikerVerwijderen()
     If MsgBox("Weet u zeker dat u " & naam & " (" & rol & ") wilt verwijderen?", _
               vbYesNo + vbQuestion + vbDefaultButton2, "Gebruiker verwijderen") <> vbYes Then Exit Sub
 
+    lo.Parent.Unprotect WACHTWOORD
     lo.ListRows(idx(k)).Delete
+    BladBeveiligen lo.Parent
     LogRegel "gebruiker verwijderd", , , "Rol", rol, "", naam & " verwijderd uit de rollentabel"
     MsgBox naam & " is verwijderd.", vbInformation
     Exit Sub
@@ -3588,6 +3595,7 @@ VolgendJaar:
     UitgavenOpmaakAanmaken
     alarm = MeldingenSchrijven(Dir(pad), peil)
     KredietoverzichtMaken
+    BeveiligingAan
     Application.ScreenUpdating = True
     ThisWorkbook.Worksheets(BL_MELD).Activate
     tekst = "Verwerkt: " & Dir(pad) & vbCrLf & _
@@ -4379,6 +4387,7 @@ Private Function OverzichtMaken(ByVal soort As String, ByVal bron As Worksheet, 
         .CenterFooter = "Pagina &P van &N"
     End With
     On Error GoTo Fout
+    BladBeveiligen ws
     Set OverzichtMaken = ws
     LogRegel "kredietoverzicht", , , soort, , , ws.Name & " | " & selTekst & " | " & nSel & " kredieten"
 Einde:
@@ -4875,4 +4884,75 @@ Private Sub LogoPlaatsen(ByVal ws As Worksheet, ByVal kolRechts As Long)
     shp.Top = 2
     shp.Placement = xlMove
 Klaar:
+End Sub
+
+' ======================================================================
+' Bladbeveiliging
+' ======================================================================
+' Alle mutaties lopen via het Dashboard. De bladen staan op slot; macro's mogen wel schrijven (UserInterfaceOnly).
+' Die instelling wordt niet in het bestand bewaard, daarom zet Auto_Open de beveiliging bij elk openen opnieuw aan.
+' Open blijven: invoercellen op het Dashboard en de gele invoerkolommen van de tabellen op Parameters.
+' Filteren mag op de verzamellijst, sorteren niet.
+
+Public Sub BeveiligingAan()
+    Dim naam As Variant
+    On Error Resume Next
+    For Each naam In Array("Verzamellijst alle kredieten", "Logboek", "Vorige upload", "Parameters", "Dashboard", "Controle", _
+                           BL_MELD, BL_OVERZICHT, BL_OVERZICHT_NAAM)
+        If BladBestaatStil(CStr(naam)) Then BladBeveiligen ThisWorkbook.Worksheets(CStr(naam))
+    Next naam
+End Sub
+
+' Alleen voor de financieel adviseur: beveiliging uit om iets met de hand te herstellen. Gaat bij het volgende openen weer aan.
+Public Sub BeveiligingUit()
+    Dim ws As Worksheet
+    If Not HeeftRecht("Toevoegen") Then
+        MsgBox "Alleen financieel adviseurs mogen de beveiliging uitzetten.", vbExclamation
+        Exit Sub
+    End If
+    If MsgBox("Beveiliging van alle bladen uitzetten? Wijzigingen met de hand komen niet in het Logboek." & vbCrLf & _
+              "Bij het volgende openen gaat de beveiliging vanzelf weer aan (of draai BeveiligingAan).", _
+              vbYesNo + vbExclamation + vbDefaultButton2, "Beveiliging uit") <> vbYes Then Exit Sub
+    On Error Resume Next
+    For Each ws In ThisWorkbook.Worksheets
+        ws.Unprotect WACHTWOORD
+    Next ws
+    On Error GoTo 0
+    LogRegel "beveiliging uit", , , "", , , "met de hand uitgezet"
+    MsgBox "Beveiliging staat uit.", vbInformation
+End Sub
+
+Private Sub BladBeveiligen(ByVal ws As Worksheet)
+    Dim lo As ListObject, kol As Variant, j As Long, k As Long, laatste As Long
+    On Error Resume Next
+    ws.Unprotect WACHTWOORD
+    Select Case ws.Name
+        Case "Parameters"
+            ws.Cells.Locked = True
+            For Each kol In Array(Array("Tbl_Rollen", "Naam"), Array("Tbl_Rollen", "Windows-naam"), Array("Tbl_Rollen", "Rol"), _
+                                  Array("Tbl_Rollen", "Toevoegen"), Array("Tbl_Rollen", "Wijzigen"), Array("Tbl_Rollen", "Bevestigen"), _
+                                  Array("Tbl_Programma", "Code"), Array("Tbl_Programma", "Omschrijving"), _
+                                  Array("Tbl_Taakveld", "Taakveld"), Array("Tbl_Taakveld", "Omschrijving"), _
+                                  Array("Tbl_Balanscode", "Code"), Array("Tbl_Balanscode", "Omschrijving"), Array("Tbl_BijdrageBron", "Bron"))
+                Set lo = Nothing
+                Set lo = ws.ListObjects(CStr(kol(0)))
+                If Not lo Is Nothing Then lo.ListColumns(CStr(kol(1))).DataBodyRange.Locked = False
+            Next kol
+        Case "Dashboard"
+            ws.Cells.Locked = True
+            ws.Range("Kaart_Invoer").Locked = False
+            For j = 0 To 5
+                For k = 1 To 2
+                    ws.Cells(BijdrageRij(j, k), 2).Locked = False      ' bron van een bijdrage (kiezen of typen)
+                Next k
+            Next j
+            ws.Range("C58:C59").Locked = False
+        Case "Verzamellijst alle kredieten"
+            If Not ws.AutoFilterMode Then
+                laatste = CLng(ThisWorkbook.Names("Par_LaatsteRij").RefersToRange.Value)
+                ws.Range("A1:AW" & laatste).AutoFilter
+            End If
+    End Select
+    ws.Protect Password:=WACHTWOORD, DrawingObjects:=True, Contents:=True, Scenarios:=True, _
+               UserInterfaceOnly:=True, AllowFiltering:=True
 End Sub
