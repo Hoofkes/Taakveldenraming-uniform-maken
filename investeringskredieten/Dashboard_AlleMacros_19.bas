@@ -6731,7 +6731,13 @@ Private Sub KnopUitleg(ByVal ws As Worksheet, ByVal knop As String, ByVal tekst 
     If b Is Nothing Then Exit Sub
     Set q = ws.Shapes("uitleg_" & knop)
     had = Not q Is Nothing
-    If had Then q.Delete Else b.Width = b.Width - 20     ' ruimte voor het vraagteken (maar een keer)
+    ' knop smaller maken voor het vraagteken, tenzij dat al gebeurd is (vraagteken staat dan al rechts naast de knop)
+    If had Then
+        If q.Left < b.Left + b.Width Then b.Width = b.Width - 20
+        q.Delete
+    Else
+        b.Width = b.Width - 20
+    End If
     Set q = ws.Buttons.Add(b.Left + b.Width + 2, b.Top, 18, b.Height)
     q.Name = "uitleg_" & knop
     q.Caption = "?"
