@@ -16,6 +16,7 @@ Private Const BL_OVERZICHT As String = "Laatste kredietoverzicht"          ' raa
 Private Const BL_OVERZICHT_NAAM As String = "Laatste overzicht op naam"  ' budgethouder / projectleider
 Private Const BL_UITVRAAG As String = "Laatste uitvraag begroting"
 Private Const BL_TIJD As String = "Laatste overzicht tijdschrijven"
+Private Const BL_MUTREG As String = "Mutaties kadernota-begroting"   ' register voor de lastenberekening
 Private Const WACHTWOORD As String = "Best"      ' bladbeveiliging (zet ook een wachtwoord op het VBA-project)
 Private mStil As Boolean
 Private mHerbeveiligingGepland As Boolean
@@ -5046,7 +5047,7 @@ Public Sub BeveiligingAan()
     Dim naam As Variant
     mHerbeveiligingGepland = False
     On Error Resume Next
-    For Each naam In Array(BL_VZ, "Logboek", "Vorige upload", "Stand tijdschrijven", "Parameters", "Dashboard", "Controle", _
+    For Each naam In Array(BL_VZ, "Logboek", "Vorige upload", "Stand tijdschrijven", BL_MUTREG, "Parameters", "Dashboard", "Controle", _
                            BL_MELD, BL_OVERZICHT, BL_OVERZICHT_NAAM)
         If BladBestaatStil(CStr(naam)) Then BladBeveiligen ThisWorkbook.Worksheets(CStr(naam))
     Next naam
@@ -5780,6 +5781,9 @@ Public Sub ActualisatieVerwerken()
             If Round(plan(i, 3 + k) - oudB, 2) <> 0 Then
                 LogRegel "actualisatie kadernota", wv.Cells(r, 1).Value, wv.Cells(r, 3).Value, wv.Cells(1, 30 + k).Text, oudB, plan(i, 3 + k), _
                          naam & " | " & plan(i, 9)
+                MutatieRegistreren naam, wv.Cells(r, 1).Value, NrTekst(wv.Cells(r, 3).Value), CStr(wv.Cells(r, 4).Value), _
+                                   wv.Cells(r, 19).Value, wv.Cells(r, 20).Value, wv.Cells(r, 25).Value, lj + k, oudB, CDbl(plan(i, 3 + k)), _
+                                   CStr(plan(i, 9)), CStr(plan(i, 3)), Dir(bestand)
                 If plan(i, 3 + k) = 0 Then wv.Cells(r, 30 + k).ClearContents Else wv.Cells(r, 30 + k).Value = plan(i, 3 + k)
                 verschil = verschil + plan(i, 3 + k) - oudB
             End If
@@ -5842,6 +5846,12 @@ Public Sub ActualisatieVerwerken()
                 wsVs.Cells(rij, 11).Value = Tkst(d(i, 14))
                 wsVs.Cells(rij, 12).Value = Dir(bestand)
                 wsVs.Cells(rij, 13).Value = "nee"
+                For k = 1 To 5
+                    If Nul(d(i, 6 + k)) <> 0 Then
+                        MutatieRegistreren naam, "", "nieuw", Tkst(d(i, 2)), Tkst(d(i, 4)), "", Tkst(d(i, 5)), lj + k, 0, Nul(d(i, 6 + k)), _
+                                           "Nieuw krediet (voorstel)", Tkst(d(i, 14)), Dir(bestand)
+                    End If
+                Next k
                 rij = rij + 1
             End If
         Next i
@@ -5882,3 +5892,65 @@ Private Function LogboekTekst() As String
     End If
     LogboekTekst = t
 End Function
+
+' Legt elke verwerkte wijziging per jaarschijf vast op het blad 'Mutaties kadernota-begroting'.
+' Met taakveld, balanscode en afschrijftermijn is dit de basis voor de berekening van de lastenaanpassingen
+' (kapitaallasten) in de kadernota/begroting. Het register wordt aangevuld, nooit leeggemaakt.
+Private Sub MutatieRegistreren(ByVal naam As String, ByVal volgnr As Variant, ByVal nr As String, ByVal oms As String, _
+                               ByVal taakveld As Variant, ByVal balans As Variant, ByVal afschr As Variant, ByVal jaar As Long, _
+                               ByVal oud As Double, ByVal nieuw As Double, ByVal act As String, ByVal toel As String, ByVal bestand As String)
+    Dim ws As Worksheet, rij As Long
+    If Not BladBestaatStil(BL_MUTREG) Then
+        Set ws = ThisWorkbook.Worksheets.Add(After:=ThisWorkbook.Worksheets(ThisWorkbook.Worksheets.Count))
+        ws.Name = BL_MUTREG
+        ws.Cells.Font.Name = "Arial"
+        ws.Cells.Font.Size = 10
+        ws.Range("A1").Value = "Mutaties kadernota / begroting (basis voor de lastenaanpassingen)"
+        ws.Range("A1").Font.Bold = True
+        ws.Range("A1").Font.Size = 14
+        ws.Range("A1").Font.Color = RGB(0, 73, 118)
+        ws.Range("A4:O4").Value = Array("Verwerkt op", "Verwerkt door", "Budgetbeheerder", "Volgnr", "Kredietnummer", "Omschrijving", _
+                                        "Taakveld", "Balanscode", "Afschr", "Jaar", "Oud budget", "Nieuw budget", "Mutatie", _
+                                        "Actualisatie", "Toelichting")
+        With ws.Range("A4:O4")
+            .Font.Bold = True
+            .Font.Color = RGB(255, 255, 255)
+            .Interior.Color = RGB(0, 73, 118)
+            .WrapText = True
+            .VerticalAlignment = xlCenter
+        End With
+        ws.Rows(4).RowHeight = 30
+        ws.Columns("A").ColumnWidth = 16: ws.Columns("B:C").ColumnWidth = 18: ws.Columns("D").ColumnWidth = 8
+        ws.Columns("E").ColumnWidth = 14: ws.Columns("F").ColumnWidth = 40: ws.Columns("G:H").ColumnWidth = 11
+        ws.Columns("I:J").ColumnWidth = 7: ws.Columns("K:M").ColumnWidth = 15: ws.Columns("N").ColumnWidth = 26
+        ws.Columns("O").ColumnWidth = 50
+        ws.Columns("E").NumberFormat = "@"
+        ws.Range("A4:O4").AutoFilter
+        KnopTerug ws, ws.Range("A2")
+    Else
+        Set ws = ThisWorkbook.Worksheets(BL_MUTREG)
+        ws.Unprotect WACHTWOORD
+    End If
+    rij = Application.Max(5, ws.Cells(ws.Rows.Count, 1).End(xlUp).Row + 1)
+    ws.Cells(rij, 1).Value = Now
+    ws.Cells(rij, 1).NumberFormat = "dd-mm-yyyy hh:mm"
+    ws.Cells(rij, 2).Value = ThisWorkbook.Names("Par_HuidigeGebruiker").RefersToRange.Value
+    ws.Cells(rij, 3).Value = naam
+    ws.Cells(rij, 4).Value = volgnr
+    ws.Cells(rij, 5).Value = nr
+    ws.Cells(rij, 6).Value = oms
+    ws.Cells(rij, 7).NumberFormat = "@"
+    ws.Cells(rij, 7).Value = CStr(taakveld)
+    ws.Cells(rij, 8).Value = balans
+    ws.Cells(rij, 9).Value = afschr
+    ws.Cells(rij, 10).Value = jaar
+    ws.Cells(rij, 11).Value = oud
+    ws.Cells(rij, 12).Value = nieuw
+    ws.Cells(rij, 13).Value = nieuw - oud
+    ws.Cells(rij, 14).Value = act
+    ws.Cells(rij, 15).Value = toel
+    ws.Range(ws.Cells(rij, 11), ws.Cells(rij, 13)).NumberFormat = "#,##0;-#,##0;-"
+    ws.Range(ws.Cells(rij, 1), ws.Cells(rij, 15)).VerticalAlignment = xlTop
+    ws.Cells(rij, 6).WrapText = True
+    ws.Cells(rij, 15).WrapText = True
+End Sub
