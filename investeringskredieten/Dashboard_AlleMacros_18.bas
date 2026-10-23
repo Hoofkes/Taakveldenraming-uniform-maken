@@ -4805,19 +4805,25 @@ Public Sub OverzichtTijdschrijven()
     Set ws = ThisWorkbook.Worksheets.Add(After:=ThisWorkbook.Worksheets(ThisWorkbook.Worksheets.Count))
     ws.Name = BL_TIJD
     ws.Tab.Color = RGB(0, 73, 118)
-    ws.Cells.Font.Name = "Tahoma"
+    ActiveWindow.DisplayGridlines = False
+    ws.Cells.Font.Name = "Arial"
     ws.Cells.Font.Size = 10
-    ws.Range("A1").Value = "Kredieten voor tijdschrijven (alle lopende kredieten)"
-    ws.Range("A1").Font.Bold = True
-    ws.Range("A1").Font.Size = 14
-    ws.Range("A2").Value = "Gemaakt op " & Format$(Now, "dd-mm-yyyy hh:mm") & " door " & ThisWorkbook.Names("Par_HuidigeGebruiker").RefersToRange.Value & _
-                           ". Vergeleken met: " & IIf(Len(vorigBestand) > 0, Dir(vorigBestand), "geen vorig overzicht (alle regels nieuw)") & "."
-    ws.Range("A2").Font.Italic = True
+    ws.Range("A1").Value = "Kredieten voor tijdschrijven"
+    With ws.Range("A1").Font
+        .Bold = True
+        .Size = 16
+        .Color = RGB(0, 73, 118)
+    End With
+    ws.Rows(1).RowHeight = 26
+    ws.Range("A2").Value = "Alle lopende kredieten - stand " & Format$(Date, "dd-mm-yyyy")
+    ws.Range("A2").Font.Size = 11
+    ws.Range("A2").Font.Color = RGB(89, 89, 89)
     ws.Range("A4:G4").Value = Array("Kredietnummer", "Omschrijving", "Status", "Projectleider", "Tijdschrijvers", "Actie", "Toegevoegd op")
     With ws.Range("A4:G4")
         .Font.Bold = True
-        .Interior.Color = RGB(208, 208, 208)
-        .Borders(xlEdgeBottom).LineStyle = xlContinuous
+        .Font.Color = RGB(255, 255, 255)
+        .Interior.Color = RGB(0, 73, 118)
+        .VerticalAlignment = xlCenter
     End With
     ws.Columns("A").NumberFormat = "@"
     rij = 5
@@ -4847,8 +4853,7 @@ Public Sub OverzichtTijdschrijven()
         Else
             ws.Cells(rij, 7).Value = Format$(Date, "dd-mm-yyyy")
         End If
-        If actie = "nieuw" Then ws.Range(ws.Cells(rij, 1), ws.Cells(rij, 7)).Interior.Color = RGB(198, 239, 206)
-        If actie = "gewijzigd" Then ws.Range(ws.Cells(rij, 1), ws.Cells(rij, 7)).Interior.Color = RGB(255, 235, 156)
+        If Len(actie) > 0 Then ws.Cells(rij, 6).Font.Bold = True
         rij = rij + 1
     Next i
     ' afgesloten: stond in het vorige overzicht, is nu geen lopend krediet meer
@@ -4864,13 +4869,14 @@ Public Sub OverzichtTijdschrijven()
             ws.Cells(rij, 5).Value = oudRec(3)
             ws.Cells(rij, 6).Value = "afgesloten"
             If toegevoegd.Exists(nr) Then ws.Cells(rij, 7).Value = toegevoegd(nr)
-            ws.Range(ws.Cells(rij, 1), ws.Cells(rij, 7)).Interior.Color = RGB(255, 199, 206)
+            ws.Cells(rij, 6).Font.Bold = True
             nAfgesloten = nAfgesloten + 1
             rij = rij + 1
         End If
     Next i
-    ws.Range("A3").Value = huidig.Count & " lopende kredieten: " & nNieuw & " nieuw, " & nGewijzigd & " gewijzigd, " & nAfgesloten & " afgesloten."
-    ws.Range("A3").Font.Bold = True
+    ws.Range("A2").Value = ws.Range("A2").Value & ": " & huidig.Count & " kredieten, " & nNieuw & " nieuw, " & nGewijzigd & " gewijzigd, " & _
+                           nAfgesloten & " afgesloten"
+    ws.Rows(3).RowHeight = 22
     ws.Columns("A").ColumnWidth = 16
     ws.Columns("B").ColumnWidth = 45
     ws.Columns("C").ColumnWidth = 9
@@ -4882,8 +4888,15 @@ Public Sub OverzichtTijdschrijven()
     ws.Range("B5:B" & rij & ",E5:E" & rij).WrapText = True
     ws.Range("A4:G" & Application.Max(5, rij - 1)).AutoFilter
     ws.Range("A4:G4").WrapText = True
+    ws.Range("A5:A" & rij).HorizontalAlignment = xlLeft
+    ws.Range("C4:C" & rij & ",F4:G" & rij).HorizontalAlignment = xlCenter
+    ws.Range("G5:G" & rij).NumberFormat = "dd-mm-yyyy"
     BladOpmaken ws, 4, 5, rij
-    KnopTerug ws, ws.Range("F1")
+    ws.Activate
+    ActiveWindow.FreezePanes = False
+    ws.Range("A5").Select
+    ActiveWindow.FreezePanes = True
+    KnopTerug ws, ws.Range("A3")
     BladOpslaan ws, map, "Tijdschrijven kredieten " & Format$(Date, "yyyy-mm-dd")
     TabbladenOrdenen
     ws.Activate
@@ -5486,7 +5499,7 @@ Public Sub KnoppenTerugPlaatsen()
                     ws.Buttons("btnTerug").Left = ws.Range("A2").Left + 4 * 160
                     ws.Buttons("btnTerug").Top = ws.Range("A2").Top + 2
                 Case BL_MELD, BL_TIJD
-                    KnopTerug ws, ws.Range(IIf(ws.Name = BL_MELD, "D1", "F1"))
+                    KnopTerug ws, ws.Range(IIf(ws.Name = BL_MELD, "D1", "A3"))
                 Case BL_OVERZICHT, BL_OVERZICHT_NAAM, BL_UITVRAAG
                     KnopTerug ws, ws.Range("A3")
                 Case Else
