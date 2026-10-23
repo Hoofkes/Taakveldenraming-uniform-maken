@@ -11,6 +11,7 @@ Private mMeld As Collection
 Private mVorige As Object          ' bedragen per kredietnummer en jaar uit de vorige upload
 Private mHeeftVorige As Boolean
 Private mAansl As String
+Private Const BL_OVERZICHT As String = "Laatste kredietoverzicht"
 Private mStil As Boolean             ' geen meldingen tijdens een reeks overzichten
 
 Private Type TKaart
@@ -3681,11 +3682,12 @@ End Sub
 
 ' Totaal budget van een regel: Z plus AE t/m AI.
 Private Function BudgetRegel(ByVal vS As Variant, ByVal r As Long) As Double
-    Dim c As Long
-    BudgetRegel = Nul(vS(r, 26))
+    Dim c As Long, som As Double
+    som = Nul(vS(r, 26))
     For c = 31 To 35
-        BudgetRegel = BudgetRegel + Nul(vS(r, c))
+        som = som + Nul(vS(r, c))
     Next c
+    BudgetRegel = som
 End Function
 
 ' Kiest de uitdraai: het nieuwste bestand in de exportmap (map van Par_PadUitgavenbestand). Een vraag: uploaden ja/nee.
@@ -4027,6 +4029,7 @@ Public Sub KredietoverzichtOpNaam()
     If ws Is Nothing Then Exit Sub
     map = MapStambestand("02 Budgetbeheerders en projectleiders")
     If Len(map) > 0 Then
+        map = SubMap(map, naam)
         BladOpslaan ws, map, "Kredietoverzicht " & naam & " " & Format$(Date, "dd-mm-yyyy")
         ws.Activate
         MsgBox "Opgeslagen in:" & vbCrLf & map, vbInformation
@@ -4095,8 +4098,8 @@ Private Function OverzichtMaken(ByVal soort As String, ByVal bron As Worksheet, 
             neem = False: toekomst = False
             If soort = "naam" Then
                 If NaamKomtVoor(CStr(v(r, naamKol)), naam) Then
+                    ' budgethouders en projectleiders: alleen lopende kredieten (L), ook als ze nog niet gestart zijn
                     If stLetter = "L" And sj <= jaar Then neem = True
-                    If stLetter = "A" And sj = jaar Then neem = True
                     If stLetter = "L" And sj > jaar Then neem = True: toekomst = True
                 End If
             Else
@@ -4142,7 +4145,7 @@ Private Function OverzichtMaken(ByVal soort As String, ByVal bron As Worksheet, 
 
     ' 3. Kolommen
     If soort = "naam" Then
-        kols = Array("Volgnr", "Omschrijving investeringskrediet", "Status", "Afschr", "Budget t/m " & jaar, "Totaal werkelijke uitgaven", "Restantkrediet", _
+        kols = Array("Kredietnummer", "Omschrijving investeringskrediet", "Status", "Afschr", "Budget t/m " & jaar, "Totaal werkelijke uitgaven", "Restantkrediet", _
                      "Vrijval (+) / overschrijding (-) bij afsluiten")
     Else
         kols = Array("Volgnr", "Omschrijving investeringskrediet", "Status", "Budget t/m " & jaar, "Totaal werkelijke uitgaven", "Restantkrediet", _
@@ -4163,42 +4166,49 @@ Private Function OverzichtMaken(ByVal soort As String, ByVal bron As Worksheet, 
     cEerste = cBud: cLaatste = nK + 5
     cToel = nK + 6: cMeld = nK + 7
 
-    ' 4. Blad aanmaken
+    ' 4. Blad: er staat altijd maar een overzicht in de werkmap; de vorige opvraging wordt vervangen
     Select Case soort
-        Case "raad": bladNaam = "Kredietoverzicht " & Format$(Date, "dd-mm-yyyy")
-                     selTekst = "L t/m " & jaar & " plus A" & jaar & "; zonder regels met negatief budget"
-        Case "naam": bladNaam = "Krediet " & naam & " " & Format$(Date, "dd-mm-yy")
-                     selTekst = bron.Cells(1, naamKol).Text & ": " & naam & "; L t/m " & jaar & " plus A" & jaar & _
-                                ", plus kredieten die nog niet gestart zijn"
-        Case Else:   bladNaam = "Jaarrekening " & jaar & " " & Format$(Date, "dd-mm-yy")
-                     selTekst = "Stand per 31-12-" & jaar & " (blad " & bron.Name & "): L t/m " & jaar & " plus A" & jaar & "; zonder regels met negatief budget"
+        Case "raad": selTekst = "L t/m " & jaar & " plus A" & jaar & "; zonder regels met negatief budget"
+        Case "naam": selTekst = RolNaam(naamKol) & ": " & naam & "; alleen lopende kredieten"
+        Case Else:   selTekst = "stand 31-12-" & jaar & " (blad " & bron.Name & "): L t/m " & jaar & " plus A" & jaar
     End Select
-    bladNaam = VrijeBladnaam(bladNaam)
+    If BladBestaatStil(BL_OVERZICHT) Then
+        Application.DisplayAlerts = False
+        ThisWorkbook.Worksheets(BL_OVERZICHT).Delete
+        Application.DisplayAlerts = True
+    End If
     Set ws = ThisWorkbook.Worksheets.Add(After:=ThisWorkbook.Worksheets(ThisWorkbook.Worksheets.Count))
-    ws.Name = bladNaam
-    ws.Cells.Font.Name = "Tahoma"
+    ws.Name = BL_OVERZICHT
+    ws.Tab.Color = RGB(0, 73, 118)
+    ActiveWindow.DisplayGridlines = False
+    ws.Cells.Font.Name = "Arial"
     ws.Cells.Font.Size = 10
 
-    ' raad en jaarrekening zien er hetzelfde uit; alleen de stand verschilt (gedurende het jaar of per 31-12)
+    ' titel en ondertitel (zonder technische regels: die zijn niet voor lezers buiten financien)
+    ws.Range("A1").Value = "Kredietoverzicht investeringskredieten"
+    With ws.Range("A1").Font
+        .Bold = True
+        .Size = 16
+        .Color = RGB(0, 73, 118)
+    End With
     Select Case soort
-        Case "jaarrekening": ws.Range("A1").Value = "Kredietoverzicht investeringskredieten - stand 31-12-" & jaar
-        Case "raad":         ws.Range("A1").Value = "Kredietoverzicht investeringskredieten - stand " & Format$(Date, "dd-mm-yyyy")
-        Case Else:           ws.Range("A1").Value = "Kredietoverzicht investeringskredieten " & naam & " - stand " & Format$(Date, "dd-mm-yyyy")
+        Case "jaarrekening": ws.Range("A2").Value = "Jaarrekening " & jaar & " - stand 31-12-" & jaar
+        Case "raad":         ws.Range("A2").Value = "Stand " & Format$(Date, "dd-mm-yyyy")
+        Case Else:           ws.Range("A2").Value = RolNaam(naamKol) & ": " & naam & " - stand " & Format$(Date, "dd-mm-yyyy")
     End Select
-    ws.Range("A1").Font.Bold = True
-    ws.Range("A1").Font.Size = 14
-    ws.Range("A2").Value = "Selectie: " & selTekst & ". " & nSel & " kredieten. Gemaakt op " & Format$(Now, "dd-mm-yyyy hh:mm") & _
-                           " door " & ThisWorkbook.Names("Par_HuidigeGebruiker").RefersToRange.Value & _
-                           IIf(soort <> "jaarrekening", ". Werkelijke uitgaven t/m peildatum " & Format$(ThisWorkbook.Names("Par_PeildatumUitgaven").RefersToRange.Value, "dd-mm-yyyy"), "") & "."
-    ws.Range("A2").Font.Italic = True
+    ws.Range("A2").Font.Size = 11
+    ws.Range("A2").Font.Color = RGB(89, 89, 89)
+    ws.Rows(1).RowHeight = 26
+    ws.Rows(4).RowHeight = 6
     ws.Range("A5").Resize(1, nK + 7).Value = koppen
     With ws.Range("A5").Resize(1, nK + 7)
         .Font.Bold = True
+        .Font.Color = RGB(255, 255, 255)
+        .Interior.Color = RGB(0, 73, 118)
         .WrapText = True
-        .VerticalAlignment = xlTop
-        .Interior.Color = RGB(208, 208, 208)
-        .Borders(xlEdgeBottom).LineStyle = xlContinuous
+        .VerticalAlignment = xlCenter
     End With
+    ws.Rows(5).RowHeight = 30
 
     ' 5. Regels met groepskoppen en tussentotalen
     rij = 6: eersteData = 6
@@ -4228,13 +4238,15 @@ Private Function OverzichtMaken(ByVal soort As String, ByVal bron As Worksheet, 
         If prog <> vProg Or sectie <> vSectie Then
             ws.Cells(rij, 1).Value = prog
             ws.Range(ws.Cells(rij, 1), ws.Cells(rij, nK + 7)).Font.Bold = True
-            ws.Range(ws.Cells(rij, 1), ws.Cells(rij, nK + 7)).Interior.Color = RGB(221, 235, 247)
+            ws.Range(ws.Cells(rij, 1), ws.Cells(rij, nK + 7)).Interior.Color = RGB(214, 228, 240)
+            ws.Range(ws.Cells(rij, 1), ws.Cells(rij, nK + 7)).Font.Color = RGB(0, 73, 118)
             rij = rij + 1: startProg = rij
             vGrp = Chr$(0)
         End If
         If grp <> vGrp Then
             ws.Cells(rij, 2).Value = grp
             ws.Cells(rij, 2).Font.Bold = True
+            ws.Cells(rij, 2).Font.Italic = True
             rij = rij + 1: startGrp = rij
             vJ = Chr$(0)
         End If
@@ -4246,7 +4258,12 @@ Private Function OverzichtMaken(ByVal soort As String, ByVal bron As Worksheet, 
         vProg = prog: vGrp = grp: vJ = jNr: vSectie = sectie
 
         ' kredietregel
-        ws.Cells(rij, 1).Value = v(r, 1)
+        If soort = "naam" Then
+            ws.Cells(rij, 1).NumberFormat = "@"
+            ws.Cells(rij, 1).Value = NrTekst(v(r, 3))
+        Else
+            ws.Cells(rij, 1).Value = v(r, 1)
+        End If
         ws.Cells(rij, 2).Value = v(r, 4)
         ws.Cells(rij, 3).Value = v(r, 8)
         If soort = "naam" Then ws.Cells(rij, 4).Value = v(r, 25)
@@ -4296,40 +4313,44 @@ Private Function OverzichtMaken(ByVal soort As String, ByVal bron As Worksheet, 
     End With
 
     ' 6. Opmaak
-    ws.Range(ws.Cells(eersteData, cEerste), ws.Cells(rij, cLaatste)).NumberFormat = "#,##0;-#,##0;-"
-    ws.Range(ws.Cells(eersteData, cEerste), ws.Cells(rij, cLaatste)).Font.Color = RGB(0, 0, 0)
-    ws.Columns(1).ColumnWidth = 8
-    ws.Columns(2).ColumnWidth = 40
+    With ws.Range(ws.Cells(eersteData, cEerste), ws.Cells(rij, cLaatste))
+        .NumberFormat = "#,##0;-#,##0;-"
+        .Font.Color = RGB(0, 0, 0)
+    End With
+    ws.Range(ws.Cells(5, cEerste), ws.Cells(rij, cLaatste)).HorizontalAlignment = xlRight
+    ws.Range(ws.Cells(5, 1), ws.Cells(rij, 2)).HorizontalAlignment = xlLeft
+    ws.Range(ws.Cells(5, cStat), ws.Cells(rij, cStat)).HorizontalAlignment = xlCenter
+    If soort = "naam" Then ws.Range(ws.Cells(5, 4), ws.Cells(rij, 4)).HorizontalAlignment = xlCenter
+    ws.Range(ws.Cells(5, cToel), ws.Cells(rij, cMeld)).HorizontalAlignment = xlLeft
+    ws.Columns(1).ColumnWidth = IIf(soort = "naam", 13, 8)
+    ws.Columns(2).ColumnWidth = 42
     ws.Columns(3).ColumnWidth = 9
     If soort = "naam" Then ws.Columns(4).ColumnWidth = 7
     ws.Range(ws.Columns(cEerste), ws.Columns(cLaatste)).ColumnWidth = 13
     ws.Columns(cToel).ColumnWidth = 80
     ws.Columns(cMeld).ColumnWidth = 28
-    ws.Range(ws.Cells(eersteData, 1), ws.Cells(rij, 3)).HorizontalAlignment = xlLeft
     ws.Range(ws.Cells(eersteData, 2), ws.Cells(rij, 2)).WrapText = True
     ws.Range(ws.Cells(eersteData, cToel), ws.Cells(rij, cMeld)).WrapText = True
-    ws.Range(ws.Cells(5, 1), ws.Cells(rij, nK + 7)).VerticalAlignment = xlTop
+    ws.Range(ws.Cells(eersteData, 1), ws.Cells(rij, nK + 7)).VerticalAlignment = xlTop
     ws.Range(ws.Cells(eersteData, 1), ws.Cells(rij, nK + 7)).Rows.AutoFit
+    ' standaard verborgen: status (bij A staat "Krediet afgesloten" in de toelichting) en vrijval/overschrijding
+    ws.Columns(cStat).Hidden = True
+    ws.Columns(cAfs).Hidden = True
+    LogoPlaatsen ws, cToel
 
     ' kolom Melding alleen tonen als er meldingen zijn
     If Application.WorksheetFunction.CountA(ws.Range(ws.Cells(eersteData, cMeld), ws.Cells(rij, cMeld))) = 0 Then ws.Columns(cMeld).Hidden = True
 
     ' 7. Aansluitcontrole restantkrediet
-    If Round(somRest - somBron, 2) = 0 And Round(somBud - somWerk - somRest - somAfs, 2) = 0 Then
-        tekst = "Aansluiting: restantkrediet overzicht " & Format$(somRest, "#,##0") & " = verzamellijst " & Format$(somBron, "#,##0") & _
-                ". Budget " & Format$(somBud, "#,##0") & " = werkelijk " & Format$(somWerk, "#,##0") & " + restant " & Format$(somRest, "#,##0") & _
-                " + vrijval/overschrijding " & Format$(somAfs, "#,##0") & ". Sluit."
-        ws.Range("A3").Value = tekst
-        ws.Range("A3").Font.Color = RGB(0, 128, 0)
-    Else
-        tekst = "LET OP: aansluiting restantkrediet sluit niet (overzicht " & Format$(somRest, "#,##0") & ", verzamellijst " & _
+    If Round(somRest - somBron, 2) <> 0 Or Round(somBud - somWerk - somRest - somAfs, 2) <> 0 Then
+        tekst = "LET OP: aansluiting sluit niet (restant overzicht " & Format$(somRest, "#,##0") & ", verzamellijst " & _
                 Format$(somBron, "#,##0") & "). Overzicht NIET definitief."
         ws.Range("A3").Value = tekst
+        ws.Range("A3").Font.Bold = True
         ws.Range("A3").Font.Color = RGB(255, 255, 255)
-        ws.Range("A3").Interior.Color = RGB(255, 0, 0)
+        ws.Range("A3").Interior.Color = RGB(192, 0, 0)
         MsgBox tekst, vbCritical
     End If
-    ws.Range("A3").Font.Bold = True
 
     ' 8. Afdrukken en vastzetten
     ws.Activate
@@ -4408,17 +4429,18 @@ End Sub
 
 ' Bladnaam zonder verboden tekens, maximaal 31 posities, uniek.
 Private Function VrijeBladnaam(ByVal naam As String) As String
-    Dim t As Variant, basis As String, n As Long
+    Dim t As Variant, basis As String, n As Long, kandidaat As String
     For Each t In Array("\", "/", "?", "*", "[", "]", ":")
         naam = Replace(naam, CStr(t), "-")
     Next t
     basis = Left$(naam, 31)
-    VrijeBladnaam = basis
+    kandidaat = basis
     n = 1
-    Do While BladBestaatStil(VrijeBladnaam)
+    Do While BladBestaatStil(kandidaat)
         n = n + 1
-        VrijeBladnaam = Left$(basis, 31 - Len(CStr(n)) - 3) & " (" & n & ")"
+        kandidaat = Left$(basis, 31 - Len(CStr(n)) - 3) & " (" & n & ")"
     Loop
+    VrijeBladnaam = kandidaat
 End Function
 
 Private Function BladBestaatStil(ByVal naam As String) As Boolean
@@ -4553,7 +4575,7 @@ Private Function BladOpslaan(ByVal ws As Worksheet, ByVal map As String, ByVal b
     BladOpslaan = True
 End Function
 
-' Maakt per budgetbeheerder (kolom O) een kredietoverzicht en bewaart het in map 02. De bladen blijven niet in de werkmap.
+' Maakt per budgetbeheerder (kolom O) een kredietoverzicht en bewaart het in map 02, in een submap per persoon.
 Public Sub KredietoverzichtAlleBudgethouders()
     Dim wv As Worksheet, r As Long, laatste As Long, namen As Object, nm As Variant, ws As Worksheet
     Dim map As String, lj As Long, n As Long
@@ -4563,7 +4585,7 @@ Public Sub KredietoverzichtAlleBudgethouders()
     For r = 2 To laatste
         If Not Leeg(wv.Cells(r, 1).Value) And Not Leeg(wv.Cells(r, 15).Value) Then namen(Trim$(CStr(wv.Cells(r, 15).Value))) = True
     Next r
-    If MsgBox("Voor " & namen.Count & " budgetbeheerders een kredietoverzicht maken en opslaan in map '02 Budgetbeheerders en projectleiders'?", _
+    If MsgBox("Voor " & namen.Count & " budgetbeheerders een kredietoverzicht maken en opslaan in map '02 Budgetbeheerders en projectleiders' (submap per persoon)?", _
               vbYesNo + vbQuestion, "Kredietoverzichten budgethouders") <> vbYes Then Exit Sub
     map = MapStambestand("02 Budgetbeheerders en projectleiders")
     If Len(map) = 0 Then Exit Sub
@@ -4572,10 +4594,7 @@ Public Sub KredietoverzichtAlleBudgethouders()
     For Each nm In namen.Keys
         Set ws = OverzichtMaken("naam", wv, lj, 15, CStr(nm))
         If Not ws Is Nothing Then
-            BladOpslaan ws, map, "Kredietoverzicht " & nm & " " & Format$(Date, "dd-mm-yyyy")
-            Application.DisplayAlerts = False
-            ws.Delete
-            Application.DisplayAlerts = True
+            BladOpslaan ws, SubMap(map, CStr(nm)), "Kredietoverzicht " & nm & " " & Format$(Date, "dd-mm-yyyy")
             n = n + 1
         End If
     Next nm
@@ -4805,4 +4824,43 @@ Public Sub RestantFormuleBijwerken()
     Next k
     LogRegel "formule restant bijwerken", , , "Nog uit te geven", , , n & " cellen aangepast"
     MsgBox n & " cellen in 'Nog uit te geven' aangepast.", vbInformation
+End Sub
+
+' Submap per persoon (wordt aangemaakt als die nog niet bestaat).
+Private Function SubMap(ByVal map As String, ByVal naam As String) As String
+    Dim t As Variant
+    For Each t In Array("\", "/", "?", "*", "[", "]", ":", """", "<", ">", "|")
+        naam = Replace(naam, CStr(t), "-")
+    Next t
+    Dim pad As String
+    pad = map & Trim$(naam)
+    If Not MapBestaat(pad) Then MkDir pad
+    SubMap = pad & "\"
+End Function
+
+Private Function RolNaam(ByVal kol As Long) As String
+    Select Case kol
+        Case 15: RolNaam = "Budgetbeheerder"
+        Case 16: RolNaam = "Projectleider"
+        Case 17: RolNaam = "Tijdschrijver"
+    End Select
+End Function
+
+' Zet het logo van de gemeente rechtsboven op het overzicht. Het logo is een bestand 'logo*.png' (of .jpg)
+' in de map 'Stambestand kredieten'. Geen logo gevonden: dan zonder logo.
+Private Sub LogoPlaatsen(ByVal ws As Worksheet, ByVal kolRechts As Long)
+    Dim basis As String, f As String, shp As Object
+    On Error GoTo Klaar
+    basis = Evaluate(ThisWorkbook.Names("Par_MapStambestand").RefersTo)
+    If Not MapBestaat(basis) Then Exit Sub
+    f = Dir(basis & "logo*.png")
+    If Len(f) = 0 Then f = Dir(basis & "logo*.jp*g")
+    If Len(f) = 0 Then Exit Sub
+    Set shp = ws.Shapes.AddPicture(basis & f, msoFalse, msoTrue, 0, 2, -1, -1)
+    shp.LockAspectRatio = msoTrue
+    shp.Height = 44
+    shp.Left = ws.Cells(1, kolRechts).Left + ws.Cells(1, kolRechts).Width - shp.Width
+    shp.Top = 2
+    shp.Placement = xlMove
+Klaar:
 End Sub
