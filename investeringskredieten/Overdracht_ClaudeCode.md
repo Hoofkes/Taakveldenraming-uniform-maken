@@ -93,6 +93,8 @@ Werkwijze in elke schrijfmacro: nulmeting vooraf en achteraf (alleen datarijen, 
 - Voorstellen in de uitvraag = alleen bestaand beleid (nieuwe jaarschijf, vervanging, nieuwe prijzen); geen nieuwe investeringen. Teamleider kan nooit een afschrijftermijn invullen of wijzigen (kolom E altijd beveiligd); FA bepaalt die.
 - Voorstellen -> blad 'Voorstellen nieuwe kredieten' (onbeveiligd, kolom 'Verwerkt'); FA voert in via de invoerkaart.
 
+- Uitleg knoppen: vast blok rechts op het Dashboard (J3:K), via `KnoppenUitlegPlaatsen` (vraagtekens met scherminfo/klik werkten niet betrouwbaar en zijn weg).
+
 ## Bladbeveiliging
 - Wachtwoord "Best" (constante WACHTWOORD in de module; VBA-project zelf ook met wachtwoord vergrendelen). `BeveiligingAan` bij elk openen (Auto_Open, UserInterfaceOnly), na upload en na elk overzicht. Verzamellijst, Logboek, Vorige upload, Parameters, Dashboard, Controle, Meldingen en overzichtbladen op slot. Open: Dashboard Kaart_Invoer, bronnen bijdragen (kolom B), C58:C59; Parameters gele tabelkolommen. Filteren mag (autofilter op de verzamellijst), sorteren niet. Geen werkmapstructuur-beveiliging.
 - `BeveiligingUit` (alleen financieel adviseur) voor herstel met de hand. Tabellen op Parameters groeien niet op een beveiligd blad: nieuwe rij met de hand = eerst BeveiligingUit (zelfregistratie via intake regelt het zelf).

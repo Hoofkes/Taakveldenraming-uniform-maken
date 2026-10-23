@@ -6688,12 +6688,24 @@ End Sub
 ' ======================================================================
 ' Uitleg bij de knoppen
 ' ======================================================================
-' Naast elke knop op het Dashboard een blauw vraagteken. Klikken op het vraagteken toont de uitleg in een venster
-' (een knop kan in Excel geen tekst tonen bij alleen zweven met de muis).
+' Blok "Uitleg knoppen" rechts op het Dashboard (kolom J en K): per knop een regel uitleg, altijd zichtbaar.
 Public Sub KnoppenUitlegPlaatsen()
     WerkStart                                    ' beveiliging even uit, daarna vanzelf weer aan
-    Dim ws As Worksheet
+    Dim ws As Worksheet, shp As Object, i As Long
     Set ws = ThisWorkbook.Worksheets("Dashboard")
+    ' oude vraagtekens weghalen (die werkten niet betrouwbaar)
+    For i = ws.Shapes.Count To 1 Step -1
+        If ws.Shapes(i).Name Like "uitleg_*" Then ws.Shapes(i).Delete
+    Next i
+    ws.Range("J3:K40").Clear
+    ws.Range("J3").Value = "Uitleg knoppen"
+    ws.Range("J3").Font.Bold = True
+    ws.Range("J3").Font.Size = 12
+    ws.Range("J4:K4").Value = Array("Knop", "Wat doet de knop")
+    ws.Range("J4:K4").Font.Bold = True
+    ws.Range("J4:K4").Borders(xlEdgeBottom).LineStyle = xlContinuous
+    ws.Columns("J").ColumnWidth = 30
+    ws.Columns("K").ColumnWidth = 85
     KnopUitleg ws, "btnWijzigen", "Krediet wijzigen: zoek een bestaand krediet (op kredietnummer, omschrijving, activanummer of volgnummer). " & _
                "Het komt op de invoerkaart; pas aan en klik op 'Ingevuld? Verwerken!'."
     KnopUitleg ws, "btnKaartWissen", "Scherm leegmaken: maakt de invoerkaart leeg, er wordt niets opgeslagen."
@@ -6720,43 +6732,26 @@ Public Sub KnoppenUitlegPlaatsen()
                "Alleen financieel adviseur; eerst op een kopie testen."
     KnopUitleg ws, "btnControles", "Controles vernieuwen: rekent de controles in blok 5 opnieuw uit en toont per controle waar het zit."
     KnopUitleg ws, "btnNaarTabblad", "Ga naar tabblad: gaat naar het tabblad dat in G2 is gekozen."
-End Sub
-
-Private Sub KnopUitleg(ByVal ws As Worksheet, ByVal knop As String, ByVal tekst As String)
-    Dim b As Object, shp As Object, had As Boolean
-    On Error Resume Next
-    Set b = ws.Shapes(knop)
-    If b Is Nothing Then Exit Sub
-    Set shp = ws.Shapes("uitleg_" & knop)
-    had = Not shp Is Nothing
-    If had Then shp.Delete Else b.Width = b.Width - 18     ' ruimte binnen de oude knopbreedte voor het vraagteken (maar een keer)
-    ' het vraagteken valt zo binnen de ruimte die de knop al had en komt dus niet over tekst in de cellen ernaast
-    Set shp = ws.Shapes.AddShape(9, b.Left + b.Width + 2, b.Top + (b.Height - 14) / 2, 14, 14)   ' 9 = ovaal
-    shp.Name = "uitleg_" & knop
-    shp.Fill.ForeColor.RGB = RGB(0, 73, 118)
-    shp.Line.Visible = False
-    With shp.TextFrame2
-        .MarginLeft = 0: .MarginRight = 0: .MarginTop = 0: .MarginBottom = 0
-        .TextRange.Text = "?"
-        .TextRange.Font.Size = 9
-        .TextRange.Font.Bold = True
-        .TextRange.Font.Fill.ForeColor.RGB = RGB(255, 255, 255)
-        .TextRange.ParagraphFormat.Alignment = 2                  ' midden
-        .VerticalAnchor = 3                                       ' midden
+    With ws.Range("J5:K" & ws.Cells(ws.Rows.Count, 10).End(xlUp).Row)
+        .WrapText = True
+        .VerticalAlignment = xlTop
+        .Font.Size = 9
+        .Rows.AutoFit
     End With
-    shp.Placement = xlFreeFloating
-    shp.AlternativeText = tekst                    ' de uitleg; verschijnt in een venster bij klikken op het vraagteken
-    shp.OnAction = "KnopUitlegTonen"
+    ws.Range("J5:J40").Font.Bold = True
 End Sub
 
-' Klik op een vraagteken: toont de uitleg van de knop ernaast.
-Public Sub KnopUitlegTonen()
-    Dim naam As String, tekst As String, titel As String
-    On Error Resume Next
-    naam = CStr(Application.Caller)
-    tekst = ActiveSheet.Shapes(naam).AlternativeText
-    titel = ActiveSheet.Shapes(Mid$(naam, Len("uitleg_") + 1)).TextFrame.Characters.Text
-    On Error GoTo 0
-    If Len(tekst) = 0 Then Exit Sub
-    MsgBox tekst, vbInformation, "Uitleg" & IIf(Len(titel) > 0, ": " & titel, "")
+' Zet een regel in het blok "Uitleg knoppen" (kolom J en K van het Dashboard).
+Private Sub KnopUitleg(ByVal ws As Worksheet, ByVal knop As String, ByVal tekst As String)
+    Dim r As Long, p As Long
+    r = ws.Cells(ws.Rows.Count, 10).End(xlUp).Row + 1
+    If r < 5 Then r = 5
+    p = InStr(tekst, ": ")
+    If p > 0 Then
+        ws.Cells(r, 10).Value = Left$(tekst, p - 1)
+        ws.Cells(r, 11).Value = Mid$(tekst, p + 2)
+    Else
+        ws.Cells(r, 10).Value = knop
+        ws.Cells(r, 11).Value = tekst
+    End If
 End Sub
