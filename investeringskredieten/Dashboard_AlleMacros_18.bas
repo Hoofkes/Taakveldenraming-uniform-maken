@@ -5401,7 +5401,8 @@ Private Function UitvraagBlad(ByVal naam As String) As Worksheet
     ' voorstellen voor nieuwe kredieten: lege regels onderaan (gemarkeerd met NIEUW in de verborgen kolom)
     Dim nvStart As Long, nvEind As Long
     rij = rij + 2
-    ws.Cells(rij, 1).Value = "Voorstellen nieuwe investeringskredieten (vul omschrijving, taakveld, afschrijftermijn, budgetten en toelichting in)"
+    ws.Cells(rij, 1).Value = "Bestaand beleid: nieuwe jaarschijf of vervanging (vul omschrijving, taakveld, budgetten en toelichting in). " & _
+                             "Geen nieuwe investeringen; de afschrijftermijn bepaalt de financieel adviseur."
     ws.Range(ws.Cells(rij, 1), ws.Cells(rij, nK)).Font.Bold = True
     ws.Range(ws.Cells(rij, 1), ws.Cells(rij, nK)).Interior.Color = RGB(214, 228, 240)
     ws.Range(ws.Cells(rij, 1), ws.Cells(rij, nK)).Font.Color = RGB(0, 73, 118)
@@ -5436,11 +5437,11 @@ Private Function UitvraagBlad(ByVal naam As String) As Worksheet
     ' voorstellen nieuwe kredieten: omschrijving, taakveld, afschrijving, budgetten en toelichting invullen
     For k = nvStart To nvEind
         ws.Range(ws.Cells(k, 2), ws.Cells(k, 2)).Interior.Color = RGB(255, 255, 204)
-        ws.Range(ws.Cells(k, 4), ws.Cells(k, 5)).Interior.Color = RGB(255, 255, 204)
+        ws.Cells(k, 4).Interior.Color = RGB(255, 255, 204)          ' afschrijftermijn (E) niet invulbaar
         ws.Range(ws.Cells(k, 7), ws.Cells(k, 11)).Interior.Color = RGB(255, 255, 204)
         ws.Cells(k, 14).Interior.Color = RGB(255, 255, 204)
         ws.Range(ws.Cells(k, 2), ws.Cells(k, 2)).Locked = False
-        ws.Range(ws.Cells(k, 4), ws.Cells(k, 5)).Locked = False
+        ws.Cells(k, 4).Locked = False
         ws.Range(ws.Cells(k, 7), ws.Cells(k, 11)).Locked = False
         ws.Cells(k, 14).Locked = False
         ws.Cells(k, 13).Value = "Nieuw krediet"
@@ -5863,7 +5864,7 @@ Public Sub ActualisatieVerwerken()
             wsVs.Name = BL_VOORSTEL
             wsVs.Cells.Font.Name = "Arial"
             wsVs.Cells.Font.Size = 10
-            wsVs.Range("A1").Value = "Voorstellen nieuwe investeringskredieten (invoeren via de invoerkaart na beoordeling)"
+            wsVs.Range("A1").Value = "Voorstellen bestaand beleid (nieuwe jaarschijf / vervanging): beoordelen, afschrijftermijn bepalen en invoeren via de invoerkaart"
             wsVs.Range("A1").Font.Bold = True
             wsVs.Range("A1").Font.Size = 14
             wsVs.Range("A1").Font.Color = RGB(0, 73, 118)
@@ -5886,7 +5887,7 @@ Public Sub ActualisatieVerwerken()
                 wsVs.Cells(rij, 2).Value = naam
                 wsVs.Cells(rij, 3).Value = Tkst(d(i, 2))
                 wsVs.Cells(rij, 4).Value = Tkst(d(i, 4))
-                wsVs.Cells(rij, 5).Value = Tkst(d(i, 5))
+                wsVs.Cells(rij, 5).Value = ""                ' afschrijftermijn bepaalt de financieel adviseur
                 For k = 1 To 5
                     wsVs.Cells(rij, 5 + k).Value = Nul(d(i, 6 + k))
                 Next k
@@ -5895,7 +5896,7 @@ Public Sub ActualisatieVerwerken()
                 wsVs.Cells(rij, 13).Value = "nee"
                 For k = 1 To 5
                     If Nul(d(i, 6 + k)) <> 0 Then
-                        MutatieRegistreren naam, "", "nieuw", Tkst(d(i, 2)), Tkst(d(i, 4)), "", Tkst(d(i, 5)), lj + k, 0, Nul(d(i, 6 + k)), _
+                        MutatieRegistreren naam, "", "nieuw", Tkst(d(i, 2)), Tkst(d(i, 4)), "", "", lj + k, 0, Nul(d(i, 6 + k)), _
                                            "Nieuw krediet (voorstel)", Tkst(d(i, 14)), Dir(bestand)
                     End If
                 Next k
