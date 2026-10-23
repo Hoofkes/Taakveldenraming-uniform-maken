@@ -3852,6 +3852,15 @@ End Sub
 ' Schrijft blad 'Meldingen uitgaven' opnieuw, gesorteerd op ernst. Geeft het aantal ALARM-meldingen terug.
 Private Function MeldingenSchrijven(ByVal bestand As String, ByVal peil As Date) As Long
     Dim ws As Worksheet, rij As Long, p As Long, m As Variant, kleur As Long, alarm As Long
+    Dim wv As Worksheet, stat As Object, r As Long, laatste As Long, nrT As String
+    ' status (kolom H) per kredietnummer, voor de kolom Status
+    Set wv = ThisWorkbook.Worksheets("Verzamellijst alle kredieten")
+    Set stat = CreateObject("Scripting.Dictionary")
+    laatste = CLng(ThisWorkbook.Names("Par_LaatsteRij").RefersToRange.Value)
+    For r = 2 To laatste
+        nrT = NrTekst(wv.Cells(r, 3).Value)
+        If Len(nrT) > 0 And Not stat.Exists(nrT) Then stat.Add nrT, CStr(wv.Cells(r, 8).Value)
+    Next r
     If Not BladBestaat(BL_MELD) Then
         Set ws = ThisWorkbook.Worksheets.Add(After:=ThisWorkbook.Worksheets("Controle"))
         ws.Name = BL_MELD
@@ -3867,8 +3876,8 @@ Private Function MeldingenSchrijven(ByVal bestand As String, ByVal peil As Date)
     ws.Range("A2").Value = "Uitdraai: " & bestand & " - peildatum " & Format$(peil, "dd-mm-yyyy") & " - verwerkt op " & _
                            Format$(Now, "dd-mm-yyyy hh:mm") & " door " & ThisWorkbook.Names("Par_HuidigeGebruiker").RefersToRange.Value
     ws.Range("A2").Font.Italic = True
-    ws.Range("A4:I4").Value = Array("Soort", "Jaar", "Kredietnummer", "Omschrijving", "Rij", "Oud / verwacht", "Nieuw / uitdraai", "Verschil", "Toelichting")
-    With ws.Range("A4:I4")
+    ws.Range("A4:J4").Value = Array("Soort", "Jaar", "Kredietnummer", "Omschrijving", "Status", "Rij", "Oud / verwacht", "Nieuw / uitdraai", "Verschil", "Toelichting")
+    With ws.Range("A4:J4")
         .Font.Bold = True
         .Interior.Color = RGB(208, 208, 208)
         .Borders(xlEdgeBottom).LineStyle = xlContinuous
@@ -3882,26 +3891,33 @@ Private Function MeldingenSchrijven(ByVal bestand As String, ByVal peil As Date)
                 ws.Cells(rij, 3).NumberFormat = "@"
                 ws.Cells(rij, 3).Value = m(3)
                 ws.Cells(rij, 4).Value = m(4)
-                If m(5) > 0 Then ws.Cells(rij, 5).Value = m(5)
-                If Not IsEmpty(m(6)) Then ws.Cells(rij, 6).Value = m(6)
-                If Not IsEmpty(m(7)) Then ws.Cells(rij, 7).Value = m(7)
-                If Not IsEmpty(m(6)) And Not IsEmpty(m(7)) Then ws.Cells(rij, 8).Value = m(7) - m(6)
-                ws.Cells(rij, 9).Value = m(8)
+                If m(5) > 1 Then
+                    ws.Cells(rij, 5).Value = wv.Cells(m(5), 8).Value
+                ElseIf stat.Exists(CStr(m(3))) Then
+                    ws.Cells(rij, 5).Value = stat(CStr(m(3)))
+                ElseIf Len(CStr(m(3))) > 0 Then
+                    ws.Cells(rij, 5).Value = "geen krediet"
+                End If
+                If m(5) > 0 Then ws.Cells(rij, 6).Value = m(5)
+                If Not IsEmpty(m(6)) Then ws.Cells(rij, 7).Value = m(6)
+                If Not IsEmpty(m(7)) Then ws.Cells(rij, 8).Value = m(7)
+                If Not IsEmpty(m(6)) And Not IsEmpty(m(7)) Then ws.Cells(rij, 9).Value = m(7) - m(6)
+                ws.Cells(rij, 10).Value = m(8)
                 Select Case p
                     Case 1: kleur = RGB(255, 150, 150): alarm = alarm + 1
-                        ws.Range(ws.Cells(rij, 1), ws.Cells(rij, 9)).Font.Bold = True
+                        ws.Range(ws.Cells(rij, 1), ws.Cells(rij, 10)).Font.Bold = True
                     Case 2: kleur = RGB(255, 190, 190)
                     Case 3: kleur = RGB(255, 200, 120)
                     Case 4: kleur = RGB(255, 255, 204)
                     Case Else: kleur = xlNone
                 End Select
-                If kleur <> xlNone Then ws.Range(ws.Cells(rij, 1), ws.Cells(rij, 9)).Interior.Color = kleur
+                If kleur <> xlNone Then ws.Range(ws.Cells(rij, 1), ws.Cells(rij, 10)).Interior.Color = kleur
                 rij = rij + 1
             End If
         Next m
     Next p
     If rij = 5 Then ws.Range("A5").Value = "Geen meldingen."
-    ws.Range("A3").Value = alarm & " ALARM-meldingen, " & (mMeld.Count - alarm) & " overige meldingen."
+    ws.Range("A3").Value = alarm & " ALARM-meldingen, " & (mMeld.Count - alarm) & " overige meldingen.  " & mAansl
     ws.Range("A3").Font.Bold = True
     If alarm > 0 Then
         ws.Range("A3").Interior.Color = RGB(255, 0, 0)
@@ -3910,16 +3926,17 @@ Private Function MeldingenSchrijven(ByVal bestand As String, ByVal peil As Date)
     Else
         ws.Tab.Color = RGB(0, 176, 80)
     End If
-    ws.Range("F5:H" & Application.Max(5, rij)).NumberFormat = "#,##0.00;-#,##0.00;-"
-    ws.Range("B:C,E:E").HorizontalAlignment = xlLeft
+    ws.Range("G5:I" & Application.Max(5, rij)).NumberFormat = "#,##0.00;-#,##0.00;-"
+    ws.Range("B:C,E:F").HorizontalAlignment = xlLeft
     ws.Columns("A").ColumnWidth = 44
     ws.Columns("B").ColumnWidth = 7
     ws.Columns("C").ColumnWidth = 14
     ws.Columns("D").ColumnWidth = 36
-    ws.Columns("E").ColumnWidth = 7
-    ws.Columns("F:H").ColumnWidth = 16
-    ws.Columns("I").ColumnWidth = 80
-    ws.Range("A4:I" & rij).VerticalAlignment = xlTop
+    ws.Columns("E").ColumnWidth = 12
+    ws.Columns("F").ColumnWidth = 7
+    ws.Columns("G:I").ColumnWidth = 16
+    ws.Columns("J").ColumnWidth = 80
+    ws.Range("A4:J" & rij).VerticalAlignment = xlTop
     MeldingenSchrijven = alarm
 End Function
 
