@@ -2915,11 +2915,8 @@ End Sub
 ' Een krediet wordt niet echt uit de lijst gehaald (dat verschuift rijen en wist de historie), maar op vervallen gezet:
 ' status V + jaar, budget op nul, zichtbaar als te controleren voor de administratie. Alleen zonder werkelijke uitgaven.
 Public Sub KredietVerwijderen()
-    Dim wd As Worksheet, wv As Worksheet
-    Dim r As Long, i As Long, laatste As Long, uitg As Double
-    Dim st As String, reden As String, tekst As String, gebr As String, grpTxt As String
-    Dim cols As Variant, oud(0 To 5) As Variant, voor As Variant, na As Variant, verschil As Boolean
-    Dim oudAP As Variant, oudAQ As Variant, oudAR As Variant, oudAS As Variant, oudAV As Variant, oudAW As Variant
+    Dim wd As Worksheet, wv As Worksheet, r As Long, i As Long, laatste As Long, volgnr As Variant
+    Dim rijen As New Collection, uitg As Double, reden As String, grpTxt As String, rv As Variant
 
     On Error GoTo Fout
     If Not HeeftRecht("Toevoegen") Then
@@ -2937,94 +2934,167 @@ Public Sub KredietVerwijderen()
         MsgBox "De geladen rij bestaat niet meer. Gebruik Scherm leegmaken en laad het krediet opnieuw.", vbCritical
         Exit Sub
     End If
-    st = CStr(wv.Cells(r, 8).Value)
-    If Left$(st, 1) = "V" Then
-        MsgBox "Dit krediet is al verwijderd.", vbInformation
-        Exit Sub
-    End If
-    uitg = Nul(wv.Cells(r, 27).Value) + Nul(wv.Cells(r, 28).Value) + Nul(wv.Cells(r, 29).Value)
+    ' het krediet = alle regels met hetzelfde volgnummer (uitgavenregel plus bijdrageregels)
+    volgnr = wv.Cells(r, 1).Value
+    laatste = CLng(ThisWorkbook.Names("Par_LaatsteRij").RefersToRange.Value)
+    For i = 2 To laatste
+        If wv.Cells(i, 1).Value = volgnr Then
+            rijen.Add i
+            uitg = uitg + Abs(Nul(wv.Cells(i, 27).Value)) + Abs(Nul(wv.Cells(i, 28).Value)) + Abs(Nul(wv.Cells(i, 29).Value))
+        End If
+    Next i
     If uitg <> 0 Then
-        MsgBox "Er zijn werkelijke uitgaven geboekt (" & Format(uitg, "#,##0") & "). Een krediet met uitgaven kunt u niet verwijderen." & vbCrLf & _
+        MsgBox "Er zijn werkelijke uitgaven of inkomsten geboekt. Een krediet met werkelijke bedragen mag nooit weg." & vbCrLf & _
                "Sluit het af: wijzig de status in A.", vbExclamation
         Exit Sub
     End If
-    If VarType(wv.Cells(r, 10).Value) <> vbString And Not IsEmpty(wv.Cells(r, 10).Value) Then
+    If IsGetal(wv.Cells(r, 10).Value) Then
         grpTxt = vbCrLf & "Let op: dit is een deelkrediet van groep " & CLng(wv.Cells(r, 10).Value) & ". De verdeelsleutel van de andere deelkredieten verandert."
     End If
-    If MsgBox("Volgnummer " & wv.Cells(r, 1).Value & ": " & wv.Cells(r, 4).Value & grpTxt & vbCrLf & vbCrLf & _
-              "Verwijderen? De regel blijft als vervallen staan en het budget gaat op nul.", _
-              vbYesNo + vbQuestion + vbDefaultButton2, "Krediet verwijderen") <> vbYes Then Exit Sub
+    If MsgBox("Volgnummer " & volgnr & ": " & wv.Cells(r, 4).Value & vbCrLf & rijen.Count & " regel(s), inclusief bijdrageregels." & grpTxt & vbCrLf & vbCrLf & _
+              "Helemaal verwijderen? Alleen het Logboek houdt de gegevens vast. Dit is alleen bedoeld voor echte fouten.", _
+              vbYesNo + vbExclamation + vbDefaultButton2, "Krediet verwijderen") <> vbYes Then Exit Sub
     reden = Trim$(InputBox("Reden van verwijderen (verplicht):", "Krediet verwijderen"))
     If Len(reden) = 0 Then
         MsgBox "Zonder reden wordt er niets verwijderd.", vbExclamation
         Exit Sub
     End If
-
-    Application.ScreenUpdating = False
-    laatste = CLng(ThisWorkbook.Names("Par_LaatsteRij").RefersToRange.Value)
-    voor = MeetStap8(wv, laatste)
-    cols = Array(26, 31, 32, 33, 34, 35)
-    For i = 0 To 5
-        oud(i) = wv.Cells(r, cols(i)).Value
-        tekst = tekst & Nul(oud(i)) & IIf(i < 5, "; ", "")
-    Next i
-    oudAP = wv.Cells(r, 42).Value
-    oudAQ = wv.Cells(r, 43).Value
-    oudAR = wv.Cells(r, 44).Value
-    oudAS = wv.Cells(r, 45).Value
-    oudAV = wv.Cells(r, 48).Value
-    oudAW = wv.Cells(r, 49).Value
-
-    gebr = CStr(ThisWorkbook.Names("Par_HuidigeGebruiker").RefersToRange.Value)
-    wv.Cells(r, 8).NumberFormat = "@"
-    wv.Cells(r, 8).Value = "V" & Year(Date)
-    For i = 0 To 5
-        wv.Cells(r, cols(i)).ClearContents
-    Next i
-    wv.Cells(r, 42).Value = CtlTeControleren()
-    wv.Cells(r, 43).ClearContents
-    wv.Cells(r, 44).ClearContents
-    wv.Cells(r, 45).Value = "Verwijderd: " & reden
-    wv.Cells(r, 48).Value = gebr
-    wv.Cells(r, 49).Value = Now
-    Application.Calculate
-
-    na = MeetStap8(wv, laatste)
-    If na(0) <> voor(0) Then verschil = True
-    If Abs(na(1) - (voor(1) - Nul(oud(0)))) > 0.005 Then verschil = True
-    For i = 2 To 4
-        If Abs(na(i) - voor(i)) > 0.005 Then verschil = True
-    Next i
-    For i = 1 To 5
-        If Abs(na(4 + i) - (voor(4 + i) - Nul(oud(i)))) > 0.005 Then verschil = True
-    Next i
-    If verschil Then
-        wv.Cells(r, 8).Value = st
-        For i = 0 To 5
-            ZetCel wv, r, CLng(cols(i)), oud(i)
-        Next i
-        ZetCel wv, r, 42, oudAP
-        ZetCel wv, r, 43, oudAQ
-        ZetCel wv, r, 44, oudAR
-        ZetCel wv, r, 45, oudAS
-        ZetCel wv, r, 48, oudAV
-        ZetCel wv, r, 49, oudAW
-        Application.Calculate
-        Application.ScreenUpdating = True
-        MsgBox "Verschil bij de nameting. Alles is teruggezet. Er is niets verwijderd.", vbCritical
-        Exit Sub
-    End If
-
-    LogRegel "verwijderen", wv.Cells(r, 1).Value, wv.Cells(r, 3).Value, "Status", st, "V" & Year(Date), reden & " | budget (Z; +1 t/m +5): " & tekst
+    If Not RegelsWeghalen(wv, rijen, reden) Then Exit Sub
     KeuzelijstenVerversen True
     KaartWissen
-    Application.ScreenUpdating = True
-    MsgBox "Krediet verwijderd (vervallen). De regel staat op het tabblad Controle ter bevestiging door de administratie.", vbInformation
+    If BladBestaat("Controle") Then ControleLijstVernieuwen
+    MsgBox "Krediet verwijderd (" & rijen.Count & " regel(s)). De gegevens staan in het Logboek.", vbInformation
     Exit Sub
 Fout:
     Application.ScreenUpdating = True
-    MsgBox "Fout: " & Err.Description & vbCrLf & "Controleer in de verzamellijst rij " & r & ".", vbCritical
+    MsgBox "Fout: " & Err.Description, vbCritical
 End Sub
+
+' Eenmalig: haalt de regels met status V (oude werkwijze verwijderen) helemaal weg, als er geen werkelijke bedragen op staan.
+Public Sub VervallenRegelsOpruimen()
+    Dim wv As Worksheet, i As Long, laatste As Long, rijen As New Collection, overslaan As String
+    If Not HeeftRecht("Toevoegen") Then
+        MsgBox "Alleen financieel adviseurs mogen dit.", vbExclamation
+        Exit Sub
+    End If
+    Set wv = ThisWorkbook.Worksheets("Verzamellijst alle kredieten")
+    laatste = CLng(ThisWorkbook.Names("Par_LaatsteRij").RefersToRange.Value)
+    For i = 2 To laatste
+        If Not Leeg(wv.Cells(i, 1).Value) And UCase$(Left$(CStr(wv.Cells(i, 8).Value), 1)) = "V" Then
+            If Nul(wv.Cells(i, 27).Value) <> 0 Or Nul(wv.Cells(i, 28).Value) <> 0 Or Nul(wv.Cells(i, 29).Value) <> 0 Then
+                overslaan = overslaan & vbCrLf & "rij " & i & " (" & wv.Cells(i, 3).Value & ")"
+            Else
+                rijen.Add i
+            End If
+        End If
+    Next i
+    If rijen.Count = 0 Then
+        MsgBox "Geen regels met status V zonder werkelijke bedragen gevonden." & IIf(Len(overslaan) > 0, vbCrLf & "Met bedragen (niet weggehaald):" & overslaan, ""), vbInformation
+        Exit Sub
+    End If
+    If MsgBox(rijen.Count & " regel(s) met status V helemaal weghalen? De gegevens gaan naar het Logboek.", vbYesNo + vbQuestion + vbDefaultButton2, _
+              "Vervallen regels opruimen") <> vbYes Then Exit Sub
+    If RegelsWeghalen(wv, rijen, "opruimen vervallen regel (status V)") Then
+        KeuzelijstenVerversen True
+        If BladBestaat("Controle") Then ControleLijstVernieuwen
+        MsgBox rijen.Count & " regel(s) weggehaald." & IIf(Len(overslaan) > 0, vbCrLf & "Niet weggehaald (werkelijke bedragen):" & overslaan, ""), vbInformation
+    End If
+End Sub
+
+' Haalt regels helemaal weg zonder Excel-rijen te verwijderen: de regels eronder schuiven een plek omhoog
+' (alleen invoerkolommen, formulekolommen blijven staan) en de onderste regels worden leeggemaakt.
+' Alle gegevens van de weggehaalde regels gaan eerst naar het Logboek. Nulmeting vooraf en achteraf; bij verschil terugzetten.
+Private Function RegelsWeghalen(ByVal wv As Worksheet, ByVal rijen As Collection, ByVal reden As String) As Boolean
+    Dim laatste As Long, eerste As Long, n As Long, i As Long, c As Long, k As Long, doel As Long
+    Dim kols As Variant, weg() As Boolean, oudW() As Variant, oudF() As Variant, rv As Variant
+    Dim voor As Variant, na As Variant, verwacht(0 To 9) As Double, tekst As String, kolMeet As Variant, tmp() As String
+
+    laatste = CLng(ThisWorkbook.Names("Par_LaatsteRij").RefersToRange.Value)
+    kols = Array(1, 2, 3, 4, 6, 8, 9, 10, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, _
+                 31, 32, 33, 34, 35, 36, 42, 43, 44, 45, 46, 47, 48, 49)
+    kolMeet = Array(0, 26, 27, 28, 29, 31, 32, 33, 34, 35)
+    ReDim weg(2 To laatste)
+    eerste = laatste
+    For Each rv In rijen
+        weg(rv) = True
+        If rv < eerste Then eerste = rv
+        n = n + 1
+    Next rv
+
+    ' logboek: alle gevulde invoervelden per regel
+    For Each rv In rijen
+        tekst = ""
+        For k = 0 To UBound(kols)
+            If Not Leeg(wv.Cells(rv, kols(k)).Value) Then
+                tekst = tekst & Split(wv.Cells(1, kols(k)).Address(True, False), "$")(0) & "=" & CStr(wv.Cells(rv, kols(k)).Value) & "; "
+            End If
+        Next k
+        LogRegel "verwijderen (helemaal weg)", wv.Cells(rv, 1).Value, wv.Cells(rv, 3).Value, "rij " & rv, , , reden & " | " & tekst
+    Next rv
+
+    voor = MeetStap8(wv, laatste)
+    For k = 0 To 9
+        verwacht(k) = voor(k)
+    Next k
+    For Each rv In rijen
+        verwacht(0) = verwacht(0) - 1
+        For k = 1 To 9
+            verwacht(k) = verwacht(k) - Nul(wv.Cells(rv, kolMeet(k)).Value)
+        Next k
+    Next rv
+
+    Application.ScreenUpdating = False
+    ' reservekopie van waarden en notatie (eerste t/m laatste)
+    ReDim oudW(0 To UBound(kols)): ReDim oudF(0 To UBound(kols))
+    For k = 0 To UBound(kols)
+        oudW(k) = wv.Range(wv.Cells(eerste, kols(k)), wv.Cells(laatste, kols(k))).Value
+        ReDim tmp(eerste To laatste)
+        For i = eerste To laatste
+            tmp(i) = wv.Cells(i, kols(k)).NumberFormat
+        Next i
+        oudF(k) = tmp
+    Next k
+
+    ' schuiven: elke blijvende regel naar de eerstvolgende vrije plek
+    doel = eerste
+    For i = eerste To laatste
+        If Not weg(i) Then
+            If doel <> i Then
+                For k = 0 To UBound(kols)
+                    wv.Cells(doel, kols(k)).NumberFormat = wv.Cells(i, kols(k)).NumberFormat
+                    wv.Cells(doel, kols(k)).Value = wv.Cells(i, kols(k)).Value
+                Next k
+            End If
+            doel = doel + 1
+        End If
+    Next i
+    For i = doel To laatste
+        For k = 0 To UBound(kols)
+            wv.Cells(i, kols(k)).ClearContents
+        Next k
+    Next i
+    wv.Range(wv.Cells(eerste, 28), wv.Cells(laatste, 29)).ClearComments   ' notities uit stap 11 kloppen niet meer na schuiven
+    Application.Calculate
+
+    na = MeetStap8(wv, laatste)
+    For k = 0 To 9
+        If Round(na(k) - verwacht(k), 2) <> 0 Then
+            For c = 0 To UBound(kols)
+                wv.Range(wv.Cells(eerste, kols(c)), wv.Cells(laatste, kols(c))).Value = oudW(c)
+                For i = eerste To laatste
+                    wv.Cells(i, kols(c)).NumberFormat = oudF(c)(i)
+                Next i
+            Next c
+            Application.Calculate
+            Application.ScreenUpdating = True
+            LogRegel "verwijderen teruggedraaid", , , "", , , "nulmeting wijkt af (meting " & k & ")"
+            MsgBox "Verschil bij de nameting. Alles is teruggezet. Er is niets verwijderd.", vbCritical
+            Exit Function
+        End If
+    Next k
+    Application.ScreenUpdating = True
+    RegelsWeghalen = True
+End Function
 
 ' ======================================================================
 ' Verzamellijst opschonen
@@ -3144,7 +3214,7 @@ End Sub
 '                          exportmap verwerkt. Herkent de kolommen zelf en verwerkt
 '                          lopend jaar (AC) en vorig jaar (AB). Meldingen komen op blad 'Meldingen uitgaven'.
 ' UitgavenOpmaakAanmaken : kleurt AD (rood = uitgaven overschreden, groen = meer inkomsten dan geraamd),
-'                          AJ (toelichting nodig) en H (afgesloten of verwijderd krediet met uitgaven).
+'                          en AJ (toelichting nodig).
 ' Regels:
 ' - Sleutel 1: kredietnummer (7 cijfers, begint met 7) <-> kolom C. Sleutel 2: kostensoort begint met 4 (uitgaven) of 8 (inkomsten).
 ' - Totaalregels (wel nummer, geen kostensoort) tellen niet mee; per nummer en in totaal wordt nagerekend.
@@ -3153,6 +3223,7 @@ End Sub
 ' - Anders: uitgaven op de uitgavenregel, inkomsten op de bijdrageregel(s) (negatief budget) naar verhouding van het budget.
 ' - Peildatum = datum van het bestand. Vorig jaar na 31-3: niets meer wegschrijven, wel alarm bij elk verschil.
 ' - Uitgaven zonder krediet: alarm, telt mee in de aansluiting. Krediet niet in de uitdraai: bedrag blijft staan, met notitie.
+' - Afgesloten krediet (A) waarvan het bedrag wijzigt: wel verwerkt, melding en notitie.
 ' - Harde poort: aansluiting per jaar exact 0,00. Anders wordt dat jaar niet weggeschreven.
 
 Private Const BL_MELD As String = "Meldingen uitgaven"
@@ -3455,9 +3526,11 @@ VolgendNr:
                 If Not gezet(i) And oud(i) <> 0 Then
                     wv.Cells(i + 1, kol).AddComment "Niet in uitdraai " & Dir(pad) & " (peildatum " & Format$(peil, "dd-mm-yyyy") & "). Bedrag blijft staan."
                 End If
-                If gezet(i) And nieuw(i) <> 0 And (UCase$(Left$(CStr(vS(i, 8)), 1)) = "A" Or UCase$(Left$(CStr(vS(i, 8)), 1)) = "V") Then
-                    Meld 2, "Uitgaven op afgesloten/verwijderd krediet", lj - y, NrTekst(vS(i, 3)), CStr(vS(i, 4)), i + 1, oud(i), nieuw(i), _
-                         "Status " & vS(i, 8) & ". Uitgaven op een afgesloten krediet zijn niet toegestaan. Wel verwerkt."
+                If gezet(i) And Round(nieuw(i) - oud(i), 2) <> 0 And UCase$(Left$(CStr(vS(i, 8)), 1)) = "A" Then
+                    Meld 2, "Afgesloten krediet, toch uitgaven/inkomsten verwerkt", lj - y, NrTekst(vS(i, 3)), CStr(vS(i, 4)), i + 1, oud(i), nieuw(i), _
+                         "Status " & vS(i, 8) & ". Bedrag gewijzigd en wel verwerkt. Gemarkeerd met een notitie in " & Letter(kol) & (i + 1) & "."
+                    wv.Cells(i + 1, kol).AddComment "Afgesloten krediet (" & vS(i, 8) & "): bedrag gewijzigd van " & Format$(oud(i), "#,##0.00") & _
+                                                    " naar " & Format$(nieuw(i), "#,##0.00") & " (uitdraai " & Format$(peil, "dd-mm-yyyy") & ")."
                 End If
             Next i
             Meld 5, "Aansluiting " & (lj - y), lj - y, "", "Uitdraai " & Format$(det(y), "#,##0.00"), 0, verwacht, som, _
@@ -3863,9 +3936,6 @@ Public Sub UitgavenOpmaakAanmaken()
     Set fc = VoegCFVerzamellijst(wv.Range("AJ2:AJ" & maxRij), _
              "=AND($A2<>"""",ISNUMBER($AD2),OR(AND(N($Z2)>=0,$AD2<-0.005),AND(N($Z2)<0,$AD2>0.005)),LEN(TRIM($AJ2))=0)")
     If Not fc Is Nothing Then fc.Interior.Color = RGB(255, 200, 120): fc.SetFirstPriority
-    ' rood: afgesloten of verwijderd krediet met uitgaven in het lopend jaar
-    Set fc = VoegCFVerzamellijst(wv.Range("H2:H" & maxRij), "=AND($A2<>"""",OR(LEFT($H2,1)=""A"",LEFT($H2,1)=""V""),N($AC2)<>0)")
-    If Not fc Is Nothing Then fc.Interior.Color = RGB(255, 150, 150): fc.SetFirstPriority
     If Not vorig Is Nothing Then vorig.Activate
 End Sub
 

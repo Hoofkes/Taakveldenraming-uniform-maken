@@ -39,13 +39,15 @@ Werkwijze in elke schrijfmacro: nulmeting vooraf en achteraf (alleen datarijen, 
 - Totaalregels (nummer zonder kostensoort) en eindtotaal: alleen controle op dubbeltelling; wijkt af = stoppen.
 - Verdeling: samengesteld krediet (J getal) = saldo groep via K. Anders uitgaven op uitgavenregel(s), inkomsten op bijdrageregel(s) (negatief budget) naar verhouding van budget. Zelf verdeeld = melding.
 - Vorig jaar na 31-3: niets schrijven, ALARM "actie/herstel nodig" per verschil. Lopend jaar wordt altijd verwerkt.
-- Nummer niet in kolom C met bedrag: ALARM (besluit nodig, raad, budgethouder in gebreke). Krediet niet in uitdraai met bedrag: blijft staan + notitie. Status A/V met bedrag: verwerkt + melding niet toegestaan.
+- Nummer niet in kolom C met bedrag: ALARM (besluit nodig, raad, budgethouder in gebreke). Krediet niet in uitdraai met bedrag: blijft staan + notitie. Status A waarvan het bedrag wijzigt: wel verwerkt + melding "afgesloten krediet, toch uitgaven/inkomsten verwerkt" + notitie in de cel (bestaande bedragen op A-kredieten zijn goed).
 - Harde poort per jaar: uitdraai - onbekende kostensoort - zonder krediet + blijft staan = som kolom. Nulmeting op overige kolommen; afwijking = terugdraaien.
-- Blad "Meldingen uitgaven" wordt elke run opnieuw gevuld (ALARM bovenaan, rood tabblad). Voorwaardelijke opmaak: AD rood (overschreden) / groen (meer inkomsten), AJ oranje als toelichting ontbreekt, H rood bij A/V met uitgaven in lopend jaar.
-- Simulatie testupload (peildatum na 31-3-2026): aansluiting 2026 sluit (0,00); 1 ALARM zonder krediet (7201025, -24.095,73); 6 ALARM 2025 herstel; 7 regels A2026 met uitgaven 2026; 33 rijen AC gewijzigd.
+- Blad "Meldingen uitgaven" wordt elke run opnieuw gevuld (ALARM bovenaan, rood tabblad). Voorwaardelijke opmaak: AD rood (overschreden) / groen (meer inkomsten), AJ oranje als toelichting ontbreekt.
+- Simulatie testupload (peildatum na 31-3-2026): aansluiting 2026 sluit (0,00); 1 ALARM zonder krediet (7201025, -24.095,73); 6 ALARM 2025 herstel; 33 rijen AC gewijzigd.
 
-## Beslissing verwijderen (nog te bouwen)
-- Verwijderen = helemaal weghalen, alleen het Logboek houdt het vast. Voorstel: regels eronder één plek omhoog schuiven, laatste regel leeg (geen Excel-rij verwijderen i.v.m. formules/SUBTOTAL/`Krediet_Aantal`). Open: verwijderen weigeren bij werkelijke uitgaven? bijdrageregels mee verwijderen?
+## Verwijderen (aangepast)
+- `KredietVerwijderen` haalt het krediet helemaal weg: alle regels met hetzelfde volgnummer (incl. bijdrageregels). Alleen bij echte fouten; geweigerd zodra AA, AB of AC ergens niet 0 is (dan afsluiten met A).
+- Geen Excel-rij verwijderen: regels eronder schuiven een plek omhoog (alleen invoerkolommen), onderste regel(s) leeg. Alle velden eerst naar het Logboek. Nulmeting; bij verschil terugzetten.
+- `VervallenRegelsOpruimen`: eenmalig, haalt bestaande V-regels zonder werkelijke bedragen weg.
 
 ## Openstaande stappen
 - 12: controleblok en kengetallen (incl. regels zonder kredietnummer/activanummer, status V, SUBTOTAL-regels verplaatsen).
