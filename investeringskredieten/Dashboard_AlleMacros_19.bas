@@ -154,6 +154,7 @@ Public Sub Auto_Open()
     If Not ThisWorkbook.ReadOnly Then KeuzelijstenVerversen True
     On Error GoTo 0
     If TabelBestaat() Then WieWerktEr
+    JaarovergangSignaleren
     ' altijd op het Dashboard beginnen
     On Error Resume Next
     ThisWorkbook.Worksheets("Dashboard").Activate
@@ -4199,6 +4200,18 @@ Private Function OverzichtMaken(ByVal soort As String, ByVal bron As Worksheet, 
     v = bron.Range("A2:AW" & laatste).Value
     n = UBound(v, 1)
 
+    ' samengestelde kredieten: per groep (J) de kredietnummers, voor de verwijzing in de toelichting
+    Dim grpNrs As Object, gk As String
+    Set grpNrs = CreateObject("Scripting.Dictionary")
+    For r = 1 To n
+        If Not Leeg(v(r, 1)) And IsGetal(v(r, 10)) And Len(NrTekst(v(r, 3))) > 0 Then
+            gk = CStr(v(r, 10))
+            If InStr(", " & grpNrs(gk) & ",", ", " & NrTekst(v(r, 3)) & ",") = 0 Then
+                grpNrs(gk) = grpNrs(gk) & IIf(Len(grpNrs(gk)) > 0, ", ", "") & NrTekst(v(r, 3))
+            End If
+        End If
+    Next r
+
     ' 1. Selectie
     ReDim sel(1 To n): ReDim sleutel(1 To n): ReDim toek(1 To n)
     For r = 1 To n
@@ -4401,6 +4414,12 @@ Private Function OverzichtMaken(ByVal soort As String, ByVal bron As Worksheet, 
             ws.Cells(rij, nK + k).Value = Nul(v(r, 30 + k))
         Next k
         toel = Trim$(CStr(v(r, 36)))
+        ' deelkrediet van een samengesteld krediet: verwijzen naar de andere delen (die kunnen bij een ander programma staan)
+        If IsGetal(v(r, 10)) Then
+            gk = Trim$(Replace(Replace(", " & grpNrs(CStr(v(r, 10))) & ",", ", " & NrTekst(v(r, 3)) & ",", ","), ",", " "))
+            gk = Replace(Trim$(gk), "  ", ", ")
+            If Len(gk) > 0 Then toel = "Samengesteld krediet, ook " & gk & "." & IIf(Len(toel) > 0, " " & toel, "")
+        End If
         If UCase$(Left$(Trim$(CStr(v(r, 8))), 1)) = "A" And InStr(1, toel, "krediet afgesloten", vbTextCompare) = 0 Then
             toel = "Krediet afgesloten." & IIf(Len(toel) > 0, " " & toel, "")
         End If
@@ -4598,7 +4617,7 @@ Public Sub UitdraaiBlokPlaatsen()
     ws.Range("B64").Value = "4. Financieel adviseur"
     ws.Range("B64").Font.Bold = True
     On Error Resume Next
-    For Each naam In Array("btnOverzichtRaad", "btnOverzichtNaam", "btnOverzichtJaarrekening", "btnAlleBudgethouders", "btnTijdschrijven", "btnUitvraag", "btnActualisatie")
+    For Each naam In Array("btnOverzichtRaad", "btnOverzichtNaam", "btnOverzichtJaarrekening", "btnAlleBudgethouders", "btnTijdschrijven", "btnUitvraag", "btnActualisatie", "btnJaarovergang")
         ws.Shapes(CStr(naam)).Delete
     Next naam
     On Error GoTo 0
@@ -4609,12 +4628,13 @@ Public Sub UitdraaiBlokPlaatsen()
     b.OnAction = "KredietoverzichtOpNaam"
     ws.Rows(65).RowHeight = 26
     ws.Rows(66).RowHeight = 26
-    namen = Array("btnOverzichtRaad", "btnOverzichtJaarrekening", "btnUitvraag", "btnAlleBudgethouders", "btnTijdschrijven", "btnActualisatie")
+    ws.Rows(67).RowHeight = 26
+    namen = Array("btnOverzichtRaad", "btnOverzichtJaarrekening", "btnUitvraag", "btnAlleBudgethouders", "btnTijdschrijven", "btnActualisatie", "btnJaarovergang")
     titels = Array("Kredietoverzicht raad", "Kredietoverzicht jaarrekening", "Uitvraag kadernota/begroting", _
-                   "Overzichten alle budgethouders", "Overzicht tijdschrijven", "Actualisatie verwerken (C59)")
+                   "Overzichten alle budgethouders", "Overzicht tijdschrijven", "Actualisatie verwerken (C59)", "Jaarovergang uitvoeren")
     acties = Array("KredietoverzichtMaken", "KredietoverzichtJaarrekening", "UitvraagBegroting", _
-                   "KredietoverzichtAlleBudgethouders", "OverzichtTijdschrijven", "ActualisatieVerwerken")
-    For i = 0 To 5
+                   "KredietoverzichtAlleBudgethouders", "OverzichtTijdschrijven", "ActualisatieVerwerken", "JaarovergangUitvoeren")
+    For i = 0 To 6
         Set b = ws.Buttons.Add(ws.Range("B65").Left + (i Mod 3) * 170, ws.Range("B65").Offset(i \ 3, 0).Top + 2, 165, 22)
         b.Name = namen(i)
         b.Caption = titels(i)
@@ -6415,4 +6435,165 @@ Public Sub SubtotaalRegelsVerwijderen()
     Next c
     ControlesVernieuwen
     MsgBox n & " SUBTOTAL-cellen leeggemaakt.", vbInformation
+End Sub
+
+' ======================================================================
+' Jaarovergang (stap 14)
+' ======================================================================
+' Stap 14 - Jaarovergang (functioneel ontwerp par. 2.7, aangevuld met latere afspraken)
+' JaarovergangUitvoeren : knop in blok 4 (alleen financieel adviseur). Bij openen in een nieuw kalenderjaar wordt erom gevraagd.
+' 1. Back-up 'Verzamellijst t/m <oud jaar>' als harde waarden (= stand per 31-12; bron voor het jaarrekeningoverzicht).
+' 2. Per regel: Z = Z + AE; AA = AA + AB; AB = AC; AC leeg; AE..AH = AF..AI; AI leeg. AD blijft formule.
+' 3. Status L<oud jaar of eerder> wordt L<nieuw jaar>; bij die kredieten Startjaar (M) en Eindjaar (N) +1 en minimaal het nieuwe jaar.
+'    Status A en toekomstige L blijven ongewijzigd.
+' 4. Par_LopendJaar + 1 (koppen en Dashboard schuiven vanzelf mee).
+' 5. Controle op de totalen; bij een verschil alles terugzetten.
+
+Public Sub JaarovergangUitvoeren()
+    WerkStart                                    ' beveiliging even uit, daarna vanzelf weer aan
+    Dim wv As Worksheet, wb As Worksheet, oud As Long, nieuw As Long, laatste As Long, r As Long, k As Long, nm As String
+    Dim z As Variant, aa As Variant, ab As Variant, ac As Variant, ae As Variant, h As Variant, m As Variant, n As Variant
+    Dim oZ As Variant, oAA As Variant, oAB As Variant, oAC As Variant, oAE As Variant, oH As Variant, oM As Variant, oN As Variant
+    Dim sZ As Double, sAE1 As Double, sW As Double, sAEtot As Double, sAFtot As Double, st As String, jr As Long, nRol As Long
+    Dim cZ As Double, cW As Double, cAE As Double, afwijking As Boolean
+
+    If Not HeeftRecht("Toevoegen") Then
+        MsgBox "De jaarovergang wordt uitgevoerd door de financieel adviseur.", vbExclamation
+        Exit Sub
+    End If
+    oud = CLng(ThisWorkbook.Names("Par_LopendJaar").RefersToRange.Value)
+    nieuw = oud + 1
+    nm = "Verzamellijst t/m " & oud
+    If BladBestaatStil(nm) Then
+        MsgBox "Het blad '" & nm & "' bestaat al: de jaarovergang van " & oud & " naar " & nieuw & " is al uitgevoerd?" & vbCrLf & _
+               "Er is niets gewijzigd.", vbExclamation
+        Exit Sub
+    End If
+    If MsgBox("Jaarovergang van " & oud & " naar " & nieuw & " uitvoeren?" & vbCrLf & vbCrLf & _
+              "- er komt eerst een back-up '" & nm & "' (stand per 31-12-" & oud & ");" & vbCrLf & _
+              "- alle bedragkolommen schuiven een jaar op;" & vbCrLf & _
+              "- lopende kredieten L" & oud & " en eerder worden L" & nieuw & ", startjaar en eindjaar + 1." & vbCrLf & vbCrLf & _
+              "Doe dit eerst op een kopie van het bestand.", vbYesNo + vbExclamation + vbDefaultButton2, "Jaarovergang") <> vbYes Then Exit Sub
+
+    On Error GoTo Fout
+    Application.ScreenUpdating = False
+    Application.Calculate
+    Set wv = Vz()
+    laatste = CLng(ThisWorkbook.Names("Par_LaatsteRij").RefersToRange.Value)
+
+    ' 1. back-up als harde waarden
+    wv.Copy Before:=ThisWorkbook.Worksheets("Dashboard")
+    Set wb = ActiveSheet
+    wb.Unprotect WACHTWOORD
+    wb.Name = nm
+    On Error Resume Next
+    wb.Buttons.Delete
+    If wb.FilterMode Then wb.ShowAllData
+    On Error GoTo Fout
+    wb.UsedRange.Value = wb.UsedRange.Value
+    wb.Range("A1").AddComment "Stand per 31-12-" & oud & ", gemaakt bij de jaarovergang op " & Format$(Now, "dd-mm-yyyy hh:mm") & ". Alleen lezen."
+    wb.Tab.Color = RGB(128, 128, 128)
+    wb.Protect Password:=WACHTWOORD, AllowFiltering:=True
+    wb.Move Before:=ThisWorkbook.Worksheets("Voertuigen")
+
+    ' 2. inlezen (oude waarden bewaren om terug te kunnen zetten)
+    oZ = wv.Range("Z2:Z" & laatste).Value: oAA = wv.Range("AA2:AA" & laatste).Value
+    oAB = wv.Range("AB2:AB" & laatste).Value: oAC = wv.Range("AC2:AC" & laatste).Value
+    oAE = wv.Range("AE2:AI" & laatste).Value: oH = wv.Range("H2:H" & laatste).Value
+    oM = wv.Range("M2:M" & laatste).Value: oN = wv.Range("N2:N" & laatste).Value
+    z = oZ: aa = oAA: ab = oAB: ac = oAC: ae = oAE: h = oH: m = oM: n = oN
+
+    For r = 1 To laatste - 1
+        sZ = sZ + Nul(oZ(r, 1)): sAE1 = sAE1 + Nul(oAE(r, 1))
+        sW = sW + Nul(oAA(r, 1)) + Nul(oAB(r, 1)) + Nul(oAC(r, 1))
+        For k = 2 To 5
+            sAFtot = sAFtot + Nul(oAE(r, k))
+        Next k
+        If Not Leeg(wv.Cells(r + 1, 1).Value) Then
+            z(r, 1) = Waarde(Nul(oZ(r, 1)) + Nul(oAE(r, 1)), oZ(r, 1), oAE(r, 1))
+            aa(r, 1) = Waarde(Nul(oAA(r, 1)) + Nul(oAB(r, 1)), oAA(r, 1), oAB(r, 1))
+            ab(r, 1) = oAC(r, 1)
+            ac(r, 1) = Empty
+            For k = 1 To 4
+                ae(r, k) = oAE(r, k + 1)
+            Next k
+            ae(r, 5) = Empty
+            st = UCase$(Trim$(Tkst(oH(r, 1))))
+            jr = Val(Mid$(st, 2))
+            If Left$(st, 1) = "L" And jr > 0 And jr <= oud Then
+                h(r, 1) = "L" & nieuw
+                nRol = nRol + 1
+                If IsGetal(oM(r, 1)) Then m(r, 1) = Application.Max(CLng(oM(r, 1)) + 1, nieuw)
+                If IsGetal(oN(r, 1)) Then n(r, 1) = Application.Max(CLng(oN(r, 1)) + 1, nieuw)
+            End If
+        End If
+    Next r
+
+    ' 3. wegschrijven en lopend jaar ophogen
+    wv.Range("Z2:Z" & laatste).Value = z: wv.Range("AA2:AA" & laatste).Value = aa
+    wv.Range("AB2:AB" & laatste).Value = ab: wv.Range("AC2:AC" & laatste).Value = ac
+    wv.Range("AE2:AI" & laatste).Value = ae
+    wv.Range("H2:H" & laatste).Value = h
+    wv.Range("M2:M" & laatste).Value = m: wv.Range("N2:N" & laatste).Value = n
+    ThisWorkbook.Names("Par_LopendJaar").RefersToRange.Value = nieuw
+    Application.Calculate
+
+    ' 4. controle op de totalen
+    For r = 2 To laatste
+        cZ = cZ + Nul(wv.Cells(r, 26).Value)
+        cW = cW + Nul(wv.Cells(r, 27).Value) + Nul(wv.Cells(r, 28).Value) + Nul(wv.Cells(r, 29).Value)
+        For k = 31 To 35
+            cAE = cAE + Nul(wv.Cells(r, k).Value)
+        Next k
+    Next r
+    afwijking = (Round(cZ - (sZ + sAE1), 2) <> 0) Or (Round(cW - sW, 2) <> 0) Or (Round(cAE - sAFtot, 2) <> 0)
+    If afwijking Then
+        wv.Range("Z2:Z" & laatste).Value = oZ: wv.Range("AA2:AA" & laatste).Value = oAA
+        wv.Range("AB2:AB" & laatste).Value = oAB: wv.Range("AC2:AC" & laatste).Value = oAC
+        wv.Range("AE2:AI" & laatste).Value = oAE: wv.Range("H2:H" & laatste).Value = oH
+        wv.Range("M2:M" & laatste).Value = oM: wv.Range("N2:N" & laatste).Value = oN
+        ThisWorkbook.Names("Par_LopendJaar").RefersToRange.Value = oud
+        Application.DisplayAlerts = False
+        wb.Unprotect WACHTWOORD
+        wb.Delete
+        Application.DisplayAlerts = True
+        Application.Calculate
+        Application.ScreenUpdating = True
+        MsgBox "De controle op de totalen klopt niet. Alles is teruggezet; er is niets gewijzigd.", vbCritical
+        Exit Sub
+    End If
+
+    LogRegel "jaarovergang", , , "Par_LopendJaar", oud, nieuw, nRol & " lopende kredieten naar L" & nieuw & "; back-up '" & nm & "'"
+    KeuzelijstenVerversen True
+    ControlesVernieuwen
+    Application.ScreenUpdating = True
+    ThisWorkbook.Worksheets("Dashboard").Activate
+    MsgBox "Jaarovergang naar " & nieuw & " uitgevoerd." & vbCrLf & vbCrLf & _
+           "- back-up: blad '" & nm & "' (bron voor het kredietoverzicht jaarrekening)" & vbCrLf & _
+           "- " & nRol & " lopende kredieten naar L" & nieuw & vbCrLf & _
+           "- totalen gecontroleerd: budget t/m " & nieuw & " = oud budget + budget " & nieuw & "; werkelijke uitgaven gelijk", vbInformation
+    Exit Sub
+Fout:
+    Application.ScreenUpdating = True
+    Application.DisplayAlerts = True
+    MsgBox "Fout bij de jaarovergang: " & Err.Description & vbCrLf & "Controleer het bestand; gebruik zo nodig de kopie.", vbCritical
+End Sub
+
+' Leeg laten als beide bronnen leeg waren, anders het bedrag.
+Private Function Waarde(ByVal bedrag As Double, ByVal a As Variant, ByVal b As Variant) As Variant
+    If Leeg(a) And Leeg(b) Then Waarde = Empty Else Waarde = bedrag
+End Function
+
+' Bij openen: is het kalenderjaar verder dan het lopend jaar, dan vragen om de jaarovergang.
+Private Sub JaarovergangSignaleren()
+    Dim lj As Long
+    On Error Resume Next
+    lj = CLng(ThisWorkbook.Names("Par_LopendJaar").RefersToRange.Value)
+    If lj = 0 Or Year(Date) <= lj Then Exit Sub
+    If HeeftRecht("Toevoegen") Then
+        If MsgBox("Het is " & Year(Date) & ", maar het lopend jaar in dit bestand is nog " & lj & "." & vbCrLf & _
+                  "Jaarovergang nu uitvoeren?", vbYesNo + vbQuestion, "Jaarovergang") = vbYes Then JaarovergangUitvoeren
+    Else
+        MsgBox "Het lopend jaar in dit bestand is nog " & lj & ". De financieel adviseur moet de jaarovergang nog uitvoeren.", vbInformation
+    End If
 End Sub

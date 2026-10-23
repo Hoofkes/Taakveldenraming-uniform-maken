@@ -105,8 +105,14 @@ Werkwijze in elke schrijfmacro: nulmeting vooraf en achteraf (alleen datarijen, 
 - Herstelmacro's: `OmschrijvingenInkorten`, `FormulesNaarWaarden` (uitkomst ongewijzigd, formule in Logboek, nulmeting).
 - Open: SUBTOTAL-regels rij 1474 weghalen (toestemming gevraagd); FO 9.1 (deelkredieten over programma's) nu optie A.
 
+## Stap 14 - jaarovergang (`JaarovergangUitvoeren`, knop blok 4; bij openen in een nieuw kalenderjaar gevraagd)
+- Back-up 'Verzamellijst t/m <oud>' als harde waarden, beveiligd, voor Voertuigen (bron jaarrekeningoverzicht). Bestaat die al: weigeren.
+- Z = Z + AE; AA = AA + AB; AB = AC; AC leeg; AE..AH = AF..AI; AI leeg (AD formule blijft). L<=oud -> L<nieuw>, M en N = max(+1, nieuw jaar). A en toekomstige L ongewijzigd. Par_LopendJaar + 1.
+- Controle totalen (budget, werkelijk, toekomstige budgetten); bij afwijking alles terug en back-up weg. Daarna keuzelijsten en controles verversen.
+- Overzichten: deelkredieten van een samengesteld krediet (FO 9.1 optie A, per programma) krijgen in de toelichting 'Samengesteld krediet, ook <andere kredietnummers>.'
+
 ## Openstaande stappen
-- 14: jaarrol (laatst, eerst op kopie).
+- 14: jaarovergang gebouwd; testen op een kopie (datum/jaar kan via Parameters niet worden gesimuleerd; knop werkt altijd).
 - Later: exploitatienummers met omschrijving, mogelijk "geldig vanaf jaar" bij programma's na de fusie met Oirschot.
 
 ## Bekende valkuilen
