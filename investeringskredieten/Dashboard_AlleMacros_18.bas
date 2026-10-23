@@ -4008,9 +4008,14 @@ End Function
 ' kolom Melding uit het blad 'Meldingen uitgaven', aansluitcontrole op het restantkrediet in de kop.
 
 Public Sub KredietoverzichtMaken()
-    Dim lj As Long
+    Dim lj As Long, ws As Worksheet, map As String
     lj = CLng(ThisWorkbook.Names("Par_LopendJaar").RefersToRange.Value)
-    OverzichtMaken "raad", ThisWorkbook.Worksheets("Verzamellijst alle kredieten"), lj, 0, ""
+    Set ws = OverzichtMaken("raad", ThisWorkbook.Worksheets("Verzamellijst alle kredieten"), lj, 0, "")
+    If ws Is Nothing Then Exit Sub
+    ' elke opvraging bewaren in de map met kredietoverzichten
+    map = MapStambestand("03 kredietoverzichten jaarrekening")
+    If Len(map) > 0 Then BladOpslaan ws, map, "Kredietoverzicht " & Format$(Date, "dd-mm-yyyy")
+    ws.Activate
 End Sub
 
 Public Sub KredietoverzichtOpNaam()
