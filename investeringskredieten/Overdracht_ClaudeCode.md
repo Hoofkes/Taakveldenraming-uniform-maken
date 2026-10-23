@@ -1,0 +1,59 @@
+# Overdracht: Dashboard investeringskredieten (stand na stap 11, nog niet getest in Excel)
+
+Lees dit samen met het functioneel ontwerp (versie 3, `.md`). Dit document bevat de afwijkingen en beslissingen sinds dat ontwerp en de huidige stand van het bestand.
+
+**Gebruiker:** Michiel, financieel adviseur Gemeente Best. Taal: Nederlands. Korte terugkoppeling, alleen actiepunten. Negatieve bedragen met minteken en punten bij duizendtallen, nooit tussen haakjes. Niet-technisch voor VBA: stap-voor-stap uitleg, bij Excel-uitleg de cel noemen. Doe precies wat gevraagd wordt, stel liever een vraag dan te gokken.
+
+## Bestanden
+- Werkmap: `Stambestand_investeringskredieten_dashboard_stap4*.xlsm` (laatste versie van Michiel, kopie; origineel staat veilig).
+- `Dashboard_AlleMacros_17.bas` (nieuwste): alle macro's in een module (wordt via VBA-editor > Bestand importeren geladen; module eerst verwijderen).
+- In de kopie ontbreken de spiegelbladen (Financieel adviseur, Financiële administratie, Kredietoverzicht, Maatwerk, Activa bestaand). Bestaan wel in het origineel.
+- `vbaProject.bin` nooit rechtstreeks wijzigen via XML; macro's alleen via importeren of Excel-automatisering (Windows, Excel, "Vertrouwen in VBA-projectmodel").
+
+## Opbouw werkmap
+Bladen: Verzamellijst alle kredieten (data, kop rij 1), Voertuigen, Parameters, Dashboard, Controle, Logboek.
+- Verzamellijst: kolommen zoals ontwerp. Nieuw: AP controlestatus, AQ door, AR op, AS opmerking, AT naam samengesteld krediet, AU toegevoegd op, AV laatst gewijzigd door, AW op. Formulekolommen E, G, K, AD, AL, AM, AN lopen door tot rij 2468 (`Par_MaxRij`). Op rij 1474 staan SUBTOTAL-regels (AE:AH): aandachtspunt, verplaatsen naar het Dashboard bij stap 12.
+- Parameters: B2 `Par_LopendJaar` (hard), B3 `Par_LaatsteRij`, B4 `Par_EersteVrijeRij`, B5 `Par_VolgendVolgnr`, B6 pad uitgavenbestand, B7 peildatum uitgaven, B8 `Par_HuidigeGebruiker`, B9 `Par_HuidigeRol`, B10 `Par_MaxRij`, B11 laatste verversing keuzeopties. Tabellen: Tbl_Rollen (A14:F), Tbl_Programma (Y:AA), Tbl_Taakveld (AC:AF, Iv3 2026), Tbl_Balanscode (AH:AJ), Tbl_BijdrageBron (AL:AR). Keuzelijsten `Lst_...` in kolom H t/m W vanaf rij 14 (worden bij openen ververst).
+- Namen: `Krediet_Aantal/Volgnr/J/AL/AM/Data` (OFFSET), `Kaart_Kolommen/Invoer/Rijnummer`.
+- Dashboard: invoerkaart rij 9 t/m 50, `KaartRij(i)` en `BijdrageRij(j,k)` bepalen de rijen; veld 4 (kort) verborgen; rijnummer rij 52; knoppen rij 6 (Krediet wijzigen, Scherm leegmaken, Krediet verwijderen), rij 22 (Tijdschrijvers kiezen), rij 54 (Ingevuld? Verwerken!). Teller bovenaan.
+- Controle: lijst te controleren/afgekeurd, knoppen Lijst vernieuwen, Regel openen, Bevestigen, Afkeuren.
+
+## Macro's (module)
+Intake/rollen (`Auto_Open`, `WieWerktEr`, `GebruikerVerwijderen`, `HeeftRecht`, `LogRegel`), `LijstwaardenNormaliseren`, `WerkbereikVerruimen`, `ControlekolommenAanmaken`, `DashboardAanmaken`, `KeuzelijstenVerversen`, `KredietToevoegen`, `KredietWijzigen`, `WijzigingOpslaan`, `Verwerken`, `KredietVerwijderen`, `TijdschrijversKiezen`, `ControleBladAanmaken`, `ControleLijstVernieuwen`, `RegelOpenenTerControle`, `RegelBevestigen`, `RegelAfkeuren`, `ProefregelWissen`, `VerzamellijstOpschonen`, `KortOmschrijving`.
+Werkwijze in elke schrijfmacro: nulmeting vooraf en achteraf (alleen datarijen, nooit hele kolommen, i.v.m. SUBTOTAL), bij verschil terugdraaien. Nooit rijen invoegen/verwijderen.
+
+## Beslissingen sinds ontwerp v3
+- Status H = letter L of A + eerste jaar krediet beschikbaar (L2027). V + jaar = verwijderd (budget op nul, regel blijft staan, komt op Controle).
+- Kredietnummer (kol C) en activanummer (X) mogen bij intake leeg; alle andere velden verplicht, behalve budgetten. Afschrijftermijn 0 t/m 60.
+- Korte omschrijving wordt automatisch afgeleid (max 20, `KortOmschrijving`); alleen te overschrijven door de verborgen rij.
+- Programma, taakveld, balanscode worden gekozen als "code - omschrijving" en als code weggeschreven. Exploitatienummer: vrij invoerveld (lijst volgt, Michiel levert die later).
+- Samengestelde kredieten: groepsnummer in J wordt automatisch toegekend (keuze nieuw samengesteld krediet of bestaande groep). Budgethouder boekt op een deelkrediet; kosten van de hele groep worden opgeteld en met sleutel K over de deelkredieten verdeeld (ook in overzichten).
+- Bijdragen van derden: eigen regel(s) in de verzamellijst met negatief budget, zelfde kredietnummer, toelichting = bron. Op het Dashboard max 2 per jaar, bron per jaarregel te kiezen of typen, regels met dezelfde bron worden samengenomen.
+- Raadsoverzicht: regel weglaten als budget (Z of een jaar) negatief is; budgethoudersoverzichten tonen die wel. Statussen V en A van vorige jaren niet tonen.
+- Rollen: financieel adviseur toevoegen/wijzigen/verwijderen; financiële administratie wijzigen/bevestigen. Zelfregistratie nieuwe gebruiker in intake. Filter en knop Sort van de verzamellijst zijn verwijderd.
+- Overzicht voor beheerder tijdschrijven: apart Excelbestand in SharePoint-map met leesrechten (pad op Parameters); een regel per kredietnummer, tijdschrijvers in een cel, met acties nieuw/gewijzigd/afgesloten op basis van verschil met vorige uitdraai, incl. "toegevoegd op". Kredietnummer is de sleutel. Pad nog opvragen.
+
+## Stap 11 - werkelijke uitgaven bijwerken (`UitgavenBijwerken`, knop Dashboard rij 6)
+- Eén vraag: "Wil je het bestand uploaden?" Ja = het nieuwste .xls*-bestand uit de exportmap (administratie/jaarrekening/mva/Stambestand kredieten/export coda) verwerken. Map = map van Parameters B6; eerste keer mapkiezer. Peildatum (B7) = datum van het bestand.
+- Kolommen worden zelf herkend (nieuw pakket op komst): kredietnummer = 7 cijfers beginnend met 7; kostensoort begint met 4 (uitgaven) of 8 (inkomsten), 5 of 6 posities (testupload heeft beide); jaarkolommen via jaartal in de kop (niet budget/restant/raming). Lopend jaar -> AC, vorig jaar -> AB. Kolom voor lopend jaar + 1: melding, eerst jaarrol.
+- Totaalregels (nummer zonder kostensoort) en eindtotaal: alleen controle op dubbeltelling; wijkt af = stoppen.
+- Verdeling: samengesteld krediet (J getal) = saldo groep via K. Anders uitgaven op uitgavenregel(s), inkomsten op bijdrageregel(s) (negatief budget) naar verhouding van budget. Zelf verdeeld = melding.
+- Vorig jaar na 31-3: niets schrijven, ALARM "actie/herstel nodig" per verschil. Lopend jaar wordt altijd verwerkt.
+- Nummer niet in kolom C met bedrag: ALARM (besluit nodig, raad, budgethouder in gebreke). Krediet niet in uitdraai met bedrag: blijft staan + notitie. Status A/V met bedrag: verwerkt + melding niet toegestaan.
+- Harde poort per jaar: uitdraai - onbekende kostensoort - zonder krediet + blijft staan = som kolom. Nulmeting op overige kolommen; afwijking = terugdraaien.
+- Blad "Meldingen uitgaven" wordt elke run opnieuw gevuld (ALARM bovenaan, rood tabblad). Voorwaardelijke opmaak: AD rood (overschreden) / groen (meer inkomsten), AJ oranje als toelichting ontbreekt, H rood bij A/V met uitgaven in lopend jaar.
+- Simulatie testupload (peildatum na 31-3-2026): aansluiting 2026 sluit (0,00); 1 ALARM zonder krediet (7201025, -24.095,73); 6 ALARM 2025 herstel; 7 regels A2026 met uitgaven 2026; 33 rijen AC gewijzigd.
+
+## Beslissing verwijderen (nog te bouwen)
+- Verwijderen = helemaal weghalen, alleen het Logboek houdt het vast. Voorstel: regels eronder één plek omhoog schuiven, laatste regel leeg (geen Excel-rij verwijderen i.v.m. formules/SUBTOTAL/`Krediet_Aantal`). Open: verwijderen weigeren bij werkelijke uitgaven? bijdrageregels mee verwijderen?
+
+## Openstaande stappen
+- 12: controleblok en kengetallen (incl. regels zonder kredietnummer/activanummer, status V, SUBTOTAL-regels verplaatsen).
+- 13: overzichten raad, budgethouder (op naam) en beheerder tijdschrijven.
+- 14: jaarrol (laatst, eerst op kopie).
+- Later: exploitatienummers met omschrijving, bladbeveiliging, mogelijk "geldig vanaf jaar" bij programma's na de fusie met Oirschot.
+
+## Bekende valkuilen
+- Excel is Nederlandstalig: voorwaardelijke opmaak via `FormulaLocal`; VBA-editor Nederlandse menu's.
+- Verwijder altijd de oude module voordat `Dashboard_AlleMacros.bas` wordt geïmporteerd; daarna `DashboardAanmaken` (Ja bij opnieuw opbouwen).
+- Testen met verzonnen kredieten en `ProefregelWissen`; nooit op echte regels.
