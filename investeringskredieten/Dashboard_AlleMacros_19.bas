@@ -6146,8 +6146,12 @@ Public Sub ControleblokPlaatsen()
     If Not fc Is Nothing Then fc.Interior.Color = RGB(255, 235, 156)
     Set fc = VoegCF(ws.Range(ws.Cells(CB_EERSTE + 15, 3), ws.Cells(CB_EERSTE + 15, 3)), "=AND(ISNUMBER(C" & (CB_EERSTE + 15) & "),C" & (CB_EERSTE + 15) & ">0)")
     If Not fc Is Nothing Then fc.Interior.Color = RGB(255, 235, 156)
-    Set fc = VoegCF(ws.Range(ws.Cells(CB_EERSTE, 3), ws.Cells(CB_LAATSTE, 3)), "=AND(ISNUMBER(C" & CB_EERSTE & "),C" & CB_EERSTE & ">0)")
-    If Not fc Is Nothing Then fc.Interior.Color = RGB(255, 150, 150)
+    ' rood voor de overige controles (de twee gele regels vallen erbuiten)
+    Dim deel As Variant
+    For Each deel In Array(Array(CB_EERSTE, CB_EERSTE + 7), Array(CB_EERSTE + 9, CB_EERSTE + 14), Array(CB_EERSTE + 16, CB_LAATSTE))
+        Set fc = VoegCF(ws.Range(ws.Cells(deel(0), 3), ws.Cells(deel(1), 3)), "=AND(ISNUMBER(C" & deel(0) & "),C" & deel(0) & ">0)")
+        If Not fc Is Nothing Then fc.Interior.Color = RGB(255, 150, 150)
+    Next deel
     ws.Range(ws.Cells(CB_EERSTE, 3), ws.Cells(CB_LAATSTE, 3)).HorizontalAlignment = xlRight
 
     ' statusregel
