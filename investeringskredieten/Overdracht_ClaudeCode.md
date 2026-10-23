@@ -23,7 +23,10 @@ Intake/rollen (`Auto_Open`, `WieWerktEr`, `GebruikerVerwijderen`, `HeeftRecht`, 
 Werkwijze in elke schrijfmacro: nulmeting vooraf en achteraf (alleen datarijen, nooit hele kolommen, i.v.m. SUBTOTAL), bij verschil terugdraaien. Nooit rijen invoegen/verwijderen.
 
 ## Beslissingen sinds ontwerp v3
-- Status H = letter L of A + eerste jaar krediet beschikbaar (L2027). V + jaar = verwijderd (budget op nul, regel blijft staan, komt op Controle).
+- Status H: L2026 = krediet loopt in 2026 (bij toekomstige kredieten: jaar van start); A2026 = krediet afgesloten in 2026. V bestaat niet meer (verwijderen = helemaal weg).
+- Jaarovergang (stap 14): bij openen in het nieuwe jaar alle L<oud jaar> omzetten naar L<nieuw jaar>; jaren in M en N schuiven dan +1 voor die kredieten (precieze regel nog bevestigen).
+- Bij status A moet in de toelichting "Krediet afgesloten" staan.
+- Kredietoverzichten (stap 13, ontwerp §7): Meldingenblad blijft apart bestaan; overzicht krijgt kolommen Status en Melding; toelichting breed met terugloop. Extra: kredietoverzicht jaarrekening = situatie 31-12 vorig jaar, alle L en A van dat jaar.
 - Kredietnummer (kol C) en activanummer (X) mogen bij intake leeg; alle andere velden verplicht, behalve budgetten. Afschrijftermijn 0 t/m 60.
 - Korte omschrijving wordt automatisch afgeleid (max 20, `KortOmschrijving`); alleen te overschrijven door de verborgen rij.
 - Programma, taakveld, balanscode worden gekozen als "code - omschrijving" en als code weggeschreven. Exploitatienummer: vrij invoerveld (lijst volgt, Michiel levert die later).
