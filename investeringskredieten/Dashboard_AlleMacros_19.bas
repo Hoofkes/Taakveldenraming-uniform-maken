@@ -6221,11 +6221,11 @@ Public Sub ControlesVernieuwen()
     For r = 2 To laatste
         If Not Leeg(v(r, 1)) Then
             t = "rij " & r & " (" & IIf(Leeg(v(r, 3)), "volgnr " & v(r, 1), NrTekst(v(r, 3))) & ")"
-            st = UCase$(Trim$(CStr(v(r, 8))))
-            If CStr(v(r, 5)) = "fout" Or CStr(v(r, 7)) = "fout" Then Voeg waar(0), aant(0), t
+            st = UCase$(Trim$(Tkst(v(r, 8))))
+            If Tkst(v(r, 5)) = "fout" Or Tkst(v(r, 7)) = "fout" Then Voeg waar(0), aant(0), t
             If IsGetal(v(r, 10)) And IsGetal(v(r, 11)) And Not HeeftNegatiefBudget(v, r) Then   ' bijdrageregels tellen niet mee
-                grp(CStr(v(r, 10))) = grp(CStr(v(r, 10))) + CDbl(v(r, 11))
-                grpRij(CStr(v(r, 10))) = grpRij(CStr(v(r, 10))) & IIf(Len(grpRij(CStr(v(r, 10)))) > 0, ", ", "") & r
+                grp(Tkst(v(r, 10))) = grp(Tkst(v(r, 10))) + CDbl(v(r, 11))
+                grpRij(Tkst(v(r, 10))) = grpRij(Tkst(v(r, 10))) & IIf(Len(grpRij(Tkst(v(r, 10)))) > 0, ", ", "") & r
             End If
             If Left$(st, 1) = "A" And Nul(v(r, 30)) <> 0 Then Voeg waar(2), aant(2), t
             If Leeg(v(r, 15)) Then Voeg waar(3), aant(3), t
@@ -6233,13 +6233,13 @@ Public Sub ControlesVernieuwen()
             If Leeg(v(r, 24)) Then Voeg waar(5), aant(5), t
             If Leeg(v(r, 25)) Then Voeg waar(6), aant(6), t
             If Not Leeg(v(r, 3)) And IsGetal(v(r, 24)) And NrTekst(v(r, 3)) <> "7999998" And Not HeeftNegatiefBudget(v, r) Then
-                sleutel = NrTekst(v(r, 3)) & "|" & CStr(v(r, 24))
+                sleutel = NrTekst(v(r, 3)) & "|" & Tkst(v(r, 24))
                 If dubbel.Exists(sleutel) Then Voeg waar(7), aant(7), t & " = rij " & dubbel(sleutel) Else dubbel.Add sleutel, r
             End If
-            If CStr(v(r, 42)) = CtlTeControleren() Or CStr(v(r, 42)) = "Afgekeurd" Then Voeg waar(8), aant(8), t
+            If Tkst(v(r, 42)) = CtlTeControleren() Or Tkst(v(r, 42)) = "Afgekeurd" Then Voeg waar(8), aant(8), t
             For Each c In Array(9, 10)
                 If Not Leeg(v(r, c)) And Not IsGetal(v(r, c)) Then
-                    If StrComp(CStr(v(r, c)), LCase$(Trim$(CStr(v(r, c)))), vbBinaryCompare) <> 0 Then Voeg waar(9), aant(9), t: Exit For
+                    If StrComp(Tkst(v(r, c)), LCase$(Trim$(Tkst(v(r, c)))), vbBinaryCompare) <> 0 Then Voeg waar(9), aant(9), t: Exit For
                 End If
             Next c
             If Not (Len(st) = 5 And (Left$(st, 1) = "L" Or Left$(st, 1) = "A") And IsAlleenCijfers(Mid$(st, 2))) Then Voeg waar(11), aant(11), t
@@ -6283,7 +6283,7 @@ Public Sub ControlesVernieuwen()
     If ActiveSheet.Name = "Controle" Then wd.Activate
     Exit Sub
 Fout:
-    wd.Range("C70").Value = "fout: " & Err.Description
+    wd.Range("C70").Value = "fout bij vernieuwen: " & Err.Description & " (rij " & r & ")"
 End Sub
 
 ' Voegt een vindplaats toe aan de lijst (maximaal 12 tonen) en telt mee.
