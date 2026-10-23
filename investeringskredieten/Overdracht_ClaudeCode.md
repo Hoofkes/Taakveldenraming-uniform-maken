@@ -1,4 +1,4 @@
-# Overdracht: Dashboard investeringskredieten (stand na stap 11, nog niet getest in Excel)
+# Overdracht: Dashboard investeringskredieten (stand na stap 13, stap 13 nog niet getest in Excel)
 
 Lees dit samen met het functioneel ontwerp (versie 3, `.md`). Dit document bevat de afwijkingen en beslissingen sinds dat ontwerp en de huidige stand van het bestand.
 
@@ -52,9 +52,19 @@ Werkwijze in elke schrijfmacro: nulmeting vooraf en achteraf (alleen datarijen, 
 - Geen Excel-rij verwijderen: regels eronder schuiven een plek omhoog (alleen invoerkolommen), onderste regel(s) leeg. Alle velden eerst naar het Logboek. Nulmeting; bij verschil terugzetten.
 - `VervallenRegelsOpruimen`: eenmalig, haalt bestaande V-regels zonder werkelijke bedragen weg.
 
+## Stap 13 - kredietoverzichten (Dashboard blok 3, rij 57-61)
+- `KredietoverzichtMaken` (raad): L t/m lopend jaar + A lopend jaar, zonder regels met negatief budget. Wordt ook automatisch gemaakt na elke upload.
+- `KredietoverzichtOpNaam`: rol (C58) en naam (C59) op het Dashboard; incl. bijdrageregels en sectie "Nog niet gestart" (L na lopend jaar); kolom Afschr extra.
+- `KredietoverzichtJaarrekening`: uit blad `Verzamellijst t/m <jaar>` (back-up die de jaarrol maakt = stand 31-12): L t/m dat jaar + A dat jaar.
+- Kolommen: Volgnr, Omschrijving, Status, (Afschr), Budget t/m jaar, Totaal werkelijk, Restantkrediet, Budget +1..+5, Toelichting (breed, terugloop), Melding (uit blad Meldingen uitgaven).
+- Sortering programma > investeringsgroep (I) > J (nummers eerst, dan tekst) > volgnr; groepskoppen, SUBTOTAL per niveau, eindtotaal; aansluitcontrole restantkrediet in A3.
+- Bij A altijd "Krediet afgesloten." vooraan in de toelichting (alleen in de overzichten).
+- M/N heten nu "Startjaar uitgaven" / "Eindjaar uitgaven" (nooit in het verleden). Jaarrol: L<oud> -> L<nieuw>, M en N +1 en minimaal het nieuwe jaar; werkelijke uitgaven schuiven (AA=AA+AB, AB=AC, AC leeg).
+- `ToelichtingVoertuigenWissen`: eenmalig, toelichting bij voertuigen leeg (25 regels; leaseconstructie verwarrend, apart probleem).
+
 ## Openstaande stappen
 - 12: controleblok en kengetallen (incl. regels zonder kredietnummer/activanummer, status V, SUBTOTAL-regels verplaatsen).
-- 13: overzichten raad, budgethouder (op naam) en beheerder tijdschrijven.
+- 13 (rest): overzicht voor beheerder tijdschrijven (apart bestand, pad nog opvragen).
 - 14: jaarrol (laatst, eerst op kopie).
 - Later: exploitatienummers met omschrijving, bladbeveiliging, mogelijk "geldig vanaf jaar" bij programma's na de fusie met Oirschot.
 
