@@ -55,7 +55,7 @@ Werkwijze in elke schrijfmacro: nulmeting vooraf en achteraf (alleen datarijen, 
 ## Stap 13 - kredietoverzichten (Dashboard blok 3, rij 57-61)
 - `KredietoverzichtMaken` (raad): L t/m lopend jaar + A lopend jaar, zonder regels met negatief budget. Wordt ook automatisch gemaakt na elke upload.
 - `KredietoverzichtOpNaam`: rol (C58) en naam (C59) op het Dashboard; incl. bijdrageregels en sectie "Nog niet gestart" (L na lopend jaar); kolom Afschr extra.
-- `KredietoverzichtJaarrekening`: uit blad `Verzamellijst t/m <jaar>` (back-up die de jaarrol maakt = stand 31-12): L t/m dat jaar + A dat jaar.
+- `KredietoverzichtJaarrekening`: uit blad `Verzamellijst 31-12-<jaar>` (back-up die de jaarrol maakt = stand 31-12): L t/m dat jaar + A dat jaar.
 - Kolommen: Volgnr, Omschrijving, Status, (Afschr), Budget t/m jaar, Totaal werkelijk, Restantkrediet, Budget +1..+5, Toelichting (breed, terugloop), Melding (uit blad Meldingen uitgaven).
 - Sortering programma > investeringsgroep (I) > J (nummers eerst, dan tekst) > volgnr; groepskoppen, SUBTOTAL per niveau, eindtotaal; aansluitcontrole restantkrediet in A3.
 - Bij A altijd "Krediet afgesloten." vooraan in de toelichting (alleen in de overzichten).
@@ -108,7 +108,7 @@ Werkwijze in elke schrijfmacro: nulmeting vooraf en achteraf (alleen datarijen, 
 - Open: SUBTOTAL-regels rij 1474 weghalen (toestemming gevraagd); FO 9.1 (deelkredieten over programma's) nu optie A.
 
 ## Stap 14 - jaarovergang (`JaarovergangUitvoeren`, knop blok 4; bij openen in een nieuw kalenderjaar gevraagd)
-- Back-up 'Verzamellijst t/m <oud>' als harde waarden, beveiligd, voor Voertuigen (bron jaarrekeningoverzicht). Bestaat die al: weigeren.
+- Back-up 'Verzamellijst 31-12-<oud>' als harde waarden, beveiligd, voor Voertuigen (bron jaarrekeningoverzicht). Bestaat die al: weigeren.
 - Z = Z + AE; AA = AA + AB; AB = AC; AC leeg; AE..AH = AF..AI; AI leeg (AD formule blijft). L<=oud -> L<nieuw>, M en N = max(+1, nieuw jaar). A en toekomstige L ongewijzigd. Par_LopendJaar + 1.
 - Controle totalen (budget, werkelijk, toekomstige budgetten); bij afwijking alles terug en back-up weg. Daarna keuzelijsten en controles verversen.
 - Raad/jaarrekening: onderaan sectie 'Programma-overstijgende projecten (samengestelde kredieten)': per groep (>=2 delen) alle delen met programma en een totaal per project; telt niet mee in het eindtotaal.

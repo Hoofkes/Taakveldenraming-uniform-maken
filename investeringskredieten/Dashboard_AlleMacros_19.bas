@@ -4080,7 +4080,7 @@ End Function
 ' KredietoverzichtMaken         : overzicht raad: L t/m lopend jaar plus A van het lopend jaar, zonder regels met negatief budget.
 ' KredietoverzichtOpNaam        : overzicht budgethouder/projectleider/tijdschrijver (keuze op het Dashboard), incl. toekomstige
 '                                 kredieten (aparte sectie "Nog niet gestart") en bijdrageregels.
-' KredietoverzichtJaarrekening  : stand per 31-12 vorig jaar uit het blad 'Verzamellijst t/m <jaar>' (ontstaat bij de jaarovergang):
+' KredietoverzichtJaarrekening  : stand per 31-12 vorig jaar uit het blad 'Verzamellijst 31-12-<jaar>' (ontstaat bij de jaarovergang):
 '                                 alle L en A van dat jaar.
 ' UitdraaiBlokPlaatsen          : blok 3 op het Dashboard (rol, naam en drie knoppen).
 ' Alle overzichten: nieuw blad met harde waarden, sortering programma > investeringsgroep > samengesteld/standaard,
@@ -4146,13 +4146,13 @@ Public Sub KredietoverzichtJaarrekening()
         Exit Sub
     End If
     For Each ws In ThisWorkbook.Worksheets
-        If ws.Name Like "Verzamellijst t/m ####" Then
+        If ws.Name Like "Verzamellijst 31-12-####" Then
             j = CLng(Right$(ws.Name, 4))
             If j > jaar Then jaar = j: Set best = ws
         End If
     Next ws
     If best Is Nothing Then
-        If MsgBox("Er is nog geen blad 'Verzamellijst t/m <jaar>' (ontstaat bij de jaarovergang, stand per 31-12)." & vbCrLf & vbCrLf & _
+        If MsgBox("Er is nog geen blad 'Verzamellijst 31-12-<jaar>' (ontstaat bij de jaarovergang, stand per 31-12)." & vbCrLf & vbCrLf & _
                   "Een PROEF maken op basis van de huidige verzamellijst, om de opmaak te bekijken? (wordt niet opgeslagen)", _
                   vbYesNo + vbQuestion, "Kredietoverzicht jaarrekening") <> vbYes Then Exit Sub
         mProef = True
@@ -6529,7 +6529,7 @@ End Sub
 ' ======================================================================
 ' Stap 14 - Jaarovergang (functioneel ontwerp par. 2.7, aangevuld met latere afspraken)
 ' JaarovergangUitvoeren : knop in blok 4 (alleen financieel adviseur). Bij openen in een nieuw kalenderjaar wordt erom gevraagd.
-' 1. Back-up 'Verzamellijst t/m <oud jaar>' als harde waarden (= stand per 31-12; bron voor het jaarrekeningoverzicht).
+' 1. Back-up 'Verzamellijst 31-12-<oud jaar>' als harde waarden (= stand per 31-12; bron voor het jaarrekeningoverzicht).
 ' 2. Per regel: Z = Z + AE; AA = AA + AB; AB = AC; AC leeg; AE..AH = AF..AI; AI leeg. AD blijft formule.
 ' 3. Status L<oud jaar of eerder> wordt L<nieuw jaar>; bij die kredieten Startjaar (M) en Eindjaar (N) +1 en minimaal het nieuwe jaar.
 '    Status A en toekomstige L blijven ongewijzigd.
@@ -6550,7 +6550,7 @@ Public Sub JaarovergangUitvoeren()
     End If
     oud = CLng(ThisWorkbook.Names("Par_LopendJaar").RefersToRange.Value)
     nieuw = oud + 1
-    nm = "Verzamellijst t/m " & oud
+    nm = "Verzamellijst 31-12-" & oud              ' een / mag niet in een tabbladnaam
     If BladBestaatStil(nm) Then
         MsgBox "Het blad '" & nm & "' bestaat al: de jaarovergang van " & oud & " naar " & nieuw & " is al uitgevoerd?" & vbCrLf & _
                "Er is niets gewijzigd.", vbExclamation
@@ -6661,9 +6661,18 @@ Public Sub JaarovergangUitvoeren()
            "- totalen gecontroleerd: budget t/m " & nieuw & " = oud budget + budget " & nieuw & "; werkelijke uitgaven gelijk", vbInformation
     Exit Sub
 Fout:
+    Dim foutTekst As String
+    foutTekst = Err.Description
+    On Error Resume Next
+    ' gaat het mis voordat er iets is verschoven, dan de (half gemaakte) back-up weer weghalen
+    If Not wb Is Nothing And CLng(ThisWorkbook.Names("Par_LopendJaar").RefersToRange.Value) = oud And IsEmpty(oZ) Then
+        Application.DisplayAlerts = False
+        wb.Unprotect WACHTWOORD
+        wb.Delete
+    End If
     Application.ScreenUpdating = True
     Application.DisplayAlerts = True
-    MsgBox "Fout bij de jaarovergang: " & Err.Description & vbCrLf & "Controleer het bestand; gebruik zo nodig de kopie.", vbCritical
+    MsgBox "Fout bij de jaarovergang: " & foutTekst & vbCrLf & "Controleer het bestand; gebruik zo nodig de kopie.", vbCritical
 End Sub
 
 ' Leeg laten als beide bronnen leeg waren, anders het bedrag.
