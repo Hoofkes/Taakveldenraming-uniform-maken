@@ -6267,3 +6267,36 @@ Private Function HeeftNegatiefBudget(ByVal v As Variant, ByVal r As Long) As Boo
         If Nul(v(r, c)) < 0 Then HeeftNegatiefBudget = True: Exit Function
     Next c
 End Function
+
+' Herstelt omschrijvingen (kolom D) die langer zijn dan 36 tekens. Per regel een voorstel (straat -> str, daarna afkappen)
+' dat u kunt aanpassen. Oude tekst gaat naar het Logboek.
+Public Sub OmschrijvingenInkorten()
+    WerkStart                                    ' beveiliging even uit, daarna vanzelf weer aan
+    Dim wv As Worksheet, r As Long, laatste As Long, oud As String, nieuw As String, n As Long
+    If Not HeeftRecht("Wijzigen") Then
+        MsgBox "U heeft geen recht om dit te doen.", vbExclamation
+        Exit Sub
+    End If
+    Set wv = Vz()
+    laatste = CLng(ThisWorkbook.Names("Par_LaatsteRij").RefersToRange.Value)
+    For r = 2 To laatste
+        oud = CStr(wv.Cells(r, 4).Value)
+        If Not Leeg(wv.Cells(r, 1).Value) And Len(oud) > 36 Then
+            nieuw = Replace(Replace(oud, "straat", "str"), "  ", " ")
+            If Len(nieuw) > 36 Then nieuw = Left$(nieuw, 36)
+            Do
+                nieuw = InputBox("Volgnr " & wv.Cells(r, 1).Value & " (" & wv.Cells(r, 3).Value & ")" & vbCrLf & _
+                                 "Huidig (" & Len(oud) & " tekens): " & oud & vbCrLf & vbCrLf & _
+                                 "Nieuwe omschrijving, maximaal 36 tekens:", "Omschrijving te lang", nieuw)
+                If Len(nieuw) = 0 Then Exit Do               ' annuleren = deze regel overslaan
+            Loop While Len(nieuw) > 36
+            If Len(nieuw) > 0 And nieuw <> oud Then
+                LogRegel "omschrijving ingekort", wv.Cells(r, 1).Value, wv.Cells(r, 3).Value, "Omschrijving", oud, nieuw, "rij " & r
+                wv.Cells(r, 4).Value = nieuw
+                n = n + 1
+            End If
+        End If
+    Next r
+    Application.Calculate
+    MsgBox n & " omschrijving(en) ingekort.", vbInformation
+End Sub
