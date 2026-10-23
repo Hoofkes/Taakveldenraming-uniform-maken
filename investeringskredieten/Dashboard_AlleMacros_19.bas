@@ -6107,7 +6107,7 @@ Public Sub ControleblokPlaatsen()
           "uitleg vakafdeling in de toelichting"
     Regel ws, r, "Zonder budgetbeheerder (O)", "=COUNTIFS(" & Rg("A") & ",""<>""," & Rg("O") & ","""")", ""
     Regel ws, r, "Zonder projectleider (P)", "=COUNTIFS(" & Rg("A") & ",""<>""," & Rg("P") & ","""")", ""
-    Regel ws, r, "Zonder activanummer (X)", "=COUNTIFS(" & Rg("A") & ",""<>""," & Rg("X") & ","""")", "mag leeg bij intake"
+    Regel ws, r, "Zonder activanummer (X)", "=COUNTIFS(" & Rg("A") & ",""<>""," & Rg("X") & ","""")", "tijdelijk toegestaan (geel, telt niet mee)"
     Regel ws, r, "Zonder afschrijftermijn (Y)", "=COUNTIFS(" & Rg("A") & ",""<>""," & Rg("Y") & ","""")", ""
     Regel ws, r, "Dubbel: kredietnummer + activanummer", "", "macro; bijdrageregels en activanummer 'vervallen' tellen niet mee"
     Regel ws, r, "Te controleren of afgekeurd", "=COUNTIF(" & Rg("AP") & ",""" & CtlTeControleren() & """)+COUNTIF(" & Rg("AP") & ",""Afgekeurd"")", _
@@ -6118,7 +6118,7 @@ Public Sub ControleblokPlaatsen()
     Regel ws, r, "Werkbereik bijna vol (binnen 100 rijen)", "=IF(Par_LaatsteRij>Par_MaxRij-100,1,0)", "macro WerkbereikVerruimen"
     Regel ws, r, "Status (H) niet L of A met jaartal", "=SUMPRODUCT((" & Rg("A") & "<>"""")*(1-(LEN(" & Rg("H") & ")=5)*((LEFT(" & Rg("H") & _
           ",1)=""L"")+(LEFT(" & Rg("H") & ",1)=""A""))*ISNUMBER(--MID(" & Rg("H") & ",2,4))))", ""
-    Regel ws, r, "Zonder kredietnummer (C)", "=COUNTIFS(" & Rg("A") & ",""<>""," & Rg("C") & ","""")", "mag leeg bij intake"
+    Regel ws, r, "Zonder kredietnummer (C)", "=COUNTIFS(" & Rg("A") & ",""<>""," & Rg("C") & ","""")", "tijdelijk toegestaan (geel, telt niet mee)"
     Regel ws, r, "7999998 in het begrotingsjaar of eerder", "=SUMPRODUCT((" & Rg("C") & "&""""=""7999998"")*(LEFT(" & Rg("H") & ",1)=""L"")*(IFERROR(--MID(" & _
           Rg("H") & ",2,4),9999)<=Par_LopendJaar+1))", "echt kredietnummer nodig"
     Regel ws, r, "Handmatige formules in bedragkolommen", "", "macro; bijv. =250000*40%"
@@ -6141,13 +6141,20 @@ Public Sub ControleblokPlaatsen()
 
     ' controles met een aantal > 0 rood
     ws.Range(ws.Cells(CB_EERSTE, 3), ws.Cells(CB_LAATSTE, 3)).FormatConditions.Delete
+    ' zonder activanummer (rij CB_EERSTE+8) en zonder kredietnummer (CB_EERSTE+15) mogen tijdelijk leeg: geel en telt niet mee
+    Set fc = VoegCF(ws.Range(ws.Cells(CB_EERSTE + 8, 3), ws.Cells(CB_EERSTE + 8, 3)), "=AND(ISNUMBER(C" & (CB_EERSTE + 8) & "),C" & (CB_EERSTE + 8) & ">0)")
+    If Not fc Is Nothing Then fc.Interior.Color = RGB(255, 235, 156)
+    Set fc = VoegCF(ws.Range(ws.Cells(CB_EERSTE + 15, 3), ws.Cells(CB_EERSTE + 15, 3)), "=AND(ISNUMBER(C" & (CB_EERSTE + 15) & "),C" & (CB_EERSTE + 15) & ">0)")
+    If Not fc Is Nothing Then fc.Interior.Color = RGB(255, 235, 156)
     Set fc = VoegCF(ws.Range(ws.Cells(CB_EERSTE, 3), ws.Cells(CB_LAATSTE, 3)), "=AND(ISNUMBER(C" & CB_EERSTE & "),C" & CB_EERSTE & ">0)")
     If Not fc Is Nothing Then fc.Interior.Color = RGB(255, 150, 150)
     ws.Range(ws.Cells(CB_EERSTE, 3), ws.Cells(CB_LAATSTE, 3)).HorizontalAlignment = xlRight
 
     ' statusregel
-    ws.Range("C4").Formula = "=IF(SUM(C" & CB_EERSTE & ":C" & CB_LAATSTE & ")=0,""OK - alles sluit aan"",""LET OP - ""&COUNTIF(C" & CB_EERSTE & _
-                             ":C" & CB_LAATSTE & ","">0"")&"" controle(s) wijken af, zie blok 5 (rij " & CB_EERSTE & ")"")"
+    Dim aantalAf As String
+    aantalAf = "(COUNTIF(C" & CB_EERSTE & ":C" & CB_LAATSTE & ","">0"")-N(C" & (CB_EERSTE + 8) & ">0)-N(C" & (CB_EERSTE + 15) & ">0))"
+    ws.Range("C4").Formula = "=IF(" & aantalAf & "=0,""OK - alles sluit aan"",""LET OP - ""&" & aantalAf & _
+                             "&"" controle(s) wijken af, zie blok 5 (rij " & CB_EERSTE & ")"")"
     ws.Range("C4").Font.Bold = True
     ws.Range("C4").FormatConditions.Delete
     Set fc = ws.Range("C4").FormatConditions.Add(Type:=xlCellValue, Operator:=xlEqual, Formula1:="=""OK - alles sluit aan""")
