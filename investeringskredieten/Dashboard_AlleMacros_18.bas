@@ -5520,8 +5520,12 @@ End Sub
 
 ' Keuzelijst in G2 met alle zichtbare tabbladen behalve het Dashboard.
 Private Sub TabbladkiezerVullen()
-    Dim ws As Worksheet, lijst As String
+    Dim ws As Worksheet, lijst As String, wd As Worksheet, beveiligd As Boolean
     On Error Resume Next
+    ' keuzelijst aanpassen lukt niet op een beveiligd blad, ook niet voor macro's: even open
+    Set wd = ThisWorkbook.Worksheets("Dashboard")
+    beveiligd = wd.ProtectContents
+    If beveiligd Then wd.Unprotect WACHTWOORD
     For Each ws In ThisWorkbook.Worksheets
         If ws.Visible = xlSheetVisible And ws.Name <> "Dashboard" And InStr(ws.Name, ",") = 0 Then
             lijst = lijst & IIf(Len(lijst) > 0, ",", "") & ws.Name
@@ -5536,4 +5540,5 @@ Private Sub TabbladkiezerVullen()
     With ThisWorkbook.Worksheets("Dashboard").Range("G2")
         If Len(Trim$(CStr(.Value))) = 0 Or Not BladBestaatStil(CStr(.Value)) Then .Value = Split(lijst, ",")(0)
     End With
+    If beveiligd Then BladBeveiligen wd
 End Sub
