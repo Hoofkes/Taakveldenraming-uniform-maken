@@ -3639,6 +3639,7 @@ VolgendJaar:
     Next i
     VorigeUploadSchrijven bew, nb, Dir(pad)
     UitgavenOpmaakAanmaken
+    Alert7999998 vS, lj
     alarm = MeldingenSchrijven(Dir(pad), peil)
     RaadsoverzichtMaken
     BeveiligingAan
@@ -5600,4 +5601,22 @@ Private Sub TabbladkiezerVullen()
         If Len(Trim$(CStr(.Value))) = 0 Or Not BladBestaatStil(CStr(.Value)) Then .Value = Split(lijst, ",")(0)
     End With
     If beveiligd Then BladBeveiligen wd
+End Sub
+
+
+' Kredietnummer 7999998 is een tijdelijk nummer voor kredieten die na het begrotingsjaar starten.
+' Zodra een krediet met 7999998 in het begrotingsjaar (lopend jaar + 1) of eerder valt (jaar uit de status in kolom H),
+' moet het een echt kredietnummer krijgen: ALARM op de meldingenlijst. Voorbeeld: lopend jaar 2027 -> alle 7999998 met L2028 of eerder.
+Private Sub Alert7999998(ByVal vS As Variant, ByVal lj As Long)
+    Dim i As Long, st As String, jaar As Long
+    For i = 1 To UBound(vS, 1)
+        If Not Leeg(vS(i, 1)) And NrTekst(vS(i, 3)) = "7999998" Then
+            st = UCase$(Trim$(CStr(vS(i, 8))))
+            jaar = Val(Mid$(st, 2))
+            If Left$(st, 1) = "L" And jaar > 0 And jaar <= lj + 1 Then
+                Meld 1, "ALARM: echt kredietnummer nodig (7999998)", jaar, "7999998", CStr(vS(i, 4)), i + 1, Empty, Empty, _
+                     "Krediet loopt in " & jaar & " (begrotingsjaar " & (lj + 1) & "): vervang 7999998 door een echt kredietnummer."
+            End If
+        End If
+    Next i
 End Sub

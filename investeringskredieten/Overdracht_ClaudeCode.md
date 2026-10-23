@@ -83,6 +83,8 @@ Werkwijze in elke schrijfmacro: nulmeting vooraf en achteraf (alleen datarijen, 
 - Op elk zichtbaar blad knop "Terug naar dashboard" (`KnoppenTerugPlaatsen`); Dashboard F2:H2 tabbladkiezer (G2 keuzelijst, knop "Ga naar tabblad"). Knoppen worden uit opgeslagen kopieen verwijderd.
 - Overzicht tijdschrijven: kolommen Kredietnummer, Omschrijving, Status, Tijdschrijvers (incl. projectleider), Actie, Toegevoegd op; alleen regels met actie (nieuw/gewijzigd/afgesloten). Vergelijking met verborgen blad "Stand tijdschrijven" (alle lopende kredieten); geen stand = beginstand, alles nieuw. Blad "Laatste overzicht tijdschrijven" + bestand in map 01.
 
+- Alert 7999998: bij elke upload ALARM op Meldingen voor L-kredieten met kredietnummer 7999998 waarvan het statusjaar <= begrotingsjaar (lopend jaar + 1).
+
 ## Bladbeveiliging
 - Wachtwoord "Best" (constante WACHTWOORD in de module; VBA-project zelf ook met wachtwoord vergrendelen). `BeveiligingAan` bij elk openen (Auto_Open, UserInterfaceOnly), na upload en na elk overzicht. Verzamellijst, Logboek, Vorige upload, Parameters, Dashboard, Controle, Meldingen en overzichtbladen op slot. Open: Dashboard Kaart_Invoer, bronnen bijdragen (kolom B), C58:C59; Parameters gele tabelkolommen. Filteren mag (autofilter op de verzamellijst), sorteren niet. Geen werkmapstructuur-beveiliging.
 - `BeveiligingUit` (alleen financieel adviseur) voor herstel met de hand. Tabellen op Parameters groeien niet op een beveiligd blad: nieuwe rij met de hand = eerst BeveiligingUit (zelfregistratie via intake regelt het zelf).
