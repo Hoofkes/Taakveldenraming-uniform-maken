@@ -18,6 +18,7 @@ Private Const BL_UITVRAAG As String = "Laatste uitvraag begroting"
 Private Const BL_TIJD As String = "Laatste overzicht tijdschrijven"
 Private Const WACHTWOORD As String = "Best"      ' bladbeveiliging (zet ook een wachtwoord op het VBA-project)
 Private mStil As Boolean
+Private mHerbeveiligingGepland As Boolean
 Private mProef As Boolean             ' proefversie jaarrekening (niet opslaan)             ' geen meldingen tijdens een reeks overzichten
 
 Private Type TKaart
@@ -5014,6 +5015,7 @@ End Sub
 
 Public Sub BeveiligingAan()
     Dim naam As Variant
+    mHerbeveiligingGepland = False
     On Error Resume Next
     For Each naam In Array(BL_VZ, "Logboek", "Vorige upload", "Parameters", "Dashboard", "Controle", _
                            BL_MELD, BL_OVERZICHT, BL_OVERZICHT_NAAM)
@@ -5081,8 +5083,10 @@ End Sub
 ' (Application.OnTime start BeveiligingAan zodra de macro klaar is, ook na een fout of een tussentijds stoppen).
 Private Sub WerkStart()
     BeveiligingTijdelijkUit
+    If mHerbeveiligingGepland Then Exit Sub       ' maar een keer inplannen per macro
+    mHerbeveiligingGepland = True
     On Error Resume Next
-    Application.OnTime Now + TimeSerial(0, 0, 1), "BeveiligingAan"
+    Application.OnTime Now + TimeSerial(0, 0, 1), "'" & ThisWorkbook.Name & "'!BeveiligingAan"
 End Sub
 
 ' Zet de beveiliging van alle bladen tijdelijk uit (voor macro's die veel schrijven). Daarna altijd BeveiligingAan.
@@ -5170,6 +5174,7 @@ End Sub
 Private Function AantalRegels(ByVal tekst As String, ByVal breedte As Double, ByVal vet As Boolean) As Long
     Dim ruimte As Double, teken As Double, regel As Double, w As Variant, lw As Double, n As Long, deel As Variant
     ruimte = breedte * 6 + 5 - 6                 ' pixels in de kolom, min wat marge
+    If ruimte < 30 Then ruimte = 30                ' smalle of verborgen kolom: geen eindeloze lus
     teken = IIf(vet, 7.4, 6.8)                   ' gemiddelde tekenbreedte Arial 10 in pixels
     n = 0
     For Each deel In Split(Replace(tekst, vbCr, ""), vbLf)
