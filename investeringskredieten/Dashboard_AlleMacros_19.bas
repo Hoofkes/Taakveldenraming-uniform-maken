@@ -6109,7 +6109,7 @@ Public Sub ControleblokPlaatsen()
     Regel ws, r, "Zonder projectleider (P)", "=COUNTIFS(" & Rg("A") & ",""<>""," & Rg("P") & ","""")", ""
     Regel ws, r, "Zonder activanummer (X)", "=COUNTIFS(" & Rg("A") & ",""<>""," & Rg("X") & ","""")", "mag leeg bij intake"
     Regel ws, r, "Zonder afschrijftermijn (Y)", "=COUNTIFS(" & Rg("A") & ",""<>""," & Rg("Y") & ","""")", ""
-    Regel ws, r, "Dubbel: kredietnummer + activanummer", "", "macro; bijdrageregels tellen niet mee"
+    Regel ws, r, "Dubbel: kredietnummer + activanummer", "", "macro; bijdrageregels en activanummer 'vervallen' tellen niet mee"
     Regel ws, r, "Te controleren of afgekeurd", "=COUNTIF(" & Rg("AP") & ",""" & CtlTeControleren() & """)+COUNTIF(" & Rg("AP") & ",""Afgekeurd"")", _
           "zie tabblad Controle"
     Regel ws, r, "Hoofdletters of spaties in kolom I of J", "=SUMPRODUCT((" & Rg("A") & "<>"""")*(" & Rg("I") & "<>"""")*(1-EXACT(" & Rg("I") & _
@@ -6141,8 +6141,8 @@ Public Sub ControleblokPlaatsen()
 
     ' controles met een aantal > 0 rood
     ws.Range(ws.Cells(CB_EERSTE, 3), ws.Cells(CB_LAATSTE, 3)).FormatConditions.Delete
-    Set fc = ws.Range(ws.Cells(CB_EERSTE, 3), ws.Cells(CB_LAATSTE, 3)).FormatConditions.Add(Type:=xlCellValue, Operator:=xlGreater, Formula1:="=0")
-    fc.Interior.Color = RGB(255, 150, 150)
+    Set fc = VoegCF(ws.Range(ws.Cells(CB_EERSTE, 3), ws.Cells(CB_LAATSTE, 3)), "=AND(ISNUMBER(C" & CB_EERSTE & "),C" & CB_EERSTE & ">0)")
+    If Not fc Is Nothing Then fc.Interior.Color = RGB(255, 150, 150)
     ws.Range(ws.Cells(CB_EERSTE, 3), ws.Cells(CB_LAATSTE, 3)).HorizontalAlignment = xlRight
 
     ' statusregel
@@ -6159,7 +6159,7 @@ End Sub
 
 Private Sub Regel(ByVal ws As Worksheet, ByRef r As Long, ByVal label As String, ByVal formule As String, ByVal toel As String)
     ws.Cells(r, 2).Value = label
-    If Len(formule) > 0 Then ws.Cells(r, 3).Formula = formule Else ws.Cells(r, 3).ClearContents
+    If Len(formule) > 0 Then ws.Cells(r, 3).Formula2 = formule Else ws.Cells(r, 3).ClearContents   ' Formula2: rekent met hele bereiken
     ws.Cells(r, 3).NumberFormat = "0"
     ws.Cells(r, 4).Value = toel
     ws.Cells(r, 4).Font.Color = RGB(128, 128, 128)
@@ -6168,7 +6168,7 @@ End Sub
 
 Private Sub Kengetal(ByVal ws As Worksheet, ByRef r As Long, ByVal label As String, ByVal formule As String, ByVal notatie As String)
     If Left$(label, 1) = "=" Then ws.Cells(r, 2).Formula = label Else ws.Cells(r, 2).Value = label
-    ws.Cells(r, 3).Formula = formule
+    ws.Cells(r, 3).Formula2 = formule
     ws.Cells(r, 3).NumberFormat = IIf(Len(notatie) > 0, notatie, "#,##0;-#,##0;-")
     ws.Cells(r, 3).HorizontalAlignment = xlRight
     r = r + 1
@@ -6213,12 +6213,8 @@ Public Sub ControlesVernieuwen()
     ' 4: verdeelsleutel per samengesteld krediet (J is een getal) moet samen 100% zijn; teksten in K tellen niet mee
     Set grp = CreateObject("Scripting.Dictionary")
     For r = 2 To laatste
-        If Not Leeg(v(r, 1)) And IsGetal(v(r, 10)) Then
-            If IsGetal(v(r, 11)) Then
-                grp(CStr(v(r, 10))) = grp(CStr(v(r, 10))) + CDbl(v(r, 11))
-            ElseIf Not grp.Exists(CStr(v(r, 10))) Then
-                grp(CStr(v(r, 10))) = 0
-            End If
+        If Not Leeg(v(r, 1)) And IsGetal(v(r, 10)) And IsGetal(v(r, 11)) Then
+            grp(CStr(v(r, 10))) = grp(CStr(v(r, 10))) + CDbl(v(r, 11))
         End If
     Next r
     n = 0
@@ -6231,7 +6227,7 @@ Public Sub ControlesVernieuwen()
     Set dubbel = CreateObject("Scripting.Dictionary")
     n = 0
     For r = 2 To laatste
-        If Not Leeg(v(r, 1)) And Not Leeg(v(r, 3)) And Not Leeg(v(r, 24)) And NrTekst(v(r, 3)) <> "7999998" And Nul(v(r, 26)) >= 0 Then
+        If Not Leeg(v(r, 1)) And Not Leeg(v(r, 3)) And IsGetal(v(r, 24)) And NrTekst(v(r, 3)) <> "7999998" And Not HeeftNegatiefBudget(v, r) Then
             sleutel = NrTekst(v(r, 3)) & "|" & CStr(v(r, 24))
             If dubbel.Exists(sleutel) Then n = n + 1 Else dubbel.Add sleutel, r
         End If
@@ -6264,3 +6260,10 @@ Public Sub ControlesVernieuwen()
 Fout:
     wd.Range("C70").Value = "fout: " & Err.Description
 End Sub
+
+Private Function HeeftNegatiefBudget(ByVal v As Variant, ByVal r As Long) As Boolean
+    Dim c As Variant
+    For Each c In Array(26, 31, 32, 33, 34, 35)
+        If Nul(v(r, c)) < 0 Then HeeftNegatiefBudget = True: Exit Function
+    Next c
+End Function
