@@ -5455,9 +5455,11 @@ End Function
 ' Laatste overzicht tijdschrijven, Meldingen uitgaven, daarna de overige bladen, en Voertuigen en Controle als laatste.
 ' Draait bij openen, na elk overzicht en bij DashboardKnoppenPlaatsen; ook met de hand te starten.
 Public Sub TabbladenOrdenen()
-    Dim naam As Variant, pos As Long, actief As Object
+    Dim naam As Variant, pos As Long, actief As Object, scherm As Boolean
     On Error Resume Next
     Set actief = ActiveSheet
+    scherm = Application.ScreenUpdating
+    Application.ScreenUpdating = False                 ' verplaatsen maakt een blad actief: niet laten zien
     pos = 0
     For Each naam In Array("Dashboard", BL_VZ, BL_OVERZICHT_NAAM, BL_OVERZICHT, BL_UITVRAAG, BL_TIJD, BL_MELD)
         If BladBestaatStil(CStr(naam)) Then
@@ -5467,12 +5469,16 @@ Public Sub TabbladenOrdenen()
             End If
         End If
     Next naam
-    For Each naam In Array("Voertuigen", "Controle")
-        If BladBestaatStil(CStr(naam)) Then
-            ThisWorkbook.Worksheets(CStr(naam)).Move After:=ThisWorkbook.Worksheets(ThisWorkbook.Worksheets.Count)
+    ' Voertuigen en daarna Controle helemaal achteraan; alleen verplaatsen als het nog niet zo staat
+    If BladBestaatStil("Controle") And BladBestaatStil("Voertuigen") Then
+        If ThisWorkbook.Worksheets("Voertuigen").Index <> ThisWorkbook.Worksheets.Count - 1 _
+           Or ThisWorkbook.Worksheets("Controle").Index <> ThisWorkbook.Worksheets.Count Then
+            ThisWorkbook.Worksheets("Voertuigen").Move After:=ThisWorkbook.Worksheets(ThisWorkbook.Worksheets.Count)
+            ThisWorkbook.Worksheets("Controle").Move After:=ThisWorkbook.Worksheets(ThisWorkbook.Worksheets.Count)
         End If
-    Next naam
+    End If
     If Not actief Is Nothing Then actief.Activate
+    Application.ScreenUpdating = scherm
     TabbladkiezerVullen
 End Sub
 
