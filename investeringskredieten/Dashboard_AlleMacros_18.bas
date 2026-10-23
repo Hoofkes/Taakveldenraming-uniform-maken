@@ -16,6 +16,7 @@ Private Const BL_OVERZICHT As String = "Laatste kredietoverzicht"          ' raa
 Private Const BL_OVERZICHT_NAAM As String = "Laatste overzicht op naam"  ' budgethouder / projectleider
 Private Const BL_UITVRAAG As String = "Laatste uitvraag begroting"
 Private Const BL_TIJD As String = "Laatste overzicht tijdschrijven"
+Private Const OPBRENGST As String = "Opbrengst activa"   ' bron/toelichting voor opbrengsten activa (geen subsidie of bijdrage)
 Private Const BL_MUTREG As String = "Mutaties kadernota-begroting"   ' register voor de lastenberekening
 Private Const WACHTWOORD As String = "Best"      ' bladbeveiliging (zet ook een wachtwoord op het VBA-project)
 Private mStil As Boolean
@@ -3215,6 +3216,12 @@ Private Sub BijdrageBronTabelAanmaken()
         wsP.Columns("AL").ColumnWidth = 40
     End If
     Set lo = wsP.ListObjects("Tbl_BijdrageBron")
+    ' vaste bron voor opbrengsten activa (verkoop, directe mva-boekwaardemutatie): wel zichtbaar in de raadsoverzichten
+    heeft = False
+    For i = 1 To lo.ListRows.Count
+        If StrComp(CStr(lo.ListColumns("Bron").DataBodyRange.Cells(i, 1).Value), OPBRENGST, vbTextCompare) = 0 Then heeft = True
+    Next i
+    If Not heeft Then lo.ListRows.Add.Range.Cells(1, lo.ListColumns("Bron").Index).Value = OPBRENGST
     For j = 0 To 5
         heeft = False
         For Each kol In lo.ListColumns
@@ -4202,8 +4209,9 @@ Private Function OverzichtMaken(ByVal soort As String, ByVal bron As Worksheet, 
                 If stLetter = "A" And sj = jaar Then neem = True
                 ' raad en jaarrekening: alleen t/m het jaar; regels zonder budget en uitgaven t/m het jaar vallen weg
                 If neem And Nul(v(r, 26)) = 0 And Nul(v(r, 27)) + Nul(v(r, 28)) + Nul(v(r, 29)) = 0 Then neem = False
-                ' raad en jaarrekening: regels met een negatief budget (bijdragen van derden) weglaten
-                If neem Then
+                ' raad en jaarrekening: regels met een negatief budget weglaten als het een subsidie of bijdrage is;
+                ' opbrengsten activa (toelichting begint met "Opbrengst activa") blijven staan
+                If neem And Not IsOpbrengstActiva(v(r, 36)) Then
                     If Nul(v(r, 26)) < 0 Then neem = False
                     For c = 31 To 35
                         If Nul(v(r, c)) < 0 Then neem = False
@@ -5992,4 +6000,38 @@ Private Sub MutatieRegistreren(ByVal naam As String, ByVal volgnr As Variant, By
     ws.Range(ws.Cells(rij, 1), ws.Cells(rij, 15)).VerticalAlignment = xlTop
     ws.Cells(rij, 6).WrapText = True
     ws.Cells(rij, 15).WrapText = True
+End Sub
+
+Private Function IsOpbrengstActiva(ByVal toel As Variant) As Boolean
+    IsOpbrengstActiva = (InStr(1, CStr(toel), OPBRENGST, vbTextCompare) > 0)
+End Function
+
+' Eenmalig: markeert de bekende opbrengsten activa (verkoop vastgoed Sportlaan 10 en voertuigen V06 en V19) door
+' "Opbrengst activa." voor de toelichting te zetten op de regels met een negatief budget. Oude tekst gaat naar het Logboek.
+Public Sub OpbrengstenActivaMarkeren()
+    WerkStart                                    ' beveiliging even uit, daarna vanzelf weer aan
+    Dim wv As Worksheet, r As Long, laatste As Long, n As Long, nr As Variant, c As Long, negatief As Boolean, toel As String
+    If Not HeeftRecht("Toevoegen") Then
+        MsgBox "Alleen financieel adviseurs mogen dit.", vbExclamation
+        Exit Sub
+    End If
+    Set wv = Vz()
+    laatste = CLng(ThisWorkbook.Names("Par_LaatsteRij").RefersToRange.Value)
+    For r = 2 To laatste
+        For Each nr In Array("7203107", "7206072", "7205045", "7205041")
+            If NrTekst(wv.Cells(r, 3).Value) = nr Then
+                negatief = (Nul(wv.Cells(r, 26).Value) < 0)
+                For c = 31 To 35
+                    If Nul(wv.Cells(r, c).Value) < 0 Then negatief = True
+                Next c
+                toel = Trim$(CStr(wv.Cells(r, 36).Value))
+                If negatief And Not IsOpbrengstActiva(toel) Then
+                    LogRegel "opbrengst activa markeren", wv.Cells(r, 1).Value, nr, "Toelichting", toel, OPBRENGST & ". " & toel, "rij " & r
+                    wv.Cells(r, 36).Value = OPBRENGST & IIf(Len(toel) > 0, ". " & toel, "")
+                    n = n + 1
+                End If
+            End If
+        Next nr
+    Next r
+    MsgBox n & " regel(s) gemarkeerd als opbrengst activa.", vbInformation
 End Sub
