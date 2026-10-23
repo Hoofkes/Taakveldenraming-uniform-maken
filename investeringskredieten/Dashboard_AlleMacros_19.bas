@@ -6688,8 +6688,8 @@ End Sub
 ' ======================================================================
 ' Uitleg bij de knoppen
 ' ======================================================================
-' Naast elke knop op het Dashboard een blauw vraagteken. Met de muis erop verschijnt de uitleg (hyperlink-scherminfo;
-' een knop zelf kan in Excel geen scherminfo tonen). Klikken op het vraagteken doet niets bijzonders.
+' Naast elke knop op het Dashboard een blauw vraagteken. Klikken op het vraagteken toont de uitleg in een venster
+' (een knop kan in Excel geen tekst tonen bij alleen zweven met de muis).
 Public Sub KnoppenUitlegPlaatsen()
     WerkStart                                    ' beveiliging even uit, daarna vanzelf weer aan
     Dim ws As Worksheet
@@ -6745,5 +6745,18 @@ Private Sub KnopUitleg(ByVal ws As Worksheet, ByVal knop As String, ByVal tekst 
         .VerticalAnchor = 3                                       ' midden
     End With
     shp.Placement = xlFreeFloating
-    ws.Hyperlinks.Add Anchor:=shp, Address:="", SubAddress:="'" & ws.Name & "'!" & b.TopLeftCell.Address, ScreenTip:=Left$(tekst, 255)
+    shp.AlternativeText = tekst                    ' de uitleg; verschijnt in een venster bij klikken op het vraagteken
+    shp.OnAction = "KnopUitlegTonen"
+End Sub
+
+' Klik op een vraagteken: toont de uitleg van de knop ernaast.
+Public Sub KnopUitlegTonen()
+    Dim naam As String, tekst As String, titel As String
+    On Error Resume Next
+    naam = CStr(Application.Caller)
+    tekst = ActiveSheet.Shapes(naam).AlternativeText
+    titel = ActiveSheet.Shapes(Mid$(naam, Len("uitleg_") + 1)).TextFrame.Characters.Text
+    On Error GoTo 0
+    If Len(tekst) = 0 Then Exit Sub
+    MsgBox tekst, vbInformation, "Uitleg" & IIf(Len(titel) > 0, ": " & titel, "")
 End Sub
