@@ -74,7 +74,7 @@ Werkwijze in elke schrijfmacro: nulmeting vooraf en achteraf (alleen datarijen, 
 - Oude overzichtbladen (patroon + titel in A1) worden automatisch opgeruimd.
 - Dashboard: blok 3 alleen "Kredietoverzicht op naam" (C58/C59); blok 4 (rij 64-66) voor financieel adviseur: raad, jaarrekening, uitvraag kadernota/begroting, alle budgethouders, tijdschrijven (met rechtencontrole).
 - `UitvraagBegroting`: kolommen C, D, O, S, Y, AD, AE-AI, AJ (leeg, in te vullen), alleen L, per budgetbeheerder groep; rij 4 verwijst naar de kolom in de verzamellijst; gele kolommen = in te vullen; bestand per budgetbeheerder in 02\<naam>; blad 'Laatste uitvraag begroting' (onbeveiligd).
-- Uitgaven bijwerken zet de beveiliging tijdelijk uit en daarna weer aan (ook bij fout).
+- Elke publieke macro die iets wijzigt begint met `WerkStart`: beveiliging uit en via Application.OnTime direct na afloop weer aan (BeveiligingAan). Niet in TabbladenOrdenen (wordt door BeveiligingAan aangeroepen: anders een lus).
 - Tabbladen Voertuigen en Controle altijd als laatste.
 
 ## Navigatie en bladnamen

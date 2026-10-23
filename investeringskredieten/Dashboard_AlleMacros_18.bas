@@ -43,6 +43,7 @@ End Type
 ' HeeftRecht / LogRegel        : hulpfuncties voor de latere stappen.
 
 Public Sub LogboekEnRollentabelAanmaken()
+    WerkStart                                    ' beveiliging even uit, daarna vanzelf weer aan
     Dim wb As Workbook, lg As Worksheet, pa As Worksheet, lo As ListObject, actief As Object
     Dim koppen As Variant, personen As Variant
     Dim i As Long, rol1 As String, rol2 As String
@@ -153,6 +154,7 @@ Public Sub Auto_Open()
 End Sub
 
 Public Sub WieWerktEr()
+    WerkStart                                    ' beveiliging even uit, daarna vanzelf weer aan
     Dim lo As ListObject, r As ListRow
     Dim windows As String, voorstel As String, rol As String
     Dim lijst As String, antw As String, n As Long, k As Long
@@ -342,6 +344,7 @@ End Function
 ' Gebruikt HeeftRecht en LogRegel uit de module van stap 6.
 
 Public Sub GebruikerVerwijderen()
+    WerkStart                                    ' beveiliging even uit, daarna vanzelf weer aan
     Dim lo As ListObject
     Dim i As Long, n As Long, k As Long
     Dim antw As String, lijst As String, naam As String, rol As String
@@ -409,6 +412,7 @@ End Sub
 ' Getallen in J blijven ongemoeid. Met nulmeting vooraf en achteraf; bij verschil terugdraaien.
 
 Public Sub LijstwaardenNormaliseren()
+    WerkStart                                    ' beveiliging even uit, daarna vanzelf weer aan
     Const BLAD As String = BL_VZ
     VerzamellijstHernoemen
     Dim ws As Worksheet
@@ -514,6 +518,7 @@ End Sub
 ' Met nulmeting vooraf en achteraf. Bij een verschil worden de nieuwe formules weer gewist.
 
 Public Sub WerkbereikVerruimen()
+    WerkStart                                    ' beveiliging even uit, daarna vanzelf weer aan
     Const BLAD As String = BL_VZ
     VerzamellijstHernoemen
     Dim ws As Worksheet, sp As Worksheet
@@ -673,6 +678,7 @@ Public Function CtlTeControleren() As String
 End Function
 
 Public Sub ControlekolommenAanmaken()
+    WerkStart                                    ' beveiliging even uit, daarna vanzelf weer aan
     Const BLAD As String = BL_VZ
     VerzamellijstHernoemen
     Dim ws As Worksheet
@@ -760,6 +766,7 @@ End Sub
 
 
 Public Sub KeuzelijstenVerversen(Optional ByVal stil As Boolean = False)
+    WerkStart                                    ' beveiliging even uit, daarna vanzelf weer aan
     Dim wsV As Worksheet, wsP As Worksheet
     Dim laatste As Long, i As Long
     Dim cfg As Variant
@@ -1136,6 +1143,7 @@ Private Function Veld(ByVal label As String, ByVal kol As String, ByVal lijst As
 End Function
 
 Public Sub DashboardAanmaken()
+    WerkStart                                    ' beveiliging even uit, daarna vanzelf weer aan
     Dim ws As Worksheet, w As Worksheet
     Dim v(1 To 30) As Variant
     Dim i As Long, r As Long, n As Long
@@ -1447,6 +1455,7 @@ End Function
 
 
 Public Sub KredietToevoegen()
+    WerkStart                                    ' beveiliging even uit, daarna vanzelf weer aan
     Dim wd As Worksheet, wv As Worksheet
     Dim f(1 To AANTAL) As Variant
     Dim fouten As String, waarsch As String
@@ -1724,6 +1733,7 @@ Fout:
 End Sub
 
 Public Sub KaartWissen()
+    WerkStart                                    ' beveiliging even uit, daarna vanzelf weer aan
     Dim wd As Worksheet
     Set wd = ThisWorkbook.Worksheets("Dashboard")
     wd.Range("C" & EERSTE & ":C" & KaartRij(30)).ClearContents
@@ -1757,6 +1767,7 @@ Private Sub VolgendeDeelVoorbereiden(ByVal grp As Long)
 End Sub
 
 Public Sub DashboardKnoppenPlaatsen()
+    WerkStart                                    ' beveiliging even uit, daarna vanzelf weer aan
     Dim ws As Worksheet, b As Object, naam As Variant, i As Long
     Dim namen As Variant, titels As Variant, acties As Variant
     VerzamellijstHernoemen
@@ -1798,6 +1809,7 @@ End Sub
 ' Een knop voor toevoegen en wijzigen: is er een regel geladen om te wijzigen, dan wordt de wijziging opgeslagen,
 ' anders wordt een nieuw krediet toegevoegd.
 Public Sub Verwerken()
+    WerkStart                                    ' beveiliging even uit, daarna vanzelf weer aan
     If Len(CStr(ThisWorkbook.Worksheets("Dashboard").Range("Kaart_Rijnummer").Value)) > 0 Then
         WijzigingOpslaan
     Else
@@ -1807,6 +1819,7 @@ End Sub
 
 ' Maakt de laatste regel van de verzamellijst leeg (niet verwijderen). Alleen voor een zojuist toegevoegde, nog niet gecontroleerde regel.
 Public Sub ProefregelWissen()
+    WerkStart                                    ' beveiliging even uit, daarna vanzelf weer aan
     Dim wv As Worksheet, r As Long, vandaag As Boolean
     On Error GoTo Fout
     If Not HeeftRecht("Toevoegen") Then
@@ -2200,6 +2213,7 @@ End Function
 
 ' Zoekt een krediet en zet het op de invoerkaart.
 Public Sub KredietWijzigen()
+    WerkStart                                    ' beveiliging even uit, daarna vanzelf weer aan
     Dim wv As Worksheet, wd As Worksheet
     Dim keuze As String, zoek As String, lijst As String, antw As String
     Dim r As Long, laatste As Long, n As Long, kk As Long, tonen As Long
@@ -2361,6 +2375,7 @@ End Function
 
 ' Slaat de gewijzigde gegevens van de geladen regel op. Alleen gewijzigde cellen worden weggeschreven.
 Public Sub WijzigingOpslaan()
+    WerkStart                                    ' beveiliging even uit, daarna vanzelf weer aan
     Dim wd As Worksheet, wv As Worksheet
     Dim k As TKaart
     Dim r As Long, i As Long, n As Long, nw As Long, x As Long
@@ -2523,6 +2538,7 @@ End Sub
 
 ' Knop op het Dashboard: ververst alle keuzelijsten.
 Public Sub ListenVerversen()
+    WerkStart                                    ' beveiliging even uit, daarna vanzelf weer aan
     KeuzelijstenVerversen False
     MsgBox "De keuzeopties zijn bijgewerkt.", vbInformation
 End Sub
@@ -2532,6 +2548,7 @@ End Sub
 ' ======================================================================
 ' Maakt het tabblad Controle met de lijst van te controleren en afgekeurde regels en de knoppen.
 Public Sub ControleBladAanmaken()
+    WerkStart                                    ' beveiliging even uit, daarna vanzelf weer aan
     Dim ws As Worksheet, b As Object, i As Long, vorig As Object
     Dim titels As Variant, acties As Variant, namen As Variant, naam As Variant
     Set vorig = ActiveSheet
@@ -2607,6 +2624,7 @@ End Sub
 
 ' Vult de lijst op het tabblad Controle met alle regels die te controleren of afgekeurd zijn.
 Public Sub ControleLijstVernieuwen()
+    WerkStart                                    ' beveiliging even uit, daarna vanzelf weer aan
     Dim wc As Worksheet, wv As Worksheet, r As Long, laatste As Long, rij As Long, st As String
     If Not BladBestaat("Controle") Then Exit Sub
     Set wc = ThisWorkbook.Worksheets("Controle")
@@ -2669,6 +2687,7 @@ Private Function ControleGekozenRij() As Long
 End Function
 
 Public Sub RegelOpenenTerControle()
+    WerkStart                                    ' beveiliging even uit, daarna vanzelf weer aan
     Dim r As Long
     If Not HeeftRecht("Wijzigen") Then
         MsgBox "U mag kredieten niet openen om te wijzigen.", vbExclamation
@@ -2682,6 +2701,7 @@ Public Sub RegelOpenenTerControle()
 End Sub
 
 Public Sub RegelBevestigen()
+    WerkStart                                    ' beveiliging even uit, daarna vanzelf weer aan
     Dim wv As Worksheet, r As Long, st As String, gebr As String
     On Error GoTo Fout
     If Not HeeftRecht("Bevestigen") Then
@@ -2716,6 +2736,7 @@ Fout:
 End Sub
 
 Public Sub RegelAfkeuren()
+    WerkStart                                    ' beveiliging even uit, daarna vanzelf weer aan
     Dim wv As Worksheet, r As Long, reden As String, gebr As String
     On Error GoTo Fout
     If Not HeeftRecht("Bevestigen") Then
@@ -2754,6 +2775,7 @@ End Sub
 ' Toont de lijst met namen (20 per pagina). U typt de nummers van de gewenste tijdschrijvers, gescheiden door komma's.
 ' Namen die nu in het veld staan, zijn voorgevuld. Namen die niet in de lijst staan, blijven behouden.
 Public Sub TijdschrijversKiezen()
+    WerkStart                                    ' beveiliging even uit, daarna vanzelf weer aan
     Const PER As Long = 20
     Dim wd As Worksheet, cel As Range, lst As Range
     Dim namen() As String, sel() As Boolean
@@ -2952,6 +2974,7 @@ End Sub
 ' ======================================================================
 ' Een krediet wordt helemaal weggehaald (alleen bij echte fouten, zonder werkelijke bedragen); het Logboek houdt de gegevens vast.
 Public Sub KredietVerwijderen()
+    WerkStart                                    ' beveiliging even uit, daarna vanzelf weer aan
     Dim wd As Worksheet, wv As Worksheet, r As Long, i As Long, laatste As Long, volgnr As Variant
     Dim rijen As New Collection, uitg As Double, reden As String, grpTxt As String, rv As Variant
 
@@ -3009,6 +3032,7 @@ End Sub
 
 ' Eenmalig: haalt de regels met status V (oude werkwijze verwijderen) helemaal weg, als er geen werkelijke bedragen op staan.
 Public Sub VervallenRegelsOpruimen()
+    WerkStart                                    ' beveiliging even uit, daarna vanzelf weer aan
     Dim wv As Worksheet, i As Long, laatste As Long, rijen As New Collection, overslaan As String
     If Not HeeftRecht("Toevoegen") Then
         MsgBox "Alleen financieel adviseurs mogen dit.", vbExclamation
@@ -3138,6 +3162,7 @@ End Function
 ' ======================================================================
 ' Haalt het filter en de knop Sort van het tabblad Verzamellijst alle kredieten. Werken gaat via het Dashboard.
 Public Sub VerzamellijstOpschonen()
+    WerkStart                                    ' beveiliging even uit, daarna vanzelf weer aan
     Dim ws As Worksheet
     Set ws = Vz()
     On Error Resume Next
@@ -3265,6 +3290,7 @@ End Sub
 
 
 Public Sub UitgavenBijwerken()
+    WerkStart                                    ' beveiliging even uit, daarna vanzelf weer aan
     Dim wv As Worksheet, wsP As Worksheet, pad As String, peil As Date, lj As Long, laatste As Long
     Dim wbU As Workbook, d As Variant, nRij As Long, nKol As Long, kop As Long
     Dim cNr As Long, cKs As Long, cBud As Long, cJ(0 To 1) As Long, j As Long, y As Long
@@ -3986,6 +4012,7 @@ End Function
 
 ' Voorwaardelijke opmaak op de verzamellijst. Wordt eenmalig aangemaakt (herkend aan de regel op AD2).
 Public Sub UitgavenOpmaakAanmaken()
+    WerkStart                                    ' beveiliging even uit, daarna vanzelf weer aan
     Dim wv As Worksheet, maxRij As Long, fc As Object, f As Object, vorig As Object
     Set wv = Vz()
     For Each f In wv.Range("AD2").FormatConditions
@@ -4041,6 +4068,7 @@ End Function
 ' kolom Melding uit het blad 'Meldingen uitgaven', aansluitcontrole op het restantkrediet in de kop.
 
 Public Sub KredietoverzichtMaken()
+    WerkStart                                    ' beveiliging even uit, daarna vanzelf weer aan
     If Not HeeftRecht("Toevoegen") Then
         MsgBox "Dit overzicht wordt gemaakt door de financieel adviseur.", vbExclamation
         Exit Sub
@@ -4061,6 +4089,7 @@ Private Sub RaadsoverzichtMaken()
 End Sub
 
 Public Sub KredietoverzichtOpNaam()
+    WerkStart                                    ' beveiliging even uit, daarna vanzelf weer aan
     Dim wd As Worksheet, rol As String, naam As String, kol As Long, lj As Long, ws As Worksheet, map As String
     Set wd = ThisWorkbook.Worksheets("Dashboard")
     rol = Trim$(CStr(wd.Range("C58").Value))
@@ -4090,6 +4119,7 @@ Public Sub KredietoverzichtOpNaam()
 End Sub
 
 Public Sub KredietoverzichtJaarrekening()
+    WerkStart                                    ' beveiliging even uit, daarna vanzelf weer aan
     Dim ws As Worksheet, jaar As Long, best As Worksheet, j As Long, map As String
     If Not HeeftRecht("Toevoegen") Then
         MsgBox "Dit overzicht wordt gemaakt door de financieel adviseur.", vbExclamation
@@ -4528,6 +4558,7 @@ End Function
 
 ' Blok 3 op het Dashboard: keuze rol en naam en de knoppen voor de overzichten.
 Public Sub UitdraaiBlokPlaatsen()
+    WerkStart                                    ' beveiliging even uit, daarna vanzelf weer aan
     Dim ws As Worksheet, b As Object, naam As Variant, i As Long, titels As Variant, acties As Variant, namen As Variant
     Set ws = ThisWorkbook.Worksheets("Dashboard")
     ws.Range("B57").Value = "3. Uitdraaien"
@@ -4583,6 +4614,7 @@ End Sub
 
 ' Eenmalig: maakt de toelichting (AJ) leeg bij alle regels met investeringsgroep 'voertuigen'. Oude tekst gaat naar het Logboek.
 Public Sub ToelichtingVoertuigenWissen()
+    WerkStart                                    ' beveiliging even uit, daarna vanzelf weer aan
     Dim wv As Worksheet, r As Long, laatste As Long, n As Long
     If Not HeeftRecht("Wijzigen") Then
         MsgBox "U heeft geen recht om dit te doen.", vbExclamation
@@ -4667,6 +4699,7 @@ End Function
 
 ' Maakt per budgetbeheerder (kolom O) een kredietoverzicht en bewaart het in map 02, in een submap per persoon.
 Public Sub KredietoverzichtAlleBudgethouders()
+    WerkStart                                    ' beveiliging even uit, daarna vanzelf weer aan
     Dim wv As Worksheet, r As Long, laatste As Long, namen As Object, nm As Variant, ws As Worksheet
     Dim map As String, lj As Long, n As Long
     If Not HeeftRecht("Toevoegen") Then
@@ -4701,6 +4734,7 @@ End Sub
 ' met projectleider en tijdschrijvers in een cel, en per regel de actie ten opzichte van het vorige overzicht
 ' (nieuw / gewijzigd / afgesloten). Wordt als los bestand bewaard in map 01.
 Public Sub OverzichtTijdschrijven()
+    WerkStart                                    ' beveiliging even uit, daarna vanzelf weer aan
     Dim wv As Worksheet, map As String, f As String, vorigBestand As String, dt As Date
     If Not HeeftRecht("Toevoegen") Then
         MsgBox "Dit overzicht wordt gemaakt door de financieel adviseur.", vbExclamation
@@ -4896,6 +4930,7 @@ End Function
 ' Eenmalig: zet in "Nog uit te geven" (AD) overal de formule die bij een afgesloten krediet (A) 0 geeft.
 ' Vervangt ook vaste nullen die met de hand bij afgesloten kredieten zijn gezet. SUBTOTAL-regels blijven ongemoeid.
 Public Sub RestantFormuleBijwerken()
+    WerkStart                                    ' beveiliging even uit, daarna vanzelf weer aan
     Dim wv As Worksheet, maxRij As Long, r As Long, n As Long, voor As Variant, na As Variant, k As Long, calcOud As Long
     Dim f As String
     If Not HeeftRecht("Toevoegen") Then
@@ -5042,6 +5077,14 @@ Private Sub BladBeveiligen(ByVal ws As Worksheet)
                UserInterfaceOnly:=True, AllowFiltering:=True
 End Sub
 
+' Aan het begin van elke macro die iets wijzigt: beveiliging uit en direct na afloop van de macro weer aan
+' (Application.OnTime start BeveiligingAan zodra de macro klaar is, ook na een fout of een tussentijds stoppen).
+Private Sub WerkStart()
+    BeveiligingTijdelijkUit
+    On Error Resume Next
+    Application.OnTime Now + TimeSerial(0, 0, 1), "BeveiligingAan"
+End Sub
+
 ' Zet de beveiliging van alle bladen tijdelijk uit (voor macro's die veel schrijven). Daarna altijd BeveiligingAan.
 Private Sub BeveiligingTijdelijkUit()
     Dim ws As Worksheet
@@ -5055,6 +5098,7 @@ End Sub
 ' Alleen bladen met een naam volgens dat patroon EN de titel van het overzicht in A1; andere bladen blijven staan.
 ' Draait bij openen en bij elk nieuw overzicht; ook met de hand te starten.
 Public Sub OudeOverzichtbladenOpruimen()
+    WerkStart                                    ' beveiliging even uit, daarna vanzelf weer aan
     Dim i As Long, ws As Worksheet, nm As String, titel As String
     Application.DisplayAlerts = False
     For i = ThisWorkbook.Worksheets.Count To 1 Step -1
@@ -5156,6 +5200,7 @@ End Function
 ' Een blad 'Laatste uitvraag begroting' met alle budgetbeheerders, plus per budgetbeheerder een bestand
 ' in map 02 (submap per persoon).
 Public Sub UitvraagBegroting()
+    WerkStart                                    ' beveiliging even uit, daarna vanzelf weer aan
     Dim wv As Worksheet, ws As Worksheet, map As String, namen As Object, nm As Variant, laatste As Long, r As Long, n As Long
     If Not HeeftRecht("Toevoegen") Then
         MsgBox "De uitvraag wordt gemaakt door de financieel adviseur.", vbExclamation
@@ -5422,6 +5467,7 @@ End Sub
 
 ' Knop "Terug naar dashboard" op alle zichtbare bladen.
 Public Sub KnoppenTerugPlaatsen()
+    WerkStart                                    ' beveiliging even uit, daarna vanzelf weer aan
     Dim ws As Worksheet, c As Long
     For Each ws In ThisWorkbook.Worksheets
         If ws.Visible = xlSheetVisible And ws.Name <> "Dashboard" Then
@@ -5450,6 +5496,7 @@ End Sub
 
 ' Tabbladkiezer op het Dashboard: F2 tekst, G2 keuzelijst, H2 knop.
 Public Sub TabbladkiezerPlaatsen()
+    WerkStart                                    ' beveiliging even uit, daarna vanzelf weer aan
     Dim ws As Worksheet, b As Object
     Set ws = ThisWorkbook.Worksheets("Dashboard")
     ws.Range("F2").Value = "Naar tabblad:"
