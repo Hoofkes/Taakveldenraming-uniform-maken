@@ -2920,8 +2920,7 @@ End Sub
 ' ======================================================================
 ' Krediet verwijderen
 ' ======================================================================
-' Een krediet wordt niet echt uit de lijst gehaald (dat verschuift rijen en wist de historie), maar op vervallen gezet:
-' status V + jaar, budget op nul, zichtbaar als te controleren voor de administratie. Alleen zonder werkelijke uitgaven.
+' Een krediet wordt helemaal weggehaald (alleen bij echte fouten, zonder werkelijke bedragen); het Logboek houdt de gegevens vast.
 Public Sub KredietVerwijderen()
     Dim wd As Worksheet, wv As Worksheet, r As Long, i As Long, laatste As Long, volgnr As Variant
     Dim rijen As New Collection, uitg As Double, reden As String, grpTxt As String, rv As Variant
@@ -4063,7 +4062,7 @@ Private Function OverzichtMaken(ByVal soort As String, ByVal bron As Worksheet, 
     Dim sel() As Long, sleutel() As String, toek() As Boolean, nSel As Long
     Dim stLetter As String, sj As Long, neem As Boolean, toekomst As Boolean, b As Double
     Dim ws As Worksheet, rij As Long, eersteData As Long, kols As Variant, koppen As Variant, nK As Long
-    Dim cBud As Long, cWerk As Long, cRest As Long, cToel As Long, cMeld As Long, cStat As Long, cEerste As Long, cLaatste As Long
+    Dim cBud As Long, cWerk As Long, cRest As Long, cAfs As Long, somAfs As Double, somBud As Double, somWerk As Double, cToel As Long, cMeld As Long, cStat As Long, cEerste As Long, cLaatste As Long
     Dim prog As String, grp As String, jNr As String, vProg As String, vGrp As String, vJ As String
     Dim startProg As Long, startGrp As Long, startJ As Long, labelJ As String, sectie As Long, vSectie As Long
     Dim meldRij As Object, meldNr As Object, toel As String, somRest As Double, somBron As Double, tekst As String
@@ -4143,9 +4142,11 @@ Private Function OverzichtMaken(ByVal soort As String, ByVal bron As Worksheet, 
 
     ' 3. Kolommen
     If soort = "naam" Then
-        kols = Array("Volgnr", "Omschrijving investeringskrediet", "Status", "Afschr", "Budget t/m " & jaar, "Totaal werkelijke uitgaven", "Restantkrediet")
+        kols = Array("Volgnr", "Omschrijving investeringskrediet", "Status", "Afschr", "Budget t/m " & jaar, "Totaal werkelijke uitgaven", "Restantkrediet", _
+                     "Vrijval (+) / overschrijding (-) bij afsluiten")
     Else
-        kols = Array("Volgnr", "Omschrijving investeringskrediet", "Status", "Budget t/m " & jaar, "Totaal werkelijke uitgaven", "Restantkrediet")
+        kols = Array("Volgnr", "Omschrijving investeringskrediet", "Status", "Budget t/m " & jaar, "Totaal werkelijke uitgaven", "Restantkrediet", _
+                     "Vrijval (+) / overschrijding (-) bij afsluiten")
     End If
     nK = UBound(kols) + 1
     ReDim koppen(1 To nK + 7)
@@ -4158,7 +4159,7 @@ Private Function OverzichtMaken(ByVal soort As String, ByVal bron As Worksheet, 
     koppen(nK + 6) = "Toelichting"
     koppen(nK + 7) = "Melding"
     cStat = 3
-    cBud = nK - 2: cWerk = nK - 1: cRest = nK
+    cBud = nK - 3: cWerk = nK - 2: cRest = nK - 1: cAfs = nK
     cEerste = cBud: cLaatste = nK + 5
     cToel = nK + 6: cMeld = nK + 7
 
@@ -4251,7 +4252,17 @@ Private Function OverzichtMaken(ByVal soort As String, ByVal bron As Worksheet, 
         If soort = "naam" Then ws.Cells(rij, 4).Value = v(r, 25)
         ws.Cells(rij, cBud).Value = Nul(v(r, 26))
         ws.Cells(rij, cWerk).Value = Nul(v(r, 27)) + Nul(v(r, 28)) + Nul(v(r, 29))
-        ws.Cells(rij, cRest).Value = Nul(v(r, 26)) - Nul(v(r, 27)) - Nul(v(r, 28)) - Nul(v(r, 29))
+        ' afgesloten krediet: restant is 0, het verschil staat als vrijval/overschrijding bij afsluiten
+        If UCase$(Left$(Trim$(CStr(v(r, 8))), 1)) = "A" Then
+            ws.Cells(rij, cRest).Value = 0
+            ws.Cells(rij, cAfs).Value = Nul(v(r, 26)) - Nul(v(r, 27)) - Nul(v(r, 28)) - Nul(v(r, 29))
+        Else
+            ws.Cells(rij, cRest).Value = Nul(v(r, 26)) - Nul(v(r, 27)) - Nul(v(r, 28)) - Nul(v(r, 29))
+            ws.Cells(rij, cAfs).Value = 0
+        End If
+        somBud = somBud + Nul(v(r, 26))
+        somWerk = somWerk + ws.Cells(rij, cWerk).Value
+        somAfs = somAfs + ws.Cells(rij, cAfs).Value
         somRest = somRest + ws.Cells(rij, cRest).Value
         If IsNumeric(v(r, 30)) And Not Leeg(v(r, 30)) Then somBron = somBron + CDbl(v(r, 30)) Else somBron = somBron + ws.Cells(rij, cRest).Value
         For k = 1 To 5
@@ -4304,8 +4315,10 @@ Private Function OverzichtMaken(ByVal soort As String, ByVal bron As Worksheet, 
     If Application.WorksheetFunction.CountA(ws.Range(ws.Cells(eersteData, cMeld), ws.Cells(rij, cMeld))) = 0 Then ws.Columns(cMeld).Hidden = True
 
     ' 7. Aansluitcontrole restantkrediet
-    If Round(somRest - somBron, 2) = 0 Then
-        tekst = "Aansluiting restantkrediet: overzicht " & Format$(somRest, "#,##0") & " = verzamellijst " & Format$(somBron, "#,##0") & ". Sluit."
+    If Round(somRest - somBron, 2) = 0 And Round(somBud - somWerk - somRest - somAfs, 2) = 0 Then
+        tekst = "Aansluiting: restantkrediet overzicht " & Format$(somRest, "#,##0") & " = verzamellijst " & Format$(somBron, "#,##0") & _
+                ". Budget " & Format$(somBud, "#,##0") & " = werkelijk " & Format$(somWerk, "#,##0") & " + restant " & Format$(somRest, "#,##0") & _
+                " + vrijval/overschrijding " & Format$(somAfs, "#,##0") & ". Sluit."
         ws.Range("A3").Value = tekst
         ws.Range("A3").Font.Color = RGB(0, 128, 0)
     Else
@@ -4756,3 +4769,40 @@ Private Function HuidigeStatus(ByVal wv As Worksheet, ByVal laatste As Long, ByV
     Next r
     HuidigeStatus = "niet meer in lijst"
 End Function
+
+' Eenmalig: zet in "Nog uit te geven" (AD) overal de formule die bij een afgesloten krediet (A) 0 geeft.
+' Vervangt ook vaste nullen die met de hand bij afgesloten kredieten zijn gezet. SUBTOTAL-regels blijven ongemoeid.
+Public Sub RestantFormuleBijwerken()
+    Dim wv As Worksheet, maxRij As Long, r As Long, n As Long, voor As Variant, na As Variant, k As Long, calcOud As Long
+    Dim f As String
+    If Not HeeftRecht("Toevoegen") Then
+        MsgBox "Alleen financieel adviseurs mogen dit.", vbExclamation
+        Exit Sub
+    End If
+    If MsgBox("In kolom 'Nog uit te geven' overal de formule zetten: bij een afgesloten krediet (A) is het restant 0, " & _
+              "anders budget min werkelijke uitgaven. Doorgaan?", vbYesNo + vbQuestion, "Formule restant") <> vbYes Then Exit Sub
+    Set wv = ThisWorkbook.Worksheets("Verzamellijst alle kredieten")
+    maxRij = CLng(ThisWorkbook.Names("Par_MaxRij").RefersToRange.Value)
+    voor = MeetStap8(wv, CLng(ThisWorkbook.Names("Par_LaatsteRij").RefersToRange.Value))
+    calcOud = Application.Calculation
+    Application.ScreenUpdating = False
+    Application.Calculation = xlCalculationManual
+    For r = 2 To maxRij
+        If InStr(1, wv.Cells(r, 30).Formula, "SUBTOTAL", vbTextCompare) = 0 Then
+            f = "=IF($A" & r & "="""","""",IF(LEFT($H" & r & ",1)=""A"",0,Z" & r & "-AA" & r & "-AB" & r & "-AC" & r & "))"
+            If wv.Cells(r, 30).Formula <> f Then wv.Cells(r, 30).Formula = f: n = n + 1
+        End If
+    Next r
+    Application.Calculation = calcOud
+    Application.Calculate
+    na = MeetStap8(wv, CLng(ThisWorkbook.Names("Par_LaatsteRij").RefersToRange.Value))
+    Application.ScreenUpdating = True
+    For k = 0 To 9
+        If Round(voor(k) - na(k), 2) <> 0 Then
+            MsgBox "Let op: de nameting wijkt af in meting " & k & ". Controleer de verzamellijst.", vbCritical
+            Exit For
+        End If
+    Next k
+    LogRegel "formule restant bijwerken", , , "Nog uit te geven", , , n & " cellen aangepast"
+    MsgBox n & " cellen in 'Nog uit te geven' aangepast.", vbInformation
+End Sub

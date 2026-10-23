@@ -62,6 +62,7 @@ Werkwijze in elke schrijfmacro: nulmeting vooraf en achteraf (alleen datarijen, 
 - M/N heten nu "Startjaar uitgaven" / "Eindjaar uitgaven" (nooit in het verleden). Jaarrol: L<oud> -> L<nieuw>, M en N +1 en minimaal het nieuwe jaar; werkelijke uitgaven schuiven (AA=AA+AB, AB=AC, AC leeg).
 - Raad- en jaarrekeningoverzicht zien er hetzelfde uit (alleen de stand verschilt). Kolom Melding wordt verborgen als er geen meldingen zijn.
 - Mappen onder 'Stambestand kredieten' (map boven 'export coda', bewaard in naam `Par_MapStambestand`): 01 Applicatiebeheer Tijdschrijven (`OverzichtTijdschrijven`: lopende kredieten per kredietnummer, actie nieuw/gewijzigd/afgesloten t.o.v. nieuwste vorige bestand), 02 Budgetbeheerders en projectleiders (overzicht op naam, en `KredietoverzichtAlleBudgethouders`), 03 kredietoverzichten jaarrekening ("31-12-<jaar> Kredietoverzicht jaarrekening").
+- Afgesloten krediet (A): restant = 0 (formule AD via `RestantFormuleBijwerken`, eenmalig; vervangt handmatige nullen). In de overzichten kolom "Vrijval (+) / overschrijding (-) bij afsluiten" = budget - werkelijk, zodat budget = werkelijk + restant + vrijval altijd sluit.
 - `ToelichtingVoertuigenWissen`: eenmalig, toelichting bij voertuigen leeg (25 regels; leaseconstructie verwarrend, apart probleem).
 
 ## Openstaande stappen
