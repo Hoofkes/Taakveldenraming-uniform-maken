@@ -4446,6 +4446,85 @@ Private Function OverzichtMaken(ByVal soort As String, ByVal bron As Worksheet, 
         .Borders(xlEdgeBottom).LineStyle = xlDouble
     End With
 
+    ' 5b. Programma-overstijgende projecten (raad en jaarrekening): per samengesteld krediet alle delen bij elkaar
+    '     met een totaal per project. Telt niet mee in het eindtotaal hierboven (alleen een andere indeling).
+    If soort <> "naam" Then
+        Dim pg As Object, pk As Variant, pr As Variant, startSec As Long, startPrj As Long, prjNaam As String, pi As Long
+        Dim gesorteerd() As String, ns As Long, a As Long, b As Long, tmpS As String
+        Set pg = CreateObject("Scripting.Dictionary")
+        For i = 1 To nSel
+            r = sel(i)
+            If IsGetal(v(r, 10)) Then
+                If Not pg.Exists(CStr(v(r, 10))) Then pg.Add CStr(v(r, 10)), New Collection
+                pg(CStr(v(r, 10))).Add r
+            End If
+        Next i
+        ' alleen projecten met minstens twee delen, op groepsnummer
+        ReDim gesorteerd(1 To pg.Count + 1)
+        For Each pk In pg.Keys
+            If pg(pk).Count >= 2 Then ns = ns + 1: gesorteerd(ns) = Format$(CLng(pk), "000000")
+        Next pk
+        For a = 2 To ns
+            tmpS = gesorteerd(a): b = a - 1
+            Do While b >= 1
+                If gesorteerd(b) <= tmpS Then Exit Do
+                gesorteerd(b + 1) = gesorteerd(b): b = b - 1
+            Loop
+            gesorteerd(b + 1) = tmpS
+        Next a
+        If ns > 0 Then
+            rij = rij + 3
+            ws.Cells(rij, 1).Value = "Programma-overstijgende projecten (samengestelde kredieten)"
+            ws.Range(ws.Cells(rij, 1), ws.Cells(rij, nK + 7)).Font.Bold = True
+            ws.Range(ws.Cells(rij, 1), ws.Cells(rij, nK + 7)).Interior.Color = RGB(214, 228, 240)
+            ws.Range(ws.Cells(rij, 1), ws.Cells(rij, nK + 7)).Font.Color = RGB(0, 73, 118)
+            rij = rij + 1: startSec = rij
+            For pi = 1 To ns
+                pk = CStr(CLng(gesorteerd(pi)))
+                r = pg(pk)(1)
+                prjNaam = Trim$(CStr(v(r, 46)))
+                If Len(prjNaam) = 0 Then prjNaam = Trim$(CStr(v(r, 4)))
+                ws.Cells(rij, 2).Value = prjNaam
+                ws.Cells(rij, 2).Font.Bold = True
+                ws.Cells(rij, 2).Font.Italic = True
+                rij = rij + 1: startPrj = rij
+                For Each pr In pg(pk)
+                    ws.Cells(rij, 1).Value = v(pr, 1)
+                    ws.Cells(rij, 2).Value = v(pr, 4)
+                    ws.Cells(rij, 3).Value = v(pr, 8)
+                    ws.Cells(rij, cBud).Value = Nul(v(pr, 26))
+                    ws.Cells(rij, cWerk).Value = Nul(v(pr, 27)) + Nul(v(pr, 28)) + Nul(v(pr, 29))
+                    If UCase$(Left$(Trim$(CStr(v(pr, 8))), 1)) = "A" Then
+                        ws.Cells(rij, cRest).Value = 0
+                        ws.Cells(rij, cAfs).Value = Nul(v(pr, 26)) - Nul(v(pr, 27)) - Nul(v(pr, 28)) - Nul(v(pr, 29))
+                    Else
+                        ws.Cells(rij, cRest).Value = Nul(v(pr, 26)) - Nul(v(pr, 27)) - Nul(v(pr, 28)) - Nul(v(pr, 29))
+                        ws.Cells(rij, cAfs).Value = 0
+                    End If
+                    For k = 1 To 5
+                        ws.Cells(rij, nK + k).Value = Nul(v(pr, 30 + k))
+                    Next k
+                    ws.Cells(rij, cToel).Value = "Programma: " & CodeNaarWeergave("Tbl_Programma", v(pr, 2)) & " - " & Trim$(CStr(v(pr, 9))) & _
+                                                 IIf(Len(NrTekst(v(pr, 3))) > 0, " (" & NrTekst(v(pr, 3)) & ")", "")
+                    rij = rij + 1
+                Next pr
+                Tussentotaal ws, rij, startPrj, "Totaal " & prjNaam, cEerste, cLaatste, 2
+            Next pi
+            ws.Cells(rij, 1).Value = "Totaal programma-overstijgende projecten"
+            For c = cEerste To cLaatste
+                ws.Cells(rij, c).Formula = "=SUBTOTAL(9," & ws.Range(ws.Cells(startSec, c), ws.Cells(rij - 1, c)).Address(False, False) & ")"
+            Next c
+            With ws.Range(ws.Cells(rij, 1), ws.Cells(rij, nK + 7))
+                .Font.Bold = True
+                .Borders(xlEdgeTop).LineStyle = xlContinuous
+            End With
+            ws.Cells(rij + 1, 1).Value = "Deze projecten staan hierboven ook al per programma; dit is alleen een andere indeling (telt niet mee in het eindtotaal)."
+            ws.Cells(rij + 1, 1).Font.Italic = True
+            ws.Cells(rij + 1, 1).Font.Color = RGB(89, 89, 89)
+            rij = rij + 1
+        End If
+    End If
+
     ' 6. Opmaak
     With ws.Range(ws.Cells(eersteData, cEerste), ws.Cells(rij, cLaatste))
         .NumberFormat = "#,##0;-#,##0;-"

@@ -109,6 +109,7 @@ Werkwijze in elke schrijfmacro: nulmeting vooraf en achteraf (alleen datarijen, 
 - Back-up 'Verzamellijst t/m <oud>' als harde waarden, beveiligd, voor Voertuigen (bron jaarrekeningoverzicht). Bestaat die al: weigeren.
 - Z = Z + AE; AA = AA + AB; AB = AC; AC leeg; AE..AH = AF..AI; AI leeg (AD formule blijft). L<=oud -> L<nieuw>, M en N = max(+1, nieuw jaar). A en toekomstige L ongewijzigd. Par_LopendJaar + 1.
 - Controle totalen (budget, werkelijk, toekomstige budgetten); bij afwijking alles terug en back-up weg. Daarna keuzelijsten en controles verversen.
+- Raad/jaarrekening: onderaan sectie 'Programma-overstijgende projecten (samengestelde kredieten)': per groep (>=2 delen) alle delen met programma en een totaal per project; telt niet mee in het eindtotaal.
 - Overzichten: deelkredieten van een samengesteld krediet (FO 9.1 optie A, per programma) krijgen in de toelichting 'Samengesteld krediet, ook <andere kredietnummers>.'
 
 ## Openstaande stappen
