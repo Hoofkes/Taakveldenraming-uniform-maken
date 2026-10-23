@@ -5511,7 +5511,7 @@ Public Sub TabbladkiezerPlaatsen()
     On Error Resume Next
     ws.Buttons("btnNaarTabblad").Delete
     On Error GoTo 0
-    Set b = ws.Buttons.Add(ws.Range("H2").Left + 2, ws.Range("H2").Top + 1, 90, 18)
+    Set b = ws.Buttons.Add(ws.Range("H2").Left + 22, ws.Range("H2").Top + 1, 90, 18)   ' ruimte voor het keuzepijltje van G2
     b.Name = "btnNaarTabblad"
     b.Caption = "Ga naar tabblad"
     b.OnAction = "NaarTabblad"
