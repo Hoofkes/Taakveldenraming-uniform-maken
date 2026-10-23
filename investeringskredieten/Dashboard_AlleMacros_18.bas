@@ -5271,7 +5271,7 @@ End Sub
 Private Function UitvraagBlad(ByVal naam As String) As Worksheet
     Dim wv As Worksheet, ws As Worksheet, v As Variant, laatste As Long, n As Long, r As Long, i As Long, k As Long, c As Long
     Dim sel() As Long, sl() As String, tk() As Boolean, nSel As Long, lj As Long, bronKol As Variant, kop As Variant
-    Dim rij As Long, eersteData As Long, vBh As String, bh As String, startBh As Long, nK As Long
+    Dim rij As Long, eersteData As Long, vBh As String, bh As String, startBh As Long, nK As Long, tv As String
 
     Set wv = Vz()
     lj = CLng(ThisWorkbook.Names("Par_LopendJaar").RefersToRange.Value)
@@ -5315,7 +5315,8 @@ Private Function UitvraagBlad(ByVal naam As String) As Worksheet
         .Color = RGB(0, 73, 118)
     End With
     ws.Range("A2").Value = IIf(Len(naam) > 0, "Budgetbeheerder: " & naam & " - ", "") & "stand " & Format$(Date, "dd-mm-yyyy") & _
-                           ". Pas zo nodig de gele kolommen aan en licht de wijziging toe."
+                           ". Geef per krediet aan wat er moet gebeuren (kolom Actualisatie), pas zo nodig de bedragen aan en licht toe." & _
+                           " Terugschuiven kan niet naar " & lj & "."
     ws.Range("A2").Font.Size = 11
     ws.Range("A2").Font.Color = RGB(89, 89, 89)
     ws.Rows(1).RowHeight = 26
@@ -5357,7 +5358,9 @@ Private Function UitvraagBlad(ByVal naam As String) As Worksheet
         ws.Cells(rij, 1).Value = NrTekst(v(r, 3))
         ws.Cells(rij, 2).Value = v(r, 4)
         ws.Cells(rij, 3).Value = v(r, 15)
-        ws.Cells(rij, 4).Value = CodeNaarWeergave("Tbl_Taakveld", v(r, 19))
+        tv = CStr(CodeNaarWeergave("Tbl_Taakveld", v(r, 19)))
+        If Len(tv) > 30 Then tv = Left$(tv, 29) & "."      ' taakveld moet binnen de kolom passen
+        ws.Cells(rij, 4).Value = tv
         ws.Cells(rij, 5).Value = v(r, 25)
         ws.Cells(rij, 6).Value = Nul(v(r, 30))
         For k = 1 To 5
@@ -5376,29 +5379,57 @@ Private Function UitvraagBlad(ByVal naam As String) As Worksheet
         .Borders(xlEdgeBottom).LineStyle = xlDouble
     End With
 
-    ' opmaak: in te vullen kolommen geel (budgetten en toelichting)
+    ' twee in te vullen kolommen voor de toelichting: soort actualisatie en nieuwe omschrijving
+    ws.Range(ws.Columns(12), ws.Columns(13)).Insert
+    nK = nK + 2
+    ws.Cells(4, 12).Value = "in te vullen"
+    ws.Cells(4, 13).Value = "in te vullen"
+    ws.Cells(4, 14).Value = "kolom AJ"
+    ws.Cells(5, 12).Value = "Actualisatie (kiezen)"
+    ws.Cells(5, 13).Value = "Nieuwe omschrijving (alleen bij wijziging)"
+    ws.Range(ws.Cells(4, 12), ws.Cells(4, 13)).Font.Size = 8
+    ws.Range(ws.Cells(4, 12), ws.Cells(4, 13)).Font.Color = RGB(128, 128, 128)
+    ws.Range(ws.Cells(4, 12), ws.Cells(4, 13)).HorizontalAlignment = xlCenter
+    With ws.Range(ws.Cells(5, 12), ws.Cells(5, 13))
+        .Font.Bold = True
+        .Font.Color = RGB(255, 255, 255)
+        .Interior.Color = RGB(0, 73, 118)
+        .WrapText = True
+        .VerticalAlignment = xlCenter
+    End With
+    ' opmaak: in te vullen kolommen geel (budgetten, actualisatie, nieuwe omschrijving, toelichting)
     For k = eersteData To rij - 1
         If Not Leeg(ws.Cells(k, 2).Value) And Not ws.Cells(k, 6).HasFormula Then   ' kredietregel, geen totaalregel
-            ws.Range(ws.Cells(k, 7), ws.Cells(k, 12)).Interior.Color = RGB(255, 255, 204)
+            ws.Range(ws.Cells(k, 7), ws.Cells(k, 14)).Interior.Color = RGB(255, 255, 204)
+            With ws.Cells(k, 12).Validation
+                .Delete
+                .Add Type:=xlValidateList, AlertStyle:=xlValidAlertStop, Formula1:="Budget bevestigen,Budget verhogen,Budget verlagen," & _
+                     "Krediet vervalt,Doorschuiven naar later jaar,Terugschuiven naar eerder jaar,Omschrijving wijzigen,Meerdere (zie toelichting)"
+                .InputTitle = "Actualisatie"
+                .InputMessage = "Kies wat er met dit krediet moet gebeuren. Terugschuiven kan niet naar " & lj & "."
+            End With
         End If
     Next k
     ws.Range(ws.Cells(eersteData, 6), ws.Cells(rij, 11)).NumberFormat = "#,##0;-#,##0;-"
     ws.Range(ws.Cells(5, 6), ws.Cells(rij, 11)).HorizontalAlignment = xlRight
     ws.Range(ws.Cells(5, 5), ws.Cells(rij, 5)).HorizontalAlignment = xlCenter
     ws.Range(ws.Cells(eersteData, 1), ws.Cells(rij, 4)).HorizontalAlignment = xlLeft
-    ws.Range(ws.Cells(eersteData, 12), ws.Cells(rij, 12)).HorizontalAlignment = xlLeft
+    ws.Range(ws.Cells(eersteData, 12), ws.Cells(rij, 14)).HorizontalAlignment = xlLeft
     ws.Columns(1).ColumnWidth = 16
     ws.Columns(2).ColumnWidth = 45
     ws.Columns(3).ColumnWidth = 22
     ws.Columns(4).ColumnWidth = 32
     ws.Columns(5).ColumnWidth = 8
     ws.Range(ws.Columns(6), ws.Columns(11)).ColumnWidth = 15
-    ws.Columns(12).ColumnWidth = 60
-    ws.Range(ws.Cells(eersteData, 2), ws.Cells(rij, 4)).WrapText = True
-    ws.Range(ws.Cells(eersteData, 12), ws.Cells(rij, 12)).WrapText = True
+    ws.Columns(12).ColumnWidth = 26
+    ws.Columns(13).ColumnWidth = 36
+    ws.Columns(14).ColumnWidth = 60
+    ws.Range(ws.Cells(eersteData, 2), ws.Cells(rij, 3)).WrapText = True
+    ws.Range(ws.Cells(eersteData, 4), ws.Cells(rij, 4)).WrapText = False
+    ws.Range(ws.Cells(eersteData, 12), ws.Cells(rij, 14)).WrapText = True
     ws.Range(ws.Cells(eersteData, 1), ws.Cells(rij, nK)).VerticalAlignment = xlTop
     BladOpmaken ws, 5, eersteData, rij
-    LogoPlaatsen ws, 12
+    LogoPlaatsen ws, 14
     KnopTerug ws, ws.Range("A3")
     ws.Activate
     ActiveWindow.FreezePanes = False
