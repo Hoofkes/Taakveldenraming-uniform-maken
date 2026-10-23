@@ -24,6 +24,7 @@ Private mStil As Boolean
 Private Const CB_EERSTE As Long = 72         ' eerste controleregel
 Private Const CB_LAATSTE As Long = 87        ' laatste controleregel (16 controles)
 Private mHerbeveiligingGepland As Boolean
+Private mActiefVoorMacro As Object        ' blad dat actief was toen de macro begon
 Private mProef As Boolean             ' proefversie jaarrekening (niet opslaan)             ' geen meldingen tijdens een reeks overzichten
 
 Private Type TKaart
@@ -5066,6 +5067,12 @@ Public Sub BeveiligingAan()
         If BladBestaatStil(CStr(naam)) Then BladBeveiligen ThisWorkbook.Worksheets(CStr(naam))
     Next naam
     TabbladenOrdenen
+    ' nooit eindigen op het Controle-blad als de macro daar niet begon
+    On Error Resume Next
+    If Not mActiefVoorMacro Is Nothing Then
+        If ActiveSheet.Name = "Controle" And mActiefVoorMacro.Name <> "Controle" Then mActiefVoorMacro.Activate
+    End If
+    Set mActiefVoorMacro = Nothing
 End Sub
 
 ' Alleen voor de financieel adviseur: beveiliging uit om iets met de hand te herstellen. Gaat bij het volgende openen weer aan.
@@ -5126,6 +5133,7 @@ End Sub
 ' Aan het begin van elke macro die iets wijzigt: beveiliging uit en direct na afloop van de macro weer aan
 ' (Application.OnTime start BeveiligingAan zodra de macro klaar is, ook na een fout of een tussentijds stoppen).
 Private Sub WerkStart()
+    If mActiefVoorMacro Is Nothing Then Set mActiefVoorMacro = ActiveSheet
     BeveiligingTijdelijkUit
     If mHerbeveiligingGepland Then Exit Sub       ' maar een keer inplannen per macro
     mHerbeveiligingGepland = True
@@ -6271,6 +6279,7 @@ Public Sub ControlesVernieuwen()
     wd.Cells(CB_EERSTE + 15, 3).Value = aant(15)
     wd.Range(wd.Cells(CB_EERSTE, 2), wd.Cells(CB_LAATSTE, 2)).Rows.AutoFit
     wd.Range("C70").Value = Now
+    If ActiveSheet.Name = "Controle" Then wd.Activate
     Exit Sub
 Fout:
     wd.Range("C70").Value = "fout: " & Err.Description
