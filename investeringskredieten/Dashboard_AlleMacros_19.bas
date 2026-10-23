@@ -1,6 +1,7 @@
 Option Explicit
 
 ' Alle macros voor het Dashboard investeringskredieten in een module.
+' Versie 19 (stap 12: controle en kengetallen). Controle: zoek met Ctrl+F op 'ControleblokPlaatsen'.
 
 Private Const BL_VZ As String = "Verzamellijst"
 Private Const VL As String = "'Verzamellijst'!"
