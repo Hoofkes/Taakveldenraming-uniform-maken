@@ -4706,15 +4706,20 @@ Public Sub UitdraaiBlokPlaatsen()
     b.Name = "btnOverzichtNaam"
     b.Caption = "Kredietoverzicht op naam"
     b.OnAction = "KredietoverzichtOpNaam"
+    ' naast het overzicht op naam: de uitvraag van dezelfde budgetbeheerder (C58/C59) verwerken (alleen financieel adviseur)
+    Set b = ws.Buttons.Add(ws.Range("B61").Left + 170, ws.Range("B61").Top + 2, 165, 22)
+    b.Name = "btnActualisatie"
+    b.Caption = "Uitvraag verwerken"
+    b.OnAction = "ActualisatieVerwerken"
     ws.Rows(65).RowHeight = 26
     ws.Rows(66).RowHeight = 26
     ws.Rows(67).RowHeight = 26
-    namen = Array("btnOverzichtRaad", "btnOverzichtJaarrekening", "btnUitvraag", "btnAlleBudgethouders", "btnTijdschrijven", "btnActualisatie", "btnJaarovergang")
+    namen = Array("btnOverzichtRaad", "btnOverzichtJaarrekening", "btnUitvraag", "btnAlleBudgethouders", "btnTijdschrijven", "btnJaarovergang")
     titels = Array("Kredietoverzicht raad", "Kredietoverzicht jaarrekening", "Uitvraag kadernota/begroting", _
-                   "Overzichten alle budgethouders", "Overzicht tijdschrijven", "Uitvraag verwerken (naam C59)", "Jaarovergang uitvoeren")
+                   "Overzichten alle budgethouders", "Overzicht tijdschrijven", "Jaarovergang uitvoeren")
     acties = Array("KredietoverzichtMaken", "KredietoverzichtJaarrekening", "UitvraagBegroting", _
-                   "KredietoverzichtAlleBudgethouders", "OverzichtTijdschrijven", "ActualisatieVerwerken", "JaarovergangUitvoeren")
-    For i = 0 To 6
+                   "KredietoverzichtAlleBudgethouders", "OverzichtTijdschrijven", "JaarovergangUitvoeren")
+    For i = 0 To 5
         Set b = ws.Buttons.Add(ws.Range("B65").Left + (i Mod 3) * 170, ws.Range("B65").Offset(i \ 3, 0).Top + 2, 165, 22)
         b.Name = namen(i)
         b.Caption = titels(i)
@@ -5840,7 +5845,7 @@ Public Sub ActualisatieVerwerken()
     End If
     Set wd = ThisWorkbook.Worksheets("Dashboard")
     If LCase$(Trim$(CStr(wd.Range("C58").Value))) <> "budgetbeheerder" Or Len(Trim$(CStr(wd.Range("C59").Value))) = 0 Then
-        MsgBox "Kies op het Dashboard in C58 'Budgetbeheerder' en in C59 de teamleider van wie de actualisatie verwerkt moet worden.", vbExclamation
+        MsgBox "Kies in blok 3 bij 'rol' Budgetbeheerder en bij 'naam' de teamleider van wie de uitvraag verwerkt moet worden.", vbExclamation
         Exit Sub
     End If
     naam = Trim$(CStr(wd.Range("C59").Value))
@@ -6707,8 +6712,8 @@ Public Sub KnoppenUitlegPlaatsen()
     KnopUitleg ws, "btnAlleBudgethouders", "Overzichten alle budgethouders: maakt voor elke budgetbeheerder een kredietoverzicht en bewaart het in map 02."
     KnopUitleg ws, "btnTijdschrijven", "Overzicht tijdschrijven: voor de beheerder tijdschrijven, alleen nieuwe, gewijzigde en afgesloten " & _
                "kredieten. Wordt bewaard in map 01."
-    KnopUitleg ws, "btnActualisatie", "Uitvraag verwerken: zet C58 op Budgetbeheerder en kies in C59 de teamleider. Het ingevulde uitvraagbestand " & _
-               "uit zijn map wordt na een samenvatting en uw akkoord verwerkt in de verzamellijst en in het mutatieregister."
+    KnopUitleg ws, "btnActualisatie", "Uitvraag verwerken (alleen financieel adviseur): rol Budgetbeheerder en de naam hierboven kiezen. " & _
+               "Zijn ingevulde uitvraagbestand wordt na een samenvatting en uw akkoord verwerkt in de verzamellijst en in het mutatieregister."
     KnopUitleg ws, "btnJaarovergang", "Jaarovergang: back-up per 31-12, bedragen schuiven een jaar op, lopende kredieten naar het nieuwe jaar. " & _
                "Alleen financieel adviseur; eerst op een kopie testen."
     KnopUitleg ws, "btnControles", "Controles vernieuwen: rekent de controles in blok 5 opnieuw uit en toont per controle waar het zit."
