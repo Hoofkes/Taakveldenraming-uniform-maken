@@ -4731,20 +4731,22 @@ Public Sub KredietoverzichtAlleBudgethouders()
     MsgBox n & " kredietoverzichten opgeslagen in:" & vbCrLf & map, vbInformation
 End Sub
 
-' Overzicht voor de beheerder tijdschrijven: een regel per kredietnummer van alle lopende kredieten (L),
-' met projectleider en tijdschrijvers in een cel, en per regel de actie ten opzichte van het vorige overzicht
-' (nieuw / gewijzigd / afgesloten). Wordt als los bestand bewaard in map 01.
+' Overzicht voor de beheerder tijdschrijven: alleen kredieten waarvoor actie nodig is (nieuw, gewijzigd of afgesloten),
+' kolommen Kredietnummer, Omschrijving, Status, Tijdschrijvers, Actie, Toegevoegd op. De projectleider is tevens
+' tijdschrijver en staat daarom bij de tijdschrijvers. Vergeleken wordt met de stand van de vorige keer, die op het
+' verborgen blad 'Stand tijdschrijven' staat (alle lopende kredieten). Geen stand = alles nieuw (beginstand).
+' Wordt als los bestand bewaard in map 01 en als blad 'Laatste overzicht tijdschrijven'.
 Public Sub OverzichtTijdschrijven()
     WerkStart                                    ' beveiliging even uit, daarna vanzelf weer aan
-    Dim wv As Worksheet, map As String, f As String, vorigBestand As String, dt As Date
+    Const BL_STAND As String = "Stand tijdschrijven"
+    Dim wv As Worksheet, ws As Worksheet, wst As Worksheet, map As String
+    Dim laatste As Long, r As Long, nr As String, i As Long, rij As Long, actie As String, st As String
+    Dim huidig As Object, vorig As Object, rec As Variant, oudRec As Variant, sleutels As Variant, naamTs As String
+    Dim nNieuw As Long, nGewijzigd As Long, nAfgesloten As Long, beginstand As Boolean
     If Not HeeftRecht("Toevoegen") Then
         MsgBox "Dit overzicht wordt gemaakt door de financieel adviseur.", vbExclamation
         Exit Sub
     End If
-    Dim laatste As Long, r As Long, nr As String, i As Long, n As Long
-    Dim huidig As Object, vorig As Object, toegevoegd As Object, rec As Variant, oudRec As Variant
-    Dim wb As Workbook, ws As Worksheet, d As Variant, rij As Long, actie As String, st As String
-    Dim nNieuw As Long, nGewijzigd As Long, nAfgesloten As Long, sleutels As Variant
 
     On Error GoTo Fout
     map = MapStambestand("01 Applicatiebeheer Tijdschrijven")
@@ -4752,50 +4754,35 @@ Public Sub OverzichtTijdschrijven()
     Set wv = Vz()
     laatste = CLng(ThisWorkbook.Names("Par_LaatsteRij").RefersToRange.Value)
 
-    ' huidige stand per kredietnummer: omschrijving, status, projectleider, tijdschrijvers
+    ' huidige stand per kredietnummer (alle lopende kredieten): omschrijving, status, tijdschrijvers incl. projectleider
     Set huidig = CreateObject("Scripting.Dictionary")
     For r = 2 To laatste
         nr = NrTekst(wv.Cells(r, 3).Value)
         st = Trim$(CStr(wv.Cells(r, 8).Value))
         If Len(nr) > 0 And nr <> "7999998" And UCase$(Left$(st, 1)) = "L" Then
+            naamTs = NamenSamenvoegen(CStr(wv.Cells(r, 16).Value), CStr(wv.Cells(r, 17).Value))
             If Not huidig.Exists(nr) Then
-                huidig(nr) = Array(CStr(wv.Cells(r, 4).Value), st, Trim$(CStr(wv.Cells(r, 16).Value)), _
-                                   NamenSamenvoegen("", CStr(wv.Cells(r, 17).Value)), CStr(wv.Cells(r, 47).Value))
+                huidig(nr) = Array(Trim$(CStr(wv.Cells(r, 4).Value)), st, naamTs)
             Else
                 rec = huidig(nr)
-                rec(3) = NamenSamenvoegen(CStr(rec(3)), CStr(wv.Cells(r, 17).Value))
+                rec(2) = NamenSamenvoegen(CStr(rec(2)), naamTs)
                 huidig(nr) = rec
             End If
         End If
     Next r
 
-    ' vorig overzicht: nieuwste bestand in de map
+    ' stand van de vorige keer: kredietnummer, omschrijving, status, tijdschrijvers, toegevoegd op
     Set vorig = CreateObject("Scripting.Dictionary")
-    Set toegevoegd = CreateObject("Scripting.Dictionary")
-    f = Dir(map & "*.xlsx")
-    Do While Len(f) > 0
-        If Left$(f, 2) <> "~$" Then
-            If Len(vorigBestand) = 0 Or FileDateTime(map & f) > dt Then vorigBestand = map & f: dt = FileDateTime(map & f)
-        End If
-        f = Dir()
-    Loop
-    If Len(vorigBestand) > 0 Then
-        Set wb = Workbooks.Open(Filename:=vorigBestand, ReadOnly:=True, UpdateLinks:=0)
-        d = wb.Worksheets(1).UsedRange.Value
-        wb.Close SaveChanges:=False
-        ThisWorkbook.Activate
-        If IsArray(d) Then
-            For i = 5 To UBound(d, 1)
-                nr = Trim$(Tkst(d(i, 1)))
-                If Len(nr) > 0 And LCase$(Tkst(d(i, 6))) <> "afgesloten" Then
-                    vorig(nr) = Array(Tkst(d(i, 2)), Tkst(d(i, 3)), Tkst(d(i, 4)), Tkst(d(i, 5)))
-                    If UBound(d, 2) >= 7 Then toegevoegd(nr) = Tkst(d(i, 7))
-                End If
-            Next i
-        End If
+    beginstand = Not BladBestaatStil(BL_STAND)
+    If Not beginstand Then
+        Set wst = ThisWorkbook.Worksheets(BL_STAND)
+        For r = 3 To wst.Cells(wst.Rows.Count, 1).End(xlUp).Row
+            vorig(CStr(wst.Cells(r, 1).Value)) = Array(CStr(wst.Cells(r, 2).Value), CStr(wst.Cells(r, 3).Value), _
+                                                       CStr(wst.Cells(r, 4).Value), wst.Cells(r, 5).Value)
+        Next r
     End If
 
-    ' nieuw overzicht opbouwen op het blad 'Laatste overzicht tijdschrijven' (vorige opvraging wordt vervangen)
+    ' blad 'Laatste overzicht tijdschrijven' (vorige opvraging wordt vervangen)
     If BladBestaatStil(BL_TIJD) Then
         Application.DisplayAlerts = False
         ThisWorkbook.Worksheets(BL_TIJD).Unprotect WACHTWOORD
@@ -4815,48 +4802,44 @@ Public Sub OverzichtTijdschrijven()
         .Color = RGB(0, 73, 118)
     End With
     ws.Rows(1).RowHeight = 26
-    ws.Range("A2").Value = "Alle lopende kredieten - stand " & Format$(Date, "dd-mm-yyyy")
     ws.Range("A2").Font.Size = 11
     ws.Range("A2").Font.Color = RGB(89, 89, 89)
-    ws.Range("A4:G4").Value = Array("Kredietnummer", "Omschrijving", "Status", "Projectleider", "Tijdschrijvers", "Actie", "Toegevoegd op")
-    With ws.Range("A4:G4")
+    ws.Rows(3).RowHeight = 22
+    ws.Range("A4:F4").Value = Array("Kredietnummer", "Omschrijving", "Status", "Tijdschrijvers", "Actie", "Toegevoegd op")
+    With ws.Range("A4:F4")
         .Font.Bold = True
         .Font.Color = RGB(255, 255, 255)
         .Interior.Color = RGB(0, 73, 118)
         .VerticalAlignment = xlCenter
+        .WrapText = True
     End With
     ws.Columns("A").NumberFormat = "@"
     rij = 5
+
+    ' nieuw en gewijzigd
     sleutels = huidig.Keys
     For i = 0 To huidig.Count - 1
         nr = sleutels(i)
         rec = huidig(nr)
         actie = ""
         If Not vorig.Exists(nr) Then
-            actie = "nieuw": nNieuw = nNieuw + 1
+            actie = "nieuw"
         Else
             oudRec = vorig(nr)
-            If oudRec(0) <> rec(0) Or oudRec(2) <> rec(2) Or NamenSamenvoegen("", CStr(oudRec(3))) <> rec(3) Then
-                actie = "gewijzigd": nGewijzigd = nGewijzigd + 1
-            End If
+            If oudRec(0) <> rec(0) Or NamenSamenvoegen("", CStr(oudRec(2))) <> rec(2) Then actie = "gewijzigd"
         End If
-        ws.Cells(rij, 1).Value = nr
-        ws.Cells(rij, 2).Value = rec(0)
-        ws.Cells(rij, 3).Value = rec(1)
-        ws.Cells(rij, 4).Value = rec(2)
-        ws.Cells(rij, 5).Value = rec(3)
-        ws.Cells(rij, 6).Value = actie
-        If toegevoegd.Exists(nr) And Len(toegevoegd(nr)) > 0 Then
-            ws.Cells(rij, 7).Value = toegevoegd(nr)
-        ElseIf Len(rec(4)) > 0 And actie <> "nieuw" Then
-            ws.Cells(rij, 7).Value = rec(4)
-        Else
-            ws.Cells(rij, 7).Value = Format$(Date, "dd-mm-yyyy")
+        If Len(actie) > 0 Then
+            ws.Cells(rij, 1).Value = nr
+            ws.Cells(rij, 2).Value = rec(0)
+            ws.Cells(rij, 3).Value = rec(1)
+            ws.Cells(rij, 4).Value = rec(2)
+            ws.Cells(rij, 5).Value = actie
+            If actie = "nieuw" Then ws.Cells(rij, 6).Value = Date Else ws.Cells(rij, 6).Value = oudRec(3)
+            If actie = "nieuw" Then nNieuw = nNieuw + 1 Else nGewijzigd = nGewijzigd + 1
+            rij = rij + 1
         End If
-        If Len(actie) > 0 Then ws.Cells(rij, 6).Font.Bold = True
-        rij = rij + 1
     Next i
-    ' afgesloten: stond in het vorige overzicht, is nu geen lopend krediet meer
+    ' afgesloten: stond de vorige keer als lopend krediet in de stand, nu niet meer
     sleutels = vorig.Keys
     For i = 0 To vorig.Count - 1
         nr = sleutels(i)
@@ -4866,31 +4849,33 @@ Public Sub OverzichtTijdschrijven()
             ws.Cells(rij, 2).Value = oudRec(0)
             ws.Cells(rij, 3).Value = HuidigeStatus(wv, laatste, nr)
             ws.Cells(rij, 4).Value = oudRec(2)
-            ws.Cells(rij, 5).Value = oudRec(3)
-            ws.Cells(rij, 6).Value = "afgesloten"
-            If toegevoegd.Exists(nr) Then ws.Cells(rij, 7).Value = toegevoegd(nr)
-            ws.Cells(rij, 6).Font.Bold = True
+            ws.Cells(rij, 5).Value = "afgesloten"
+            ws.Cells(rij, 6).Value = oudRec(3)
             nAfgesloten = nAfgesloten + 1
             rij = rij + 1
         End If
     Next i
-    ws.Range("A2").Value = ws.Range("A2").Value & ": " & huidig.Count & " kredieten, " & nNieuw & " nieuw, " & nGewijzigd & " gewijzigd, " & _
+    If rij = 5 Then
+        ws.Cells(5, 1).Value = "Geen wijzigingen sinds de vorige keer."
+        rij = 6
+    End If
+    ws.Range("A2").Value = IIf(beginstand, "Beginstand: alle lopende kredieten als nieuw", "Alleen kredieten waarvoor actie nodig is") & _
+                           " - stand " & Format$(Date, "dd-mm-yyyy") & ": " & nNieuw & " nieuw, " & nGewijzigd & " gewijzigd, " & _
                            nAfgesloten & " afgesloten"
-    ws.Rows(3).RowHeight = 22
+
+    ' opmaak
     ws.Columns("A").ColumnWidth = 16
     ws.Columns("B").ColumnWidth = 45
     ws.Columns("C").ColumnWidth = 9
-    ws.Columns("D").ColumnWidth = 24
-    ws.Columns("E").ColumnWidth = 50
-    ws.Columns("F").ColumnWidth = 12
-    ws.Columns("G").ColumnWidth = 15
-    ws.Range("A5:G" & rij).VerticalAlignment = xlTop
-    ws.Range("B5:B" & rij & ",E5:E" & rij).WrapText = True
-    ws.Range("A4:G" & Application.Max(5, rij - 1)).AutoFilter
-    ws.Range("A4:G4").WrapText = True
-    ws.Range("A5:A" & rij).HorizontalAlignment = xlLeft
-    ws.Range("C4:C" & rij & ",F4:G" & rij).HorizontalAlignment = xlCenter
-    ws.Range("G5:G" & rij).NumberFormat = "dd-mm-yyyy"
+    ws.Columns("D").ColumnWidth = 50
+    ws.Columns("E").ColumnWidth = 12
+    ws.Columns("F").ColumnWidth = 15
+    ws.Range("A5:F" & rij).VerticalAlignment = xlTop
+    ws.Range("B5:B" & rij & ",D5:D" & rij).WrapText = True
+    ws.Range("A5:B" & rij & ",D5:D" & rij).HorizontalAlignment = xlLeft
+    ws.Range("C4:C" & rij & ",E4:F" & rij).HorizontalAlignment = xlCenter
+    ws.Range("E5:E" & rij).Font.Bold = True
+    ws.Range("F5:F" & rij).NumberFormat = "dd-mm-yyyy"
     BladOpmaken ws, 4, 5, rij
     ws.Activate
     ActiveWindow.FreezePanes = False
@@ -4898,6 +4883,36 @@ Public Sub OverzichtTijdschrijven()
     ActiveWindow.FreezePanes = True
     KnopTerug ws, ws.Range("A3")
     BladOpslaan ws, map, "Tijdschrijven kredieten " & Format$(Date, "yyyy-mm-dd")
+
+    ' nieuwe stand bewaren (alle lopende kredieten), met de datum 'toegevoegd op'
+    If beginstand Then
+        Set wst = ThisWorkbook.Worksheets.Add(After:=ThisWorkbook.Worksheets(ThisWorkbook.Worksheets.Count))
+        wst.Name = BL_STAND
+    Else
+        Set wst = ThisWorkbook.Worksheets(BL_STAND)
+        wst.Unprotect WACHTWOORD
+    End If
+    wst.Cells.Clear
+    wst.Range("A1").Value = "Stand van de lopende kredieten bij het laatste overzicht tijdschrijven. Niet wijzigen."
+    wst.Range("A2:E2").Value = Array("Kredietnummer", "Omschrijving", "Status", "Tijdschrijvers", "Toegevoegd op")
+    wst.Columns("A").NumberFormat = "@"
+    sleutels = huidig.Keys
+    For i = 0 To huidig.Count - 1
+        nr = sleutels(i)
+        rec = huidig(nr)
+        wst.Cells(3 + i, 1).Value = nr
+        wst.Cells(3 + i, 2).Value = rec(0)
+        wst.Cells(3 + i, 3).Value = rec(1)
+        wst.Cells(3 + i, 4).Value = rec(2)
+        If vorig.Exists(nr) Then
+            oudRec = vorig(nr)
+            wst.Cells(3 + i, 5).Value = oudRec(3)
+        Else
+            wst.Cells(3 + i, 5).Value = Date
+        End If
+    Next i
+    wst.Visible = xlSheetHidden
+
     TabbladenOrdenen
     ws.Activate
     LogRegel "overzicht tijdschrijven", , , "", , , nNieuw & " nieuw, " & nGewijzigd & " gewijzigd, " & nAfgesloten & " afgesloten"
@@ -5030,7 +5045,7 @@ Public Sub BeveiligingAan()
     Dim naam As Variant
     mHerbeveiligingGepland = False
     On Error Resume Next
-    For Each naam In Array(BL_VZ, "Logboek", "Vorige upload", "Parameters", "Dashboard", "Controle", _
+    For Each naam In Array(BL_VZ, "Logboek", "Vorige upload", "Stand tijdschrijven", "Parameters", "Dashboard", "Controle", _
                            BL_MELD, BL_OVERZICHT, BL_OVERZICHT_NAAM)
         If BladBestaatStil(CStr(naam)) Then BladBeveiligen ThisWorkbook.Worksheets(CStr(naam))
     Next naam
