@@ -98,8 +98,13 @@ Werkwijze in elke schrijfmacro: nulmeting vooraf en achteraf (alleen datarijen, 
 - `BeveiligingUit` (alleen financieel adviseur) voor herstel met de hand. Tabellen op Parameters groeien niet op een beveiligd blad: nieuwe rij met de hand = eerst BeveiligingUit (zelfregistratie via intake regelt het zelf).
 - Meldingen uitgaven zijn vooral voor de financieel adviseur.
 
+## Stap 12 - controle en kengetallen (Dashboard blok 5, rij 69-104)
+- `ControleblokPlaatsen` (via DashboardKnoppenPlaatsen): 19 controles in C72:C90 (formules waar mogelijk, functie `Rg` = bereik rij 2 t/m Par_LaatsteRij) en kengetallen vanaf rij 93 (alleen formules). Statusregel Dashboard C4: "OK - alles sluit aan" of "LET OP - n controle(s)" (groen/rood).
+- `ControlesVernieuwen` (knop D70, bij openen en na upload): spiegelbladen (aantal en rij-voor-rij, '-' als ze ontbreken), verdeelsleutel per groep = 100% (teksten in K overslaan), dubbel kredietnummer+activanummer (zonder bijdrageregels en 7999998), handmatige formules in Z/AA-AC/AE-AI, SUBTOTAL-regels onder de data.
+- Controles die nu vaak > 0 zullen zijn (bewust in de status): overschrijding lopend krediet, zonder activanummer/kredietnummer (mag bij intake), handmatige formules, SUBTOTAL-regels (rij 1474). Gebruiker beslist of die uit de status moeten.
+- Beslispunt FO 9.1 (deelkredieten over programma's heen) nog open; nu optie A (programma wint).
+
 ## Openstaande stappen
-- 12: controleblok en kengetallen (incl. regels zonder kredietnummer/activanummer, status V, SUBTOTAL-regels verplaatsen).
 - 14: jaarrol (laatst, eerst op kopie).
 - Later: exploitatienummers met omschrijving, mogelijk "geldig vanaf jaar" bij programma's na de fusie met Oirschot.
 

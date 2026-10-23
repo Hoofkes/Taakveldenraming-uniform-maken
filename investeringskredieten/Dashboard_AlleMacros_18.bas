@@ -20,6 +20,8 @@ Private Const OPBRENGST As String = "Opbrengst activa"   ' bron/toelichting voor
 Private Const BL_MUTREG As String = "Mutaties kadernota-begroting"   ' register voor de lastenberekening
 Private Const WACHTWOORD As String = "Best"      ' bladbeveiliging (zet ook een wachtwoord op het VBA-project)
 Private mStil As Boolean
+Private Const CB_EERSTE As Long = 72         ' eerste controleregel
+Private Const CB_LAATSTE As Long = 90        ' laatste controleregel
 Private mHerbeveiligingGepland As Boolean
 Private mProef As Boolean             ' proefversie jaarrekening (niet opslaan)             ' geen meldingen tijdens een reeks overzichten
 
@@ -143,6 +145,7 @@ Public Sub Auto_Open()
     BeveiligingAan
     On Error Resume Next
     OudeOverzichtbladenOpruimen
+    ControlesVernieuwen
     On Error GoTo 0
     ' keuzeopties verversen bij het openen (niet als het bestand alleen-lezen is geopend)
     On Error Resume Next
@@ -1234,7 +1237,7 @@ Public Sub DashboardAanmaken()
     ws.Range("D3").NumberFormat = """keuzeopties ververst op ""dd-mm-yyyy hh:mm"
     ws.Range("D3").HorizontalAlignment = xlLeft
     ws.Range("B4").Value = "Controlestatus"
-    ws.Range("C4").Value = "komt in stap 12"
+    ws.Range("C4").Value = ""                                 ' statusregel: zie ControleblokPlaatsen (stap 12)
     f = "=COUNTIF(" & VL & "$AP:$AP,""" & CtlTeControleren() & """)&"" regels te controleren, ""&COUNTIF(" & VL & "$AP:$AP,""Afgekeurd"")&"" afgekeurd"""
     ws.Range("B5").Formula = f
     ws.Range("B2:B4").Font.Bold = True
@@ -1802,6 +1805,7 @@ Public Sub DashboardKnoppenPlaatsen()
     b.Caption = "Ingevuld? Verwerken!"
     b.OnAction = "Verwerken"
     UitdraaiBlokPlaatsen
+    ControleblokPlaatsen
     KoppenStartEindjaar
     TabbladkiezerPlaatsen
     KnoppenTerugPlaatsen
@@ -3650,6 +3654,7 @@ VolgendJaar:
     Alert7999998 vS, lj
     alarm = MeldingenSchrijven(Dir(pad), peil)
     RaadsoverzichtMaken
+    ControlesVernieuwen
     BeveiligingAan
     Application.ScreenUpdating = True
     ThisWorkbook.Worksheets(BL_MELD).Activate
@@ -6055,3 +6060,206 @@ Private Function NieuwBlad() As Worksheet
         Set NieuwBlad = ThisWorkbook.Worksheets.Add(After:=ThisWorkbook.Worksheets(ThisWorkbook.Worksheets.Count))
     End If
 End Function
+
+' ======================================================================
+' Controle en kengetallen (stap 12)
+' ======================================================================
+' Stap 12 - Blok 5 op het Dashboard (vanaf rij 69) en de statusregel in C4 (functioneel ontwerp par. 8).
+' ControleblokPlaatsen : zet de controles en kengetallen op het Dashboard. Waar het kan als formule (altijd actueel).
+' ControlesVernieuwen  : rekent de controles uit die niet met een formule kunnen (spiegelbladen, verdeelsleutel,
+'                        dubbele nummers, handmatige formules, SUBTOTAL-regels). Draait bij openen, na een upload en via de knop.
+' Statusregel C4: "OK - alles sluit aan" als alle controles 0 zijn, anders "LET OP".
+
+
+' Bereik van een kolom van de verzamellijst over de kredietregels (rij 2 t/m Par_LaatsteRij), als formuletekst.
+Private Function Rg(ByVal kol As String) As String
+    Rg = VL & "$" & kol & "$2:INDEX(" & VL & "$" & kol & ":$" & kol & ",Par_LaatsteRij)"
+End Function
+
+Public Sub ControleblokPlaatsen()
+    WerkStart                                    ' beveiliging even uit, daarna vanzelf weer aan
+    Dim ws As Worksheet, r As Long, k As Long, fc As Object, b As Object
+    Set ws = ThisWorkbook.Worksheets("Dashboard")
+    ws.Range("B69").Value = "5. Controle en kengetallen"
+    ws.Range("B69").Font.Bold = True
+    ws.Range("B70").Value = "Controles laatst vernieuwd"
+    ws.Range("C70").NumberFormat = "dd-mm-yyyy hh:mm"
+    ws.Range("C70").HorizontalAlignment = xlLeft
+    On Error Resume Next
+    ws.Buttons("btnControles").Delete
+    On Error GoTo 0
+    Set b = ws.Buttons.Add(ws.Range("D70").Left + 2, ws.Range("D70").Top + 1, 150, 18)
+    b.Name = "btnControles"
+    b.Caption = "Controles vernieuwen"
+    b.OnAction = "ControlesVernieuwen"
+    ws.Range("B71:D71").Value = Array("Controle", "Aantal", "Toelichting")
+    ws.Range("B71:D71").Font.Bold = True
+    ws.Range("B71:D71").Borders(xlEdgeBottom).LineStyle = xlContinuous
+
+    r = CB_EERSTE
+    Regel ws, r, "Spiegelbladen: aantal regels wijkt af", "", "macro"
+    Regel ws, r, "Spiegelbladen: kredietnummer rij-voor-rij wijkt af", "", "macro"
+    Regel ws, r, "Lengte omschrijving 'fout' (kolom E en G)", "=COUNTIF(" & Rg("E") & ",""fout"")+COUNTIF(" & Rg("G") & ",""fout"")", ""
+    Regel ws, r, "Verdeelsleutel samengesteld krediet niet 100%", "", "macro"
+    Regel ws, r, "Afgesloten (A) met restantkrediet", "=COUNTIFS(" & Rg("H") & ",""A*""," & Rg("AD") & ",""<>0"")", ""
+    Regel ws, r, "Lopend krediet: uitgaven hoger dan budget", "=SUMPRODUCT((LEFT(" & Rg("H") & ",1)=""L"")*(" & Rg("AD") & "<0)*(" & Rg("Z") & ">=0))", _
+          "uitleg vakafdeling in de toelichting"
+    Regel ws, r, "Zonder budgetbeheerder (O)", "=COUNTIFS(" & Rg("A") & ",""<>""," & Rg("O") & ","""")", ""
+    Regel ws, r, "Zonder projectleider (P)", "=COUNTIFS(" & Rg("A") & ",""<>""," & Rg("P") & ","""")", ""
+    Regel ws, r, "Zonder activanummer (X)", "=COUNTIFS(" & Rg("A") & ",""<>""," & Rg("X") & ","""")", "mag leeg bij intake"
+    Regel ws, r, "Zonder afschrijftermijn (Y)", "=COUNTIFS(" & Rg("A") & ",""<>""," & Rg("Y") & ","""")", ""
+    Regel ws, r, "Dubbel: kredietnummer + activanummer", "", "macro; bijdrageregels tellen niet mee"
+    Regel ws, r, "Te controleren of afgekeurd", "=COUNTIF(" & Rg("AP") & ",""" & CtlTeControleren() & """)+COUNTIF(" & Rg("AP") & ",""Afgekeurd"")", _
+          "zie tabblad Controle"
+    Regel ws, r, "Hoofdletters of spaties in kolom I of J", "=SUMPRODUCT((" & Rg("A") & "<>"""")*(" & Rg("I") & "<>"""")*(1-EXACT(" & Rg("I") & _
+          "&"""",LOWER(TRIM(" & Rg("I") & "&"""")))))+SUMPRODUCT((" & Rg("A") & "<>"""")*(" & Rg("J") & "<>"""")*(1-EXACT(" & Rg("J") & _
+          "&"""",LOWER(TRIM(" & Rg("J") & "&"""")))))", "macro LijstwaardenNormaliseren"
+    Regel ws, r, "Werkbereik bijna vol (binnen 100 rijen)", "=IF(Par_LaatsteRij>Par_MaxRij-100,1,0)", "macro WerkbereikVerruimen"
+    Regel ws, r, "Status (H) niet L of A met jaartal", "=SUMPRODUCT((" & Rg("A") & "<>"""")*(1-(LEN(" & Rg("H") & ")=5)*((LEFT(" & Rg("H") & _
+          ",1)=""L"")+(LEFT(" & Rg("H") & ",1)=""A""))*ISNUMBER(--MID(" & Rg("H") & ",2,4))))", ""
+    Regel ws, r, "Zonder kredietnummer (C)", "=COUNTIFS(" & Rg("A") & ",""<>""," & Rg("C") & ","""")", "mag leeg bij intake"
+    Regel ws, r, "7999998 in het begrotingsjaar of eerder", "=SUMPRODUCT((" & Rg("C") & "&""""=""7999998"")*(LEFT(" & Rg("H") & ",1)=""L"")*(IFERROR(--MID(" & _
+          Rg("H") & ",2,4),9999)<=Par_LopendJaar+1))", "echt kredietnummer nodig"
+    Regel ws, r, "Handmatige formules in bedragkolommen", "", "macro; bijv. =250000*40%"
+    Regel ws, r, "SUBTOTAL-regels onder de kredieten", "", "macro; kengetallen staan nu hieronder"
+
+    ' kengetallen (altijd formules)
+    r = CB_LAATSTE + 2
+    ws.Cells(r, 2).Value = "Kengetallen": ws.Cells(r, 2).Font.Bold = True
+    r = r + 1
+    Kengetal ws, r, "Aantal lopende kredieten (L)", "=COUNTIF(" & Rg("H") & ",""L*"")", "0"
+    Kengetal ws, r, "Aantal afgesloten kredieten (A)", "=COUNTIF(" & Rg("H") & ",""A*"")", "0"
+    Kengetal ws, r, "=""Budget t/m ""&Par_LopendJaar", "=SUM(" & Rg("Z") & ")", ""
+    Kengetal ws, r, "=""Werkelijke uitgaven t/m ""&Par_LopendJaar", "=SUM(" & Rg("AA") & ")+SUM(" & Rg("AB") & ")+SUM(" & Rg("AC") & ")", ""
+    Kengetal ws, r, "Restantkrediet", "=SUM(" & Rg("AD") & ")", ""
+    For k = 1 To 5
+        Kengetal ws, r, "=""Budget ""&(Par_LopendJaar+" & k & ")", "=SUM(" & Rg(Choose(k, "AE", "AF", "AG", "AH", "AI")) & ")", ""
+    Next k
+    Kengetal ws, r, "Te controleren door de administratie", "=COUNTIF(" & Rg("AP") & ",""" & CtlTeControleren() & """)", "0"
+    Kengetal ws, r, "Afgekeurd", "=COUNTIF(" & Rg("AP") & ",""Afgekeurd"")", "0"
+
+    ' controles met een aantal > 0 rood
+    ws.Range(ws.Cells(CB_EERSTE, 3), ws.Cells(CB_LAATSTE, 3)).FormatConditions.Delete
+    Set fc = ws.Range(ws.Cells(CB_EERSTE, 3), ws.Cells(CB_LAATSTE, 3)).FormatConditions.Add(Type:=xlCellValue, Operator:=xlGreater, Formula1:="=0")
+    fc.Interior.Color = RGB(255, 150, 150)
+    ws.Range(ws.Cells(CB_EERSTE, 3), ws.Cells(CB_LAATSTE, 3)).HorizontalAlignment = xlRight
+
+    ' statusregel
+    ws.Range("C4").Formula = "=IF(SUM(C" & CB_EERSTE & ":C" & CB_LAATSTE & ")=0,""OK - alles sluit aan"",""LET OP - ""&COUNTIF(C" & CB_EERSTE & _
+                             ":C" & CB_LAATSTE & ","">0"")&"" controle(s) wijken af, zie blok 5 (rij " & CB_EERSTE & ")"")"
+    ws.Range("C4").Font.Bold = True
+    ws.Range("C4").FormatConditions.Delete
+    Set fc = ws.Range("C4").FormatConditions.Add(Type:=xlCellValue, Operator:=xlEqual, Formula1:="=""OK - alles sluit aan""")
+    fc.Interior.Color = RGB(198, 239, 206)
+    Set fc = ws.Range("C4").FormatConditions.Add(Type:=xlCellValue, Operator:=xlNotEqual, Formula1:="=""OK - alles sluit aan""")
+    fc.Interior.Color = RGB(255, 150, 150)
+    ControlesVernieuwen
+End Sub
+
+Private Sub Regel(ByVal ws As Worksheet, ByRef r As Long, ByVal label As String, ByVal formule As String, ByVal toel As String)
+    ws.Cells(r, 2).Value = label
+    If Len(formule) > 0 Then ws.Cells(r, 3).Formula = formule Else ws.Cells(r, 3).ClearContents
+    ws.Cells(r, 3).NumberFormat = "0"
+    ws.Cells(r, 4).Value = toel
+    ws.Cells(r, 4).Font.Color = RGB(128, 128, 128)
+    r = r + 1
+End Sub
+
+Private Sub Kengetal(ByVal ws As Worksheet, ByRef r As Long, ByVal label As String, ByVal formule As String, ByVal notatie As String)
+    If Left$(label, 1) = "=" Then ws.Cells(r, 2).Formula = label Else ws.Cells(r, 2).Value = label
+    ws.Cells(r, 3).Formula = formule
+    ws.Cells(r, 3).NumberFormat = IIf(Len(notatie) > 0, notatie, "#,##0;-#,##0;-")
+    ws.Cells(r, 3).HorizontalAlignment = xlRight
+    r = r + 1
+End Sub
+
+' Controles die niet met een formule kunnen; schrijft de aantallen in blok 5.
+Public Sub ControlesVernieuwen()
+    WerkStart                                    ' beveiliging even uit, daarna vanzelf weer aan
+    Dim wd As Worksheet, wv As Worksheet, laatste As Long, v As Variant, r As Long, n As Long, c As Variant, i As Long
+    Dim grp As Object, k As Variant, sleutel As String, dubbel As Object, nSp1 As Long, nSp2 As Long, sp As Variant
+    Dim wsS As Worksheet, verschuiving As Long, cel As Range, eersteTreffer As String, maxRij As Long
+    On Error GoTo Fout
+    Set wd = ThisWorkbook.Worksheets("Dashboard")
+    If CStr(wd.Cells(CB_EERSTE, 2).Value) = "" Then Exit Sub        ' blok 5 nog niet geplaatst
+    Set wv = Vz()
+    laatste = CLng(ThisWorkbook.Names("Par_LaatsteRij").RefersToRange.Value)
+    maxRij = CLng(ThisWorkbook.Names("Par_MaxRij").RefersToRange.Value)
+    v = wv.Range("A1:AW" & laatste).Value
+
+    ' 1 en 2: spiegelbladen (alleen als ze bestaan)
+    n = 0
+    For Each sp In Array("Financieel adviseur", "Financi" & ChrW(235) & "le administratie", "Kredietoverzicht")
+        If BladBestaatStil(CStr(sp)) Then
+            n = n + 1
+            Set wsS = ThisWorkbook.Worksheets(CStr(sp))
+            verschuiving = IIf(CStr(sp) = "Kredietoverzicht", 1, 0)
+            If Application.WorksheetFunction.CountA(wsS.Range("A" & (2 + verschuiving) & ":A" & (maxRij + 1))) <> _
+               Application.WorksheetFunction.CountA(wv.Range("A2:A" & laatste)) Then nSp1 = nSp1 + 1
+            For r = 2 To laatste
+                If CStr(wsS.Cells(r + verschuiving, 3).Value) <> CStr(v(r, 3)) Then nSp2 = nSp2 + 1: Exit For
+            Next r
+        End If
+    Next sp
+    If n = 0 Then
+        wd.Cells(CB_EERSTE, 3).Value = "-": wd.Cells(CB_EERSTE + 1, 3).Value = "-"
+        wd.Cells(CB_EERSTE, 4).Value = "spiegelbladen niet aanwezig"
+    Else
+        wd.Cells(CB_EERSTE, 3).Value = nSp1: wd.Cells(CB_EERSTE + 1, 3).Value = nSp2
+        wd.Cells(CB_EERSTE, 4).Value = n & " spiegelbladen gecontroleerd"
+    End If
+
+    ' 4: verdeelsleutel per samengesteld krediet (J is een getal) moet samen 100% zijn; teksten in K tellen niet mee
+    Set grp = CreateObject("Scripting.Dictionary")
+    For r = 2 To laatste
+        If Not Leeg(v(r, 1)) And IsGetal(v(r, 10)) Then
+            If IsGetal(v(r, 11)) Then
+                grp(CStr(v(r, 10))) = grp(CStr(v(r, 10))) + CDbl(v(r, 11))
+            ElseIf Not grp.Exists(CStr(v(r, 10))) Then
+                grp(CStr(v(r, 10))) = 0
+            End If
+        End If
+    Next r
+    n = 0
+    For Each k In grp.Keys
+        If Abs(grp(k) - 1) > 0.0005 Then n = n + 1
+    Next k
+    wd.Cells(CB_EERSTE + 3, 3).Value = n
+
+    ' 11: dubbele combinatie kredietnummer + activanummer (bijdrageregels met negatief budget en 7999998 tellen niet mee)
+    Set dubbel = CreateObject("Scripting.Dictionary")
+    n = 0
+    For r = 2 To laatste
+        If Not Leeg(v(r, 1)) And Not Leeg(v(r, 3)) And Not Leeg(v(r, 24)) And NrTekst(v(r, 3)) <> "7999998" And Nul(v(r, 26)) >= 0 Then
+            sleutel = NrTekst(v(r, 3)) & "|" & CStr(v(r, 24))
+            If dubbel.Exists(sleutel) Then n = n + 1 Else dubbel.Add sleutel, r
+        End If
+    Next r
+    wd.Cells(CB_EERSTE + 10, 3).Value = n
+
+    ' 18: handmatige formules in de bedragkolommen Z, AA t/m AC en AE t/m AI
+    n = 0
+    For Each c In Array(26, 27, 28, 29, 31, 32, 33, 34, 35)
+        For r = 2 To laatste
+            If wv.Cells(r, c).HasFormula Then n = n + 1
+        Next r
+    Next c
+    wd.Cells(CB_EERSTE + 17, 3).Value = n
+
+    ' 19: SUBTOTAL-regels onder de kredieten
+    n = 0
+    Set cel = wv.Range("A" & (laatste + 1) & ":AW" & (maxRij + 100)).Find(What:="SUBTOTAL", LookIn:=xlFormulas, LookAt:=xlPart)
+    If Not cel Is Nothing Then
+        eersteTreffer = cel.Address
+        Do
+            n = n + 1
+            Set cel = wv.Range("A" & (laatste + 1) & ":AW" & (maxRij + 100)).FindNext(cel)
+        Loop While Not cel Is Nothing And cel.Address <> eersteTreffer
+    End If
+    wd.Cells(CB_EERSTE + 18, 3).Value = n
+
+    wd.Range("C70").Value = Now
+    Exit Sub
+Fout:
+    wd.Range("C70").Value = "fout: " & Err.Description
+End Sub
