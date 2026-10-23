@@ -85,6 +85,11 @@ Werkwijze in elke schrijfmacro: nulmeting vooraf en achteraf (alleen datarijen, 
 
 - Alert 7999998: bij elke upload ALARM op Meldingen voor L-kredieten met kredietnummer 7999998 waarvan het statusjaar <= begrotingsjaar (lopend jaar + 1).
 
+## Actualisatie kadernota/begroting
+- Uitvraagbestand heeft verborgen kolom O 'Volgnr' (sleutel) en onderaan 10 lege regels 'Voorstellen nieuwe investeringskredieten' (kolom O = NIEUW).
+- Teamleider vult het bestand in zijn map 02\<naam> in. Financieel adviseur controleert en kiest Dashboard C58=Budgetbeheerder, C59=naam, knop "Actualisatie verwerken (C59)" (`ActualisatieVerwerken`): nieuwste uitvraagbestand, samenvatting per jaarschijf, na akkoord AE-AI per jaarschijf, D/F bij nieuwe omschrijving, AJ vervangen als toelichting is ingevuld; AV/AW gezet; geen controle administratie; lopend jaar niet geraakt; nulmeting; Logboek per wijziging; waarschuwing bij dubbel verwerken.
+- Voorstellen nieuwe kredieten -> blad 'Voorstellen nieuwe kredieten' (onbeveiligd, kolom 'Verwerkt'); FA voert in via de invoerkaart.
+
 ## Bladbeveiliging
 - Wachtwoord "Best" (constante WACHTWOORD in de module; VBA-project zelf ook met wachtwoord vergrendelen). `BeveiligingAan` bij elk openen (Auto_Open, UserInterfaceOnly), na upload en na elk overzicht. Verzamellijst, Logboek, Vorige upload, Parameters, Dashboard, Controle, Meldingen en overzichtbladen op slot. Open: Dashboard Kaart_Invoer, bronnen bijdragen (kolom B), C58:C59; Parameters gele tabelkolommen. Filteren mag (autofilter op de verzamellijst), sorteren niet. Geen werkmapstructuur-beveiliging.
 - `BeveiligingUit` (alleen financieel adviseur) voor herstel met de hand. Tabellen op Parameters groeien niet op een beveiligd blad: nieuwe rij met de hand = eerst BeveiligingUit (zelfregistratie via intake regelt het zelf).

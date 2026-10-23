@@ -4581,7 +4581,7 @@ Public Sub UitdraaiBlokPlaatsen()
     ws.Range("B64").Value = "4. Financieel adviseur"
     ws.Range("B64").Font.Bold = True
     On Error Resume Next
-    For Each naam In Array("btnOverzichtRaad", "btnOverzichtNaam", "btnOverzichtJaarrekening", "btnAlleBudgethouders", "btnTijdschrijven", "btnUitvraag")
+    For Each naam In Array("btnOverzichtRaad", "btnOverzichtNaam", "btnOverzichtJaarrekening", "btnAlleBudgethouders", "btnTijdschrijven", "btnUitvraag", "btnActualisatie")
         ws.Shapes(CStr(naam)).Delete
     Next naam
     On Error GoTo 0
@@ -4592,12 +4592,12 @@ Public Sub UitdraaiBlokPlaatsen()
     b.OnAction = "KredietoverzichtOpNaam"
     ws.Rows(65).RowHeight = 26
     ws.Rows(66).RowHeight = 26
-    namen = Array("btnOverzichtRaad", "btnOverzichtJaarrekening", "btnUitvraag", "btnAlleBudgethouders", "btnTijdschrijven")
+    namen = Array("btnOverzichtRaad", "btnOverzichtJaarrekening", "btnUitvraag", "btnAlleBudgethouders", "btnTijdschrijven", "btnActualisatie")
     titels = Array("Kredietoverzicht raad", "Kredietoverzicht jaarrekening", "Uitvraag kadernota/begroting", _
-                   "Overzichten alle budgethouders", "Overzicht tijdschrijven")
+                   "Overzichten alle budgethouders", "Overzicht tijdschrijven", "Actualisatie verwerken (C59)")
     acties = Array("KredietoverzichtMaken", "KredietoverzichtJaarrekening", "UitvraagBegroting", _
-                   "KredietoverzichtAlleBudgethouders", "OverzichtTijdschrijven")
-    For i = 0 To 4
+                   "KredietoverzichtAlleBudgethouders", "OverzichtTijdschrijven", "ActualisatieVerwerken")
+    For i = 0 To 5
         Set b = ws.Buttons.Add(ws.Range("B65").Left + (i Mod 3) * 170, ws.Range("B65").Offset(i \ 3, 0).Top + 2, 165, 22)
         b.Name = namen(i)
         b.Caption = titels(i)
@@ -5341,6 +5341,8 @@ Private Function UitvraagBlad(ByVal naam As String) As Worksheet
         .VerticalAlignment = xlCenter
     End With
     ws.Rows(5).RowHeight = 30
+    ws.Cells(4, 13).Value = "niet wijzigen"
+    ws.Cells(5, 13).Value = "Volgnr"                ' sleutel om terug te lezen (verborgen kolom)
 
     rij = 6: eersteData = 6: vBh = Chr$(0)
     For i = 1 To nSel
@@ -5367,6 +5369,7 @@ Private Function UitvraagBlad(ByVal naam As String) As Worksheet
         For k = 1 To 5
             ws.Cells(rij, 6 + k).Value = Nul(v(r, 30 + k))
         Next k
+        ws.Cells(rij, 13).Value = v(r, 1)
         rij = rij + 1
     Next i
     Tussentotaal ws, rij, startBh, "Totaal " & vBh, 6, 11, 1
@@ -5379,6 +5382,20 @@ Private Function UitvraagBlad(ByVal naam As String) As Worksheet
         .Borders(xlEdgeTop).LineStyle = xlContinuous
         .Borders(xlEdgeBottom).LineStyle = xlDouble
     End With
+
+    ' voorstellen voor nieuwe kredieten: lege regels onderaan (gemarkeerd met NIEUW in de verborgen kolom)
+    Dim nvStart As Long, nvEind As Long
+    rij = rij + 2
+    ws.Cells(rij, 1).Value = "Voorstellen nieuwe investeringskredieten (vul omschrijving, taakveld, afschrijftermijn, budgetten en toelichting in)"
+    ws.Range(ws.Cells(rij, 1), ws.Cells(rij, nK)).Font.Bold = True
+    ws.Range(ws.Cells(rij, 1), ws.Cells(rij, nK)).Interior.Color = RGB(214, 228, 240)
+    ws.Range(ws.Cells(rij, 1), ws.Cells(rij, nK)).Font.Color = RGB(0, 73, 118)
+    nvStart = rij + 1: nvEind = rij + 10
+    For k = nvStart To nvEind
+        ws.Cells(k, 3).Value = naam
+        ws.Cells(k, 13).Value = "NIEUW"
+    Next k
+    rij = nvEind + 1
 
     ' twee in te vullen kolommen voor de toelichting: soort actualisatie en nieuwe omschrijving
     ws.Range(ws.Columns(12), ws.Columns(13)).Insert
@@ -5398,6 +5415,12 @@ Private Function UitvraagBlad(ByVal naam As String) As Worksheet
         .WrapText = True
         .VerticalAlignment = xlCenter
     End With
+    ws.Columns(15).Hidden = True
+    For k = nvStart To nvEind
+        ws.Range(ws.Cells(k, 2), ws.Cells(k, 14)).Interior.Color = RGB(255, 255, 204)
+        ws.Cells(k, 6).Interior.Color = xlNone
+        ws.Cells(k, 12).Value = "Nieuw krediet"
+    Next k
     ' opmaak: in te vullen kolommen geel (budgetten, actualisatie, nieuwe omschrijving, toelichting)
     For k = eersteData To rij - 1
         If Not Leeg(ws.Cells(k, 2).Value) And Not ws.Cells(k, 6).HasFormula Then   ' kredietregel, geen totaalregel
@@ -5626,3 +5649,236 @@ Private Sub Alert7999998(ByVal vS As Variant, ByVal lj As Long)
         End If
     Next i
 End Sub
+
+' ======================================================================
+' Actualisatie kadernota / begroting verwerken (financieel adviseur)
+' ======================================================================
+' De teamleider (budgetbeheerder) vult zijn uitvraagbestand in map 02\<naam> in. De financieel adviseur controleert
+' het bestand en kiest daarna op het Dashboard (C58 = Budgetbeheerder, C59 = naam) deze knop. De macro leest het
+' nieuwste uitvraagbestand van die persoon, toont een samenvatting en werkt na akkoord de verzamellijst bij:
+' - budget per jaarschijf (AE t/m AI) zoals ingevuld;
+' - omschrijving (D, en de korte omschrijving F) als een nieuwe omschrijving is ingevuld;
+' - toelichting (AJ) wordt vervangen als de teamleider een toelichting heeft gegeven.
+' Het lopend jaar wordt niet aangeraakt. Geen controle door de administratie (die speelt bij deze lijst geen rol).
+' Voorstellen voor nieuwe kredieten komen op het blad 'Voorstellen nieuwe kredieten'; de financieel adviseur
+' voert ze na beoordeling in via de invoerkaart.
+Public Sub ActualisatieVerwerken()
+    WerkStart                                    ' beveiliging even uit, daarna vanzelf weer aan
+    Const BL_VOORSTEL As String = "Voorstellen nieuwe kredieten"
+    Dim wd As Worksheet, wv As Worksheet, wb As Workbook, d As Variant, map As String, naam As String, f As String
+    Dim bestand As String, dt As Date, laatste As Long, r As Long, i As Long, k As Long, rij As Long, lj As Long
+    Dim volgRij As Object, vn As String, nieuwB(1 To 5) As Double, oudB As Double, wijzig As Boolean
+    Dim nKred As Long, nNieuw As Long, somOud(1 To 5) As Double, somNieuw(1 To 5) As Double, tekst As String
+    Dim plan() As Variant, nPlan As Long, voor As Variant, na As Variant, verschil As Double, wsVs As Worksheet
+    Dim oms As String, toel As String, act As String, gebr As String
+
+    If Not HeeftRecht("Toevoegen") Then
+        MsgBox "Alleen de financieel adviseur kan een actualisatie verwerken.", vbExclamation
+        Exit Sub
+    End If
+    Set wd = ThisWorkbook.Worksheets("Dashboard")
+    If LCase$(Trim$(CStr(wd.Range("C58").Value))) <> "budgetbeheerder" Or Len(Trim$(CStr(wd.Range("C59").Value))) = 0 Then
+        MsgBox "Kies op het Dashboard in C58 'Budgetbeheerder' en in C59 de teamleider van wie de actualisatie verwerkt moet worden.", vbExclamation
+        Exit Sub
+    End If
+    naam = Trim$(CStr(wd.Range("C59").Value))
+    map = MapStambestand("02 Budgetbeheerders en projectleiders")
+    If Len(map) = 0 Then Exit Sub
+    map = SubMap(map, naam)
+    f = Dir(map & "Uitvraag kadernota-begroting*.xlsx")
+    Do While Len(f) > 0
+        If Left$(f, 2) <> "~$" Then
+            If Len(bestand) = 0 Or FileDateTime(map & f) > dt Then bestand = map & f: dt = FileDateTime(map & f)
+        End If
+        f = Dir()
+    Loop
+    If Len(bestand) = 0 Then
+        MsgBox "Geen uitvraagbestand gevonden in:" & vbCrLf & map, vbExclamation
+        Exit Sub
+    End If
+    If InStr(1, LogboekTekst(), Dir(bestand) & " (gewijzigd " & Format$(dt, "dd-mm-yyyy hh:mm") & ")", vbTextCompare) > 0 Then
+        If MsgBox("Dit bestand is al eens verwerkt:" & vbCrLf & Dir(bestand) & vbCrLf & vbCrLf & "Toch opnieuw verwerken?", _
+                  vbYesNo + vbExclamation + vbDefaultButton2, "Actualisatie verwerken") <> vbYes Then Exit Sub
+    End If
+
+    On Error GoTo Fout
+    Application.ScreenUpdating = False
+    Set wb = Workbooks.Open(Filename:=bestand, ReadOnly:=True, UpdateLinks:=0)
+    d = wb.Worksheets(1).Range("A1:O" & wb.Worksheets(1).UsedRange.Row + wb.Worksheets(1).UsedRange.Rows.Count).Value
+    wb.Close SaveChanges:=False
+    Set wb = Nothing
+    ThisWorkbook.Activate
+    If CStr(d(5, 15)) <> "Volgnr" Then
+        Application.ScreenUpdating = True
+        MsgBox "Dit uitvraagbestand heeft nog de oude opzet (zonder volgnummer) en kan niet worden ingelezen." & vbCrLf & _
+               "Maak de uitvraag opnieuw met de knop 'Uitvraag kadernota/begroting'.", vbExclamation
+        Exit Sub
+    End If
+
+    Set wv = Vz()
+    lj = CLng(ThisWorkbook.Names("Par_LopendJaar").RefersToRange.Value)
+    laatste = CLng(ThisWorkbook.Names("Par_LaatsteRij").RefersToRange.Value)
+    Set volgRij = CreateObject("Scripting.Dictionary")
+    For r = 2 To laatste
+        If Not Leeg(wv.Cells(r, 1).Value) Then volgRij(CStr(wv.Cells(r, 1).Value)) = r
+    Next r
+
+    ' 1. plan maken: per bestaand krediet de wijzigingen, en de voorstellen voor nieuwe kredieten
+    ReDim plan(1 To UBound(d, 1), 1 To 9)            ' rij, oms, toel, b1..b5, act
+    For i = 6 To UBound(d, 1)
+        vn = Trim$(Tkst(d(i, 15)))
+        If UCase$(vn) = "NIEUW" Then
+            If Len(Trim$(Tkst(d(i, 2)))) > 0 Then nNieuw = nNieuw + 1
+        ElseIf Len(vn) > 0 And volgRij.Exists(vn) Then
+            r = volgRij(vn)
+            wijzig = False
+            For k = 1 To 5
+                nieuwB(k) = Nul(d(i, 6 + k))
+                oudB = Nul(wv.Cells(r, 30 + k).Value)
+                If Round(nieuwB(k) - oudB, 2) <> 0 Then wijzig = True
+            Next k
+            oms = Trim$(Tkst(d(i, 13)))
+            toel = Trim$(Tkst(d(i, 14)))
+            act = Trim$(Tkst(d(i, 12)))
+            If wijzig Or Len(oms) > 0 Or Len(toel) > 0 Then
+                nPlan = nPlan + 1
+                plan(nPlan, 1) = r: plan(nPlan, 2) = oms: plan(nPlan, 3) = toel: plan(nPlan, 9) = act
+                For k = 1 To 5
+                    plan(nPlan, 3 + k) = nieuwB(k)
+                    somOud(k) = somOud(k) + Nul(wv.Cells(r, 30 + k).Value)
+                    somNieuw(k) = somNieuw(k) + nieuwB(k)
+                Next k
+                nKred = nKred + 1
+            End If
+        End If
+    Next i
+    Application.ScreenUpdating = True
+    If nPlan = 0 And nNieuw = 0 Then
+        MsgBox "In het bestand van " & naam & " staan geen wijzigingen en geen voorstellen.", vbInformation
+        Exit Sub
+    End If
+
+    ' 2. samenvatting en akkoord
+    tekst = "Actualisatie van " & naam & vbCrLf & Dir(bestand) & vbCrLf & vbCrLf & _
+            nKred & " kredieten met wijzigingen, " & nNieuw & " voorstellen voor nieuwe kredieten." & vbCrLf & vbCrLf & _
+            "Budget per jaarschijf (oud -> nieuw), alleen de gewijzigde kredieten:" & vbCrLf
+    For k = 1 To 5
+        tekst = tekst & (lj + k) & ":  " & Format$(somOud(k), "#,##0") & "  ->  " & Format$(somNieuw(k), "#,##0") & vbCrLf
+    Next k
+    tekst = tekst & vbCrLf & "Het lopend jaar " & lj & " wordt niet gewijzigd." & vbCrLf & "Verwerken in de verzamellijst?"
+    If MsgBox(tekst, vbYesNo + vbQuestion + vbDefaultButton2, "Actualisatie kadernota/begroting verwerken") <> vbYes Then Exit Sub
+
+    ' 3. verwerken met nulmeting
+    Application.ScreenUpdating = False
+    voor = MeetStap8(wv, laatste)
+    gebr = CStr(ThisWorkbook.Names("Par_HuidigeGebruiker").RefersToRange.Value)
+    verschil = 0
+    For i = 1 To nPlan
+        r = plan(i, 1)
+        For k = 1 To 5
+            oudB = Nul(wv.Cells(r, 30 + k).Value)
+            If Round(plan(i, 3 + k) - oudB, 2) <> 0 Then
+                LogRegel "actualisatie kadernota", wv.Cells(r, 1).Value, wv.Cells(r, 3).Value, wv.Cells(1, 30 + k).Text, oudB, plan(i, 3 + k), _
+                         naam & " | " & plan(i, 9)
+                If plan(i, 3 + k) = 0 Then wv.Cells(r, 30 + k).ClearContents Else wv.Cells(r, 30 + k).Value = plan(i, 3 + k)
+                verschil = verschil + plan(i, 3 + k) - oudB
+            End If
+        Next k
+        If Len(plan(i, 2)) > 0 Then
+            LogRegel "actualisatie kadernota", wv.Cells(r, 1).Value, wv.Cells(r, 3).Value, "Omschrijving", wv.Cells(r, 4).Value, plan(i, 2), naam
+            wv.Cells(r, 4).Value = Left$(plan(i, 2), 36)
+            wv.Cells(r, 6).Value = KortOmschrijving(CStr(wv.Cells(r, 4).Value))
+        End If
+        If Len(plan(i, 3)) > 0 Then
+            LogRegel "actualisatie kadernota", wv.Cells(r, 1).Value, wv.Cells(r, 3).Value, "Toelichting", wv.Cells(r, 36).Value, plan(i, 3), naam
+            wv.Cells(r, 36).Value = plan(i, 3)
+        End If
+        wv.Cells(r, 48).Value = gebr
+        wv.Cells(r, 49).Value = Now
+    Next i
+    Application.Calculate
+    na = MeetStap8(wv, laatste)
+    ' alleen AE t/m AI mogen veranderen, met precies het verwerkte verschil
+    If na(0) <> voor(0) Or Round(na(1) - voor(1), 2) <> 0 Or Round(na(2) - voor(2), 2) <> 0 Or Round(na(3) - voor(3), 2) <> 0 _
+       Or Round(na(4) - voor(4), 2) <> 0 Or Round((na(5) + na(6) + na(7) + na(8) + na(9)) - (voor(5) + voor(6) + voor(7) + voor(8) + voor(9)) - verschil, 2) <> 0 Then
+        Application.ScreenUpdating = True
+        MsgBox "Let op: de nameting wijkt af. Controleer de verzamellijst en het Logboek.", vbCritical
+    End If
+
+    ' 4. voorstellen nieuwe kredieten naar een eigen blad
+    If nNieuw > 0 Then
+        If Not BladBestaatStil(BL_VOORSTEL) Then
+            Set wsVs = ThisWorkbook.Worksheets.Add(After:=ThisWorkbook.Worksheets(ThisWorkbook.Worksheets.Count))
+            wsVs.Name = BL_VOORSTEL
+            wsVs.Cells.Font.Name = "Arial"
+            wsVs.Cells.Font.Size = 10
+            wsVs.Range("A1").Value = "Voorstellen nieuwe investeringskredieten (invoeren via de invoerkaart na beoordeling)"
+            wsVs.Range("A1").Font.Bold = True
+            wsVs.Range("A1").Font.Size = 14
+            wsVs.Range("A1").Font.Color = RGB(0, 73, 118)
+            wsVs.Range("A4:M4").Value = Array("Ingediend op", "Budgetbeheerder", "Omschrijving", "Taakveld", "Afschr", _
+                                              "Budget " & (lj + 1), "Budget " & (lj + 2), "Budget " & (lj + 3), "Budget " & (lj + 4), _
+                                              "Budget " & (lj + 5), "Toelichting", "Bestand", "Verwerkt (ja/nee)")
+            With wsVs.Range("A4:M4")
+                .Font.Bold = True
+                .Font.Color = RGB(255, 255, 255)
+                .Interior.Color = RGB(0, 73, 118)
+                .WrapText = True
+            End With
+        Else
+            Set wsVs = ThisWorkbook.Worksheets(BL_VOORSTEL)
+        End If
+        rij = Application.Max(5, wsVs.Cells(wsVs.Rows.Count, 3).End(xlUp).Row + 1)
+        For i = 6 To UBound(d, 1)
+            If UCase$(Trim$(Tkst(d(i, 15)))) = "NIEUW" And Len(Trim$(Tkst(d(i, 2)))) > 0 Then
+                wsVs.Cells(rij, 1).Value = Date
+                wsVs.Cells(rij, 2).Value = naam
+                wsVs.Cells(rij, 3).Value = Tkst(d(i, 2))
+                wsVs.Cells(rij, 4).Value = Tkst(d(i, 4))
+                wsVs.Cells(rij, 5).Value = Tkst(d(i, 5))
+                For k = 1 To 5
+                    wsVs.Cells(rij, 5 + k).Value = Nul(d(i, 6 + k))
+                Next k
+                wsVs.Cells(rij, 11).Value = Tkst(d(i, 14))
+                wsVs.Cells(rij, 12).Value = Dir(bestand)
+                wsVs.Cells(rij, 13).Value = "nee"
+                rij = rij + 1
+            End If
+        Next i
+        wsVs.Range("A5:A" & rij).NumberFormat = "dd-mm-yyyy"
+        wsVs.Range("F5:J" & rij).NumberFormat = "#,##0;-#,##0;-"
+        wsVs.Columns("A").ColumnWidth = 12: wsVs.Columns("B").ColumnWidth = 20: wsVs.Columns("C").ColumnWidth = 40
+        wsVs.Columns("D").ColumnWidth = 30: wsVs.Columns("E").ColumnWidth = 7: wsVs.Range("F:J").ColumnWidth = 14
+        wsVs.Columns("K").ColumnWidth = 60: wsVs.Columns("L").ColumnWidth = 30: wsVs.Columns("M").ColumnWidth = 10
+        wsVs.Range("C5:C" & rij & ",K5:K" & rij).WrapText = True
+        wsVs.Range("A5:M" & rij).VerticalAlignment = xlTop
+        BladOpmaken wsVs, 4, 5, rij
+        KnopTerug wsVs, wsVs.Range("A2")
+    End If
+
+    LogRegel "actualisatie kadernota verwerkt", , , "", , , naam & " | " & Dir(bestand) & " (gewijzigd " & Format$(dt, "dd-mm-yyyy hh:mm") & ") | " & _
+             nKred & " kredieten, " & nNieuw & " voorstellen"
+    Application.ScreenUpdating = True
+    MsgBox "Verwerkt: " & nKred & " kredieten bijgewerkt." & IIf(nNieuw > 0, vbCrLf & nNieuw & " voorstellen voor nieuwe kredieten staan op het blad '" & _
+           BL_VOORSTEL & "'. Voer die na beoordeling in via de invoerkaart.", ""), vbInformation
+    Exit Sub
+Fout:
+    On Error Resume Next
+    If Not wb Is Nothing Then wb.Close SaveChanges:=False
+    Application.ScreenUpdating = True
+    MsgBox "Fout bij het verwerken van de actualisatie: " & Err.Description, vbCritical
+End Sub
+
+' Alle tekst uit de toelichtingskolom van het Logboek (om dubbel verwerken te herkennen).
+Private Function LogboekTekst() As String
+    Dim lg As Worksheet, v As Variant, i As Long, t As String
+    On Error Resume Next
+    Set lg = ThisWorkbook.Worksheets("Logboek")
+    v = lg.Range("K1:K" & lg.Cells(lg.Rows.Count, 1).End(xlUp).Row).Value
+    If IsArray(v) Then
+        For i = 1 To UBound(v, 1)
+            t = t & CStr(v(i, 1)) & vbLf
+        Next i
+    End If
+    LogboekTekst = t
+End Function
