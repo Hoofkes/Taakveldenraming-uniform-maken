@@ -6,6 +6,8 @@ Private Const VL As String = "'Verzamellijst alle kredieten'!"
 Private Const EERSTE As Long = 9          ' eerste kaartrij op het Dashboard
 Private cfMislukt As Boolean
 Private Const AANTAL As Long = 30
+Private Const BL_MELD As String = "Meldingen uitgaven"
+Private mMeld As Collection
 
 Private Type TKaart
     f(1 To 30) As Variant
@@ -3226,8 +3228,6 @@ End Sub
 ' - Afgesloten krediet (A) waarvan het bedrag wijzigt: wel verwerkt, melding en notitie.
 ' - Harde poort: aansluiting per jaar exact 0,00. Anders wordt dat jaar niet weggeschreven.
 
-Private Const BL_MELD As String = "Meldingen uitgaven"
-Private mMeld As Collection
 
 Public Sub UitgavenBijwerken()
     Dim wv As Worksheet, wsP As Worksheet, pad As String, peil As Date, lj As Long, laatste As Long
