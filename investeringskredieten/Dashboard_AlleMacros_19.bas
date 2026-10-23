@@ -6213,7 +6213,7 @@ Public Sub ControlesVernieuwen()
                  "restant moet 0 zijn; macro RestantFormuleBijwerken", "invullen via Krediet wijzigen", "invullen via Krediet wijzigen", _
                  "invullen zodra bekend", "invullen via Krediet wijzigen", "kredietnummer en activanummer controleren", _
                  "zie tabblad Controle", "macro LijstwaardenNormaliseren", "macro WerkbereikVerruimen", "status moet L of A met jaartal zijn", _
-                 "invullen zodra bekend", "echt kredietnummer invullen", "macro FormulesNaarWaarden", "rij leegmaken; kengetallen staan in blok 5")
+                 "invullen zodra bekend", "echt kredietnummer invullen", "macro FormulesNaarWaarden", "macro SubtotaalRegelsVerwijderen")
 
     Set grp = CreateObject("Scripting.Dictionary")
     Set grpRij = CreateObject("Scripting.Dictionary")
@@ -6331,7 +6331,7 @@ Public Sub FormulesNaarWaarden()
             If wv.Cells(r, c).HasFormula Then
                 waarde = wv.Cells(r, c).Value
                 LogRegel "formule naar waarde", wv.Cells(r, 1).Value, wv.Cells(r, 3).Value, wv.Cells(r, c).Address(False, False), _
-                         wv.Cells(r, c).Formula, waarde, ""
+                         "'" & wv.Cells(r, c).Formula, waarde, ""      ' apostrof: in het Logboek als tekst, niet als formule
                 wv.Cells(r, c).Value = waarde
                 n = n + 1
             End If
@@ -6381,4 +6381,38 @@ Public Sub OmschrijvingenInkorten()
     Next r
     Application.Calculate
     MsgBox n & " omschrijving(en) ingekort.", vbInformation
+End Sub
+
+' Haalt de oude SUBTOTAL-regels onder de kredieten weg (bijv. rij 1474). De kengetallen staan nu in blok 5 op het Dashboard.
+Public Sub SubtotaalRegelsVerwijderen()
+    WerkStart                                    ' beveiliging even uit, daarna vanzelf weer aan
+    Dim wv As Worksheet, laatste As Long, maxRij As Long, cel As Range, lijst As Collection, c As Variant, n As Long, eerste As String
+    If Not HeeftRecht("Toevoegen") Then
+        MsgBox "Alleen financieel adviseurs mogen dit.", vbExclamation
+        Exit Sub
+    End If
+    Set wv = Vz()
+    laatste = CLng(ThisWorkbook.Names("Par_LaatsteRij").RefersToRange.Value)
+    maxRij = CLng(ThisWorkbook.Names("Par_MaxRij").RefersToRange.Value)
+    Set lijst = New Collection
+    Set cel = wv.Range("A" & (laatste + 1) & ":AW" & (maxRij + 100)).Find(What:="SUBTOTAL", LookIn:=xlFormulas, LookAt:=xlPart)
+    If Not cel Is Nothing Then
+        eerste = cel.Address
+        Do
+            lijst.Add cel.Address(False, False)
+            Set cel = wv.Range("A" & (laatste + 1) & ":AW" & (maxRij + 100)).FindNext(cel)
+        Loop While Not cel Is Nothing And cel.Address <> eerste
+    End If
+    If lijst.Count = 0 Then
+        MsgBox "Er staan geen SUBTOTAL-regels onder de kredieten.", vbInformation
+        Exit Sub
+    End If
+    If MsgBox(lijst.Count & " SUBTOTAL-cellen onder de kredieten leegmaken?", vbYesNo + vbQuestion, "SUBTOTAL-regels") <> vbYes Then Exit Sub
+    For Each c In lijst
+        LogRegel "SUBTOTAL-regel verwijderd", , , CStr(c), "'" & wv.Range(c).Formula, "", ""
+        wv.Range(c).ClearContents
+        n = n + 1
+    Next c
+    ControlesVernieuwen
+    MsgBox n & " SUBTOTAL-cellen leeggemaakt.", vbInformation
 End Sub
