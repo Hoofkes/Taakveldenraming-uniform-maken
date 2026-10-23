@@ -3231,7 +3231,7 @@ End Sub
 
 Public Sub UitgavenBijwerken()
     Dim wv As Worksheet, wsP As Worksheet, pad As String, peil As Date, lj As Long, laatste As Long
-    Dim wbU As Workbook, d As Variant, nR As Long, nK As Long, kop As Long
+    Dim wbU As Workbook, d As Variant, nRij As Long, nKol As Long, kop As Long
     Dim cNr As Long, cKs As Long, cBud As Long, cJ(0 To 1) As Long, j As Long, y As Long
     Dim r As Long, i As Long, k As Long, nr As String, ks As String, v As Double, t As String
     Dim nrIdx As Object, nrs() As String, bU() As Double, bI() As Double, bO() As Double, bTot() As Double, heeftTot() As Boolean
@@ -3271,12 +3271,12 @@ Public Sub UitgavenBijwerken()
         MsgBox "De uitdraai is leeg.", vbExclamation
         GoTo Einde
     End If
-    nR = UBound(d, 1): nK = UBound(d, 2)
+    nRij = UBound(d, 1): nKol = UBound(d, 2)
 
     ' 3. Kolommen herkennen
     kop = 0
-    For r = 1 To Application.Min(10, nR)
-        For k = 1 To nK
+    For r = 1 To Application.Min(10, nRij)
+        For k = 1 To nKol
             j = JaarUitKop(Tkst(d(r, k)))
             If j = lj Or j = lj - 1 Then kop = r: Exit For
         Next k
@@ -3296,7 +3296,7 @@ Public Sub UitgavenBijwerken()
     End If
     For y = 0 To 1
         cJ(y) = 0
-        For k = 1 To nK
+        For k = 1 To nKol
             t = LCase$(Tkst(d(kop, k)))
             If JaarUitKop(t) = lj - y And InStr(t, "budget") = 0 And InStr(t, "restant") = 0 And InStr(t, "raming") = 0 Then
                 If cJ(y) > 0 Then
@@ -3308,7 +3308,7 @@ Public Sub UitgavenBijwerken()
             End If
         Next k
     Next y
-    For k = 1 To nK
+    For k = 1 To nKol
         t = LCase$(Tkst(d(kop, k)))
         If JaarUitKop(t) = lj + 1 And InStr(t, "budget") = 0 Then
             MsgBox "De uitdraai heeft al een kolom voor " & (lj + 1) & ". Die wordt pas verwerkt na de jaarrol." & vbCrLf & _
@@ -3334,9 +3334,9 @@ Public Sub UitgavenBijwerken()
 
     ' 4. Uitdraai optellen per kredietnummer
     Set nrIdx = CreateObject("Scripting.Dictionary")
-    ReDim nrs(1 To nR): ReDim bU(1 To nR, 0 To 1): ReDim bI(1 To nR, 0 To 1): ReDim bO(1 To nR, 0 To 1)
-    ReDim bTot(1 To nR, 0 To 1): ReDim heeftTot(1 To nR): ReDim bud(1 To nR): ReDim skip(1 To nR)
-    For r = kop + 1 To nR
+    ReDim nrs(1 To nRij): ReDim bU(1 To nRij, 0 To 1): ReDim bI(1 To nRij, 0 To 1): ReDim bO(1 To nRij, 0 To 1)
+    ReDim bTot(1 To nRij, 0 To 1): ReDim heeftTot(1 To nRij): ReDim bud(1 To nRij): ReDim skip(1 To nRij)
+    For r = kop + 1 To nRij
         nr = Trim$(Tkst(d(r, cNr)))
         ks = Trim$(Tkst(d(r, cKs)))
         If Len(ks) = 0 Then
