@@ -14,7 +14,8 @@ Private mAansl As String
 Private Const BL_OVERZICHT As String = "Laatste kredietoverzicht"          ' raad en jaarrekening
 Private Const BL_OVERZICHT_NAAM As String = "Laatste overzicht op naam"  ' budgethouder / projectleider
 Private Const WACHTWOORD As String = "Best"      ' bladbeveiliging (zet ook een wachtwoord op het VBA-project)
-Private mStil As Boolean             ' geen meldingen tijdens een reeks overzichten
+Private mStil As Boolean
+Private mProef As Boolean             ' proefversie jaarrekening (niet opslaan)             ' geen meldingen tijdens een reeks overzichten
 
 Private Type TKaart
     f(1 To 30) As Variant
@@ -3280,6 +3281,9 @@ Public Sub UitgavenBijwerken()
     If Len(pad) = 0 Then Exit Sub
     peil = DateValue(FileDateTime(pad))               ' peildatum = datum van het bestand
 
+    ' beveiliging tijdelijk uit; aan het eind (ook bij een fout) weer aan
+    BeveiligingTijdelijkUit
+
     ' 2. Uitdraai inlezen (alleen lezen, daarna sluiten)
     Application.ScreenUpdating = False
     Set wbU = Workbooks.Open(Filename:=pad, ReadOnly:=True, UpdateLinks:=0)
@@ -3594,7 +3598,7 @@ VolgendJaar:
     VorigeUploadSchrijven bew, nb, Dir(pad)
     UitgavenOpmaakAanmaken
     alarm = MeldingenSchrijven(Dir(pad), peil)
-    KredietoverzichtMaken
+    RaadsoverzichtMaken
     BeveiligingAan
     Application.ScreenUpdating = True
     ThisWorkbook.Worksheets(BL_MELD).Activate
@@ -3606,6 +3610,7 @@ VolgendJaar:
     Exit Sub
 
 Einde:
+    BeveiligingAan
     Application.ScreenUpdating = True
     Exit Sub
 Fout:
@@ -3616,6 +3621,7 @@ Fout:
     For y = 0 To 1
         If geschreven(y) Then wv.Range(wv.Cells(2, IIf(y = 0, 29, 28)), wv.Cells(laatste, IIf(y = 0, 29, 28))).Formula = oudKol(y)
     Next y
+    BeveiligingAan
     Application.ScreenUpdating = True
     MsgBox "Fout: " & foutTekst & vbCrLf & "Er is niets gewijzigd.", vbCritical
 End Sub
@@ -4016,6 +4022,15 @@ End Function
 ' kolom Melding uit het blad 'Meldingen uitgaven', aansluitcontrole op het restantkrediet in de kop.
 
 Public Sub KredietoverzichtMaken()
+    If Not HeeftRecht("Toevoegen") Then
+        MsgBox "Dit overzicht wordt gemaakt door de financieel adviseur.", vbExclamation
+        Exit Sub
+    End If
+    RaadsoverzichtMaken
+End Sub
+
+' Ook aangeroepen na het bijwerken van de werkelijke uitgaven (dan zonder rechtencontrole).
+Private Sub RaadsoverzichtMaken()
     Dim lj As Long, ws As Worksheet, map As String
     lj = CLng(ThisWorkbook.Names("Par_LopendJaar").RefersToRange.Value)
     Set ws = OverzichtMaken("raad", ThisWorkbook.Worksheets("Verzamellijst alle kredieten"), lj, 0, "")
@@ -4057,6 +4072,10 @@ End Sub
 
 Public Sub KredietoverzichtJaarrekening()
     Dim ws As Worksheet, jaar As Long, best As Worksheet, j As Long, map As String
+    If Not HeeftRecht("Toevoegen") Then
+        MsgBox "Dit overzicht wordt gemaakt door de financieel adviseur.", vbExclamation
+        Exit Sub
+    End If
     For Each ws In ThisWorkbook.Worksheets
         If ws.Name Like "Verzamellijst t/m ####" Then
             j = CLng(Right$(ws.Name, 4))
@@ -4064,8 +4083,13 @@ Public Sub KredietoverzichtJaarrekening()
         End If
     Next ws
     If best Is Nothing Then
-        MsgBox "Er is nog geen blad 'Verzamellijst t/m <jaar>'. Dat ontstaat bij de jaarovergang en bevat de stand per 31-12." & vbCrLf & _
-               "Het jaarrekeningoverzicht kan pas daarna worden gemaakt.", vbInformation
+        If MsgBox("Er is nog geen blad 'Verzamellijst t/m <jaar>' (ontstaat bij de jaarovergang, stand per 31-12)." & vbCrLf & vbCrLf & _
+                  "Een PROEF maken op basis van de huidige verzamellijst, om de opmaak te bekijken? (wordt niet opgeslagen)", _
+                  vbYesNo + vbQuestion, "Kredietoverzicht jaarrekening") <> vbYes Then Exit Sub
+        mProef = True
+        OverzichtMaken "jaarrekening", ThisWorkbook.Worksheets("Verzamellijst alle kredieten"), _
+                       CLng(ThisWorkbook.Names("Par_LopendJaar").RefersToRange.Value), 0, ""
+        mProef = False
         Exit Sub
     End If
     Set ws = OverzichtMaken("jaarrekening", best, jaar, 0, "")
@@ -4124,6 +4148,8 @@ Private Function OverzichtMaken(ByVal soort As String, ByVal bron As Worksheet, 
             Else
                 If stLetter = "L" And sj <= jaar Then neem = True
                 If stLetter = "A" And sj = jaar Then neem = True
+                ' raad en jaarrekening: alleen t/m het jaar; regels zonder budget en uitgaven t/m het jaar vallen weg
+                If neem And Nul(v(r, 26)) = 0 And Nul(v(r, 27)) + Nul(v(r, 28)) + Nul(v(r, 29)) = 0 Then neem = False
                 ' raad en jaarrekening: regels met een negatief budget (bijdragen van derden) weglaten
                 If neem Then
                     If Nul(v(r, 26)) < 0 Then neem = False
@@ -4192,6 +4218,7 @@ Private Function OverzichtMaken(ByVal soort As String, ByVal bron As Worksheet, 
         Case Else:   selTekst = "stand 31-12-" & jaar & " (blad " & bron.Name & "): L t/m " & jaar & " plus A" & jaar
     End Select
     bladNaam = IIf(soort = "naam", BL_OVERZICHT_NAAM, BL_OVERZICHT)
+    OudeOverzichtbladenOpruimen
     If BladBestaatStil(bladNaam) Then
         Application.DisplayAlerts = False
         ThisWorkbook.Worksheets(bladNaam).Delete
@@ -4212,7 +4239,7 @@ Private Function OverzichtMaken(ByVal soort As String, ByVal bron As Worksheet, 
         .Color = RGB(0, 73, 118)
     End With
     Select Case soort
-        Case "jaarrekening": ws.Range("A2").Value = "Jaarrekening " & jaar & " - stand 31-12-" & jaar
+        Case "jaarrekening": ws.Range("A2").Value = IIf(mProef, "PROEF (huidige stand) - ", "") & "Jaarrekening " & jaar & " - stand 31-12-" & jaar
         Case "raad":         ws.Range("A2").Value = "Stand " & Format$(Date, "dd-mm-yyyy")
         Case Else:           ws.Range("A2").Value = RolNaam(naamKol) & ": " & naam & " - stand " & Format$(Date, "dd-mm-yyyy")
     End Select
@@ -4353,6 +4380,7 @@ Private Function OverzichtMaken(ByVal soort As String, ByVal bron As Worksheet, 
     ws.Range(ws.Cells(eersteData, cToel), ws.Cells(rij, cMeld)).WrapText = True
     ws.Range(ws.Cells(eersteData, 1), ws.Cells(rij, nK + 7)).VerticalAlignment = xlTop
     ws.Range(ws.Cells(eersteData, 1), ws.Cells(rij, nK + 7)).Rows.AutoFit
+    RijhoogteBijstellen ws, eersteData, rij, Array(2, cToel, cMeld)
     ' standaard verborgen: status (bij A staat "Krediet afgesloten" in de toelichting) en vrijval/overschrijding
     ws.Columns(cStat).Hidden = True
     ws.Columns(cAfs).Hidden = True
@@ -4372,6 +4400,9 @@ Private Function OverzichtMaken(ByVal soort As String, ByVal bron As Worksheet, 
         MsgBox tekst, vbCritical
     End If
 
+    ' raad en jaarrekening: alleen t/m het jaar, dus geen budgetkolommen voor latere jaren
+    If soort <> "naam" Then ws.Range(ws.Columns(nK + 1), ws.Columns(nK + 5)).Delete
+
     ' 8. Afdrukken en vastzetten
     ws.Activate
     ActiveWindow.FreezePanes = False
@@ -4388,6 +4419,8 @@ Private Function OverzichtMaken(ByVal soort As String, ByVal bron As Worksheet, 
     End With
     On Error GoTo Fout
     BladBeveiligen ws
+    TabbladenOrdenen
+    ws.Activate
     Set OverzichtMaken = ws
     LogRegel "kredietoverzicht", , , soort, , , ws.Name & " | " & selTekst & " | " & nSel & " kredieten"
 Einde:
@@ -4490,20 +4523,27 @@ Public Sub UitdraaiBlokPlaatsen()
         .Validation.Add Type:=xlValidateList, AlertStyle:=xlValidAlertStop, Formula1:="=INDIRECT(""Lst_""&$C$58)"
         .Interior.Color = RGB(255, 255, 204)
     End With
+    ws.Range("B64").Value = "4. Financieel adviseur"
+    ws.Range("B64").Font.Bold = True
     On Error Resume Next
-    For Each naam In Array("btnOverzichtRaad", "btnOverzichtNaam", "btnOverzichtJaarrekening", "btnAlleBudgethouders", "btnTijdschrijven")
+    For Each naam In Array("btnOverzichtRaad", "btnOverzichtNaam", "btnOverzichtJaarrekening", "btnAlleBudgethouders", "btnTijdschrijven", "btnUitvraag")
         ws.Shapes(CStr(naam)).Delete
     Next naam
     On Error GoTo 0
     ws.Rows(61).RowHeight = 26
-    ws.Rows(62).RowHeight = 26
-    namen = Array("btnOverzichtRaad", "btnOverzichtNaam", "btnOverzichtJaarrekening", "btnAlleBudgethouders", "btnTijdschrijven")
-    titels = Array("Kredietoverzicht raad", "Kredietoverzicht op naam", "Kredietoverzicht jaarrekening", _
+    Set b = ws.Buttons.Add(ws.Range("B61").Left, ws.Range("B61").Top + 2, 165, 22)
+    b.Name = "btnOverzichtNaam"
+    b.Caption = "Kredietoverzicht op naam"
+    b.OnAction = "KredietoverzichtOpNaam"
+    ws.Rows(65).RowHeight = 26
+    ws.Rows(66).RowHeight = 26
+    namen = Array("btnOverzichtRaad", "btnOverzichtJaarrekening", "btnUitvraag", "btnAlleBudgethouders", "btnTijdschrijven")
+    titels = Array("Kredietoverzicht raad", "Kredietoverzicht jaarrekening", "Uitvraag kadernota/begroting", _
                    "Overzichten alle budgethouders", "Overzicht tijdschrijven")
-    acties = Array("KredietoverzichtMaken", "KredietoverzichtOpNaam", "KredietoverzichtJaarrekening", _
+    acties = Array("KredietoverzichtMaken", "KredietoverzichtJaarrekening", "UitvraagBegroting", _
                    "KredietoverzichtAlleBudgethouders", "OverzichtTijdschrijven")
     For i = 0 To 4
-        Set b = ws.Buttons.Add(ws.Range("B61").Left + (i Mod 3) * 170, ws.Range("B61").Offset(i \ 3, 0).Top + 2, 165, 22)
+        Set b = ws.Buttons.Add(ws.Range("B65").Left + (i Mod 3) * 170, ws.Range("B65").Offset(i \ 3, 0).Top + 2, 165, 22)
         b.Name = namen(i)
         b.Caption = titels(i)
         b.OnAction = acties(i)
@@ -4600,6 +4640,10 @@ End Function
 Public Sub KredietoverzichtAlleBudgethouders()
     Dim wv As Worksheet, r As Long, laatste As Long, namen As Object, nm As Variant, ws As Worksheet
     Dim map As String, lj As Long, n As Long
+    If Not HeeftRecht("Toevoegen") Then
+        MsgBox "Dit wordt gedaan door de financieel adviseur.", vbExclamation
+        Exit Sub
+    End If
     Set wv = ThisWorkbook.Worksheets("Verzamellijst alle kredieten")
     laatste = CLng(ThisWorkbook.Names("Par_LaatsteRij").RefersToRange.Value)
     Set namen = CreateObject("Scripting.Dictionary")
@@ -4629,6 +4673,10 @@ End Sub
 ' (nieuw / gewijzigd / afgesloten). Wordt als los bestand bewaard in map 01.
 Public Sub OverzichtTijdschrijven()
     Dim wv As Worksheet, map As String, f As String, vorigBestand As String, dt As Date
+    If Not HeeftRecht("Toevoegen") Then
+        MsgBox "Dit overzicht wordt gemaakt door de financieel adviseur.", vbExclamation
+        Exit Sub
+    End If
     Dim laatste As Long, r As Long, nr As String, i As Long, n As Long
     Dim huidig As Object, vorig As Object, toegevoegd As Object, rec As Variant, oudRec As Variant
     Dim wb As Workbook, ws As Worksheet, d As Variant, rij As Long, actie As String, st As String
@@ -4901,6 +4949,7 @@ Public Sub BeveiligingAan()
                            BL_MELD, BL_OVERZICHT, BL_OVERZICHT_NAAM)
         If BladBestaatStil(CStr(naam)) Then BladBeveiligen ThisWorkbook.Worksheets(CStr(naam))
     Next naam
+    TabbladenOrdenen
 End Sub
 
 ' Alleen voor de financieel adviseur: beveiliging uit om iets met de hand te herstellen. Gaat bij het volgende openen weer aan.
@@ -4955,4 +5004,256 @@ Private Sub BladBeveiligen(ByVal ws As Worksheet)
     End Select
     ws.Protect Password:=WACHTWOORD, DrawingObjects:=True, Contents:=True, Scenarios:=True, _
                UserInterfaceOnly:=True, AllowFiltering:=True
+End Sub
+
+' Zet de beveiliging van alle bladen tijdelijk uit (voor macro's die veel schrijven). Daarna altijd BeveiligingAan.
+Private Sub BeveiligingTijdelijkUit()
+    Dim ws As Worksheet
+    On Error Resume Next
+    For Each ws In ThisWorkbook.Worksheets
+        ws.Unprotect WACHTWOORD
+    Next ws
+End Sub
+
+' Haalt bladen weg die eerdere versies van de overzichtmacro hebben gemaakt (een blad per opvraging).
+' Alleen bladen met een naam volgens dat patroon EN de titel van het overzicht in A1; andere bladen blijven staan.
+Private Sub OudeOverzichtbladenOpruimen()
+    Dim i As Long, ws As Worksheet, nm As String, titel As String
+    Application.DisplayAlerts = False
+    For i = ThisWorkbook.Worksheets.Count To 1 Step -1
+        Set ws = ThisWorkbook.Worksheets(i)
+        nm = ws.Name
+        titel = CStr(ws.Range("A1").Value)
+        If (nm Like "Kredietoverzicht ##-##-####*" Or nm Like "Krediet * ##-##-##*" Or nm Like "Jaarrekening #### ##-##-##*") _
+           And (titel Like "Kredietoverzicht investeringskredieten*" Or titel Like "Kredietoverzicht jaarrekening*") Then
+            ws.Unprotect WACHTWOORD
+            ws.Delete
+        End If
+    Next i
+    Application.DisplayAlerts = True
+End Sub
+
+' AutoFit is bij lange teksten met terugloop niet altijd betrouwbaar. Schat per regel het aantal tekstregels
+' in de opgegeven kolommen en maak de rij zo nodig hoger.
+Private Sub RijhoogteBijstellen(ByVal ws As Worksheet, ByVal van As Long, ByVal tot As Long, ByVal kolommen As Variant)
+    Dim r As Long, k As Variant, regels As Long, n As Long, breedte As Double, tekst As String, hoogte As Double
+    For r = van To tot
+        regels = 1
+        For Each k In kolommen
+            tekst = CStr(ws.Cells(r, CLng(k)).Value)
+            breedte = ws.Columns(CLng(k)).ColumnWidth
+            If Len(tekst) > 0 And breedte > 0 Then
+                n = -Int(-Len(tekst) / (breedte * 1.05))       ' naar boven afronden
+                If n > regels Then regels = n
+            End If
+        Next k
+        hoogte = regels * 12.75 + 2
+        If hoogte > 409 Then hoogte = 409
+        If ws.Rows(r).RowHeight < hoogte Then ws.Rows(r).RowHeight = hoogte
+    Next r
+End Sub
+
+' ======================================================================
+' Uitvraag kadernota / begroting (financieel adviseur)
+' ======================================================================
+' Overzicht waarmee teamleiders de investeringen actualiseren. Kolommen uit de verzamellijst:
+' C, D, O, S, Y, AD, AE t/m AI en AJ (toelichting leeg, in te vullen). Alleen lopende kredieten (L).
+' Een blad 'Laatste uitvraag begroting' met alle budgetbeheerders, plus per budgetbeheerder een bestand
+' in map 02 (submap per persoon).
+Public Sub UitvraagBegroting()
+    Dim wv As Worksheet, ws As Worksheet, map As String, namen As Object, nm As Variant, laatste As Long, r As Long, n As Long
+    If Not HeeftRecht("Toevoegen") Then
+        MsgBox "De uitvraag wordt gemaakt door de financieel adviseur.", vbExclamation
+        Exit Sub
+    End If
+    Set wv = ThisWorkbook.Worksheets("Verzamellijst alle kredieten")
+    laatste = CLng(ThisWorkbook.Names("Par_LaatsteRij").RefersToRange.Value)
+    Set namen = CreateObject("Scripting.Dictionary")
+    For r = 2 To laatste
+        If Not Leeg(wv.Cells(r, 1).Value) And UCase$(Left$(Trim$(CStr(wv.Cells(r, 8).Value)), 1)) = "L" _
+           And Not Leeg(wv.Cells(r, 15).Value) Then namen(Trim$(CStr(wv.Cells(r, 15).Value))) = True
+    Next r
+    If MsgBox("Uitvraag kadernota/begroting maken voor " & namen.Count & " budgetbeheerders?" & vbCrLf & _
+              "Per budgetbeheerder komt een bestand in map '02 Budgetbeheerders en projectleiders'.", _
+              vbYesNo + vbQuestion, "Uitvraag kadernota/begroting") <> vbYes Then Exit Sub
+    map = MapStambestand("02 Budgetbeheerders en projectleiders")
+    Application.ScreenUpdating = False
+    If Len(map) > 0 Then
+        For Each nm In namen.Keys
+            Set ws = UitvraagBlad(CStr(nm))
+            If Not ws Is Nothing Then
+                BladOpslaan ws, SubMap(map, CStr(nm)), "Uitvraag kadernota-begroting " & nm & " " & Format$(Date, "dd-mm-yyyy")
+                n = n + 1
+            End If
+        Next nm
+    End If
+    Set ws = UitvraagBlad("")                         ' als laatste: het blad met iedereen blijft in de werkmap staan
+    Application.ScreenUpdating = True
+    If Not ws Is Nothing Then ws.Activate
+    LogRegel "uitvraag kadernota/begroting", , , "", , , n & " bestanden"
+    MsgBox "Uitvraag gemaakt. " & n & " bestanden opgeslagen in:" & vbCrLf & map, vbInformation
+End Sub
+
+' Bouwt het blad 'Laatste uitvraag begroting' voor een budgetbeheerder (of iedereen als naam leeg is).
+Private Function UitvraagBlad(ByVal naam As String) As Worksheet
+    Const BL_UITVRAAG As String = "Laatste uitvraag begroting"
+    Dim wv As Worksheet, ws As Worksheet, v As Variant, laatste As Long, n As Long, r As Long, i As Long, k As Long, c As Long
+    Dim sel() As Long, sl() As String, tk() As Boolean, nSel As Long, lj As Long, bronKol As Variant, kop As Variant
+    Dim rij As Long, eersteData As Long, vBh As String, bh As String, startBh As Long, nK As Long
+
+    Set wv = ThisWorkbook.Worksheets("Verzamellijst alle kredieten")
+    lj = CLng(ThisWorkbook.Names("Par_LopendJaar").RefersToRange.Value)
+    laatste = CLng(ThisWorkbook.Names("Par_LaatsteRij").RefersToRange.Value)
+    v = wv.Range("A2:AW" & laatste).Value
+    n = UBound(v, 1)
+    ReDim sel(1 To n): ReDim sl(1 To n): ReDim tk(1 To n)
+    For r = 1 To n
+        If Not Leeg(v(r, 1)) And UCase$(Left$(Trim$(CStr(v(r, 8))), 1)) = "L" Then
+            If Len(naam) = 0 Or StrComp(Trim$(CStr(v(r, 15))), naam, vbTextCompare) = 0 Then
+                nSel = nSel + 1
+                sel(nSel) = r
+                sl(nSel) = LCase$(Trim$(CStr(v(r, 15)))) & Chr$(1) & SorteerDeel(v(r, 2)) & Chr$(1) & NrTekst(v(r, 3)) & Chr$(1) & _
+                           Format$(v(r, 1), "000000000")
+            End If
+        End If
+    Next r
+    If nSel = 0 Then Exit Function
+    SorteerSleutels sl, sel, tk, 1, nSel
+
+    If BladBestaatStil(BL_UITVRAAG) Then
+        Application.DisplayAlerts = False
+        ThisWorkbook.Worksheets(BL_UITVRAAG).Unprotect WACHTWOORD
+        ThisWorkbook.Worksheets(BL_UITVRAAG).Delete
+        Application.DisplayAlerts = True
+    End If
+    Set ws = ThisWorkbook.Worksheets.Add(After:=ThisWorkbook.Worksheets(ThisWorkbook.Worksheets.Count))
+    ws.Name = BL_UITVRAAG
+    ws.Tab.Color = RGB(0, 73, 118)
+    ActiveWindow.DisplayGridlines = False
+    ws.Cells.Font.Name = "Arial"
+    ws.Cells.Font.Size = 10
+
+    ' kolommen uit de verzamellijst: C, D, O, S, Y, AD, AE t/m AI, AJ
+    bronKol = Array(3, 4, 15, 19, 25, 30, 31, 32, 33, 34, 35, 36)
+    nK = UBound(bronKol) + 1
+    ws.Range("A1").Value = "Uitvraag actualisatie investeringen kadernota / begroting " & (lj + 1)
+    With ws.Range("A1").Font
+        .Bold = True
+        .Size = 16
+        .Color = RGB(0, 73, 118)
+    End With
+    ws.Range("A2").Value = IIf(Len(naam) > 0, "Budgetbeheerder: " & naam & " - ", "") & "stand " & Format$(Date, "dd-mm-yyyy") & _
+                           ". Pas zo nodig de gele kolommen aan en licht de wijziging toe."
+    ws.Range("A2").Font.Size = 11
+    ws.Range("A2").Font.Color = RGB(89, 89, 89)
+    ws.Rows(1).RowHeight = 26
+    ' rij 4: verwijzing naar de kolom in de verzamellijst
+    For k = 0 To nK - 1
+        ws.Cells(4, k + 1).Value = "kolom " & Split(wv.Cells(1, bronKol(k)).Address(True, False), "$")(0)
+        kop = wv.Cells(1, bronKol(k)).Text
+        If bronKol(k) = 36 Then kop = "Toelichting op de wijziging (in te vullen)"
+        ws.Cells(5, k + 1).Value = kop
+    Next k
+    With ws.Range(ws.Cells(4, 1), ws.Cells(4, nK))
+        .Font.Size = 8
+        .Font.Color = RGB(128, 128, 128)
+        .HorizontalAlignment = xlCenter
+    End With
+    With ws.Range(ws.Cells(5, 1), ws.Cells(5, nK))
+        .Font.Bold = True
+        .Font.Color = RGB(255, 255, 255)
+        .Interior.Color = RGB(0, 73, 118)
+        .WrapText = True
+        .VerticalAlignment = xlCenter
+    End With
+    ws.Rows(5).RowHeight = 30
+
+    rij = 6: eersteData = 6: vBh = Chr$(0)
+    For i = 1 To nSel
+        r = sel(i)
+        bh = Trim$(CStr(v(r, 15)))
+        If bh <> vBh Then
+            If vBh <> Chr$(0) Then Tussentotaal ws, rij, startBh, "Totaal " & vBh, 6, 11, 1
+            ws.Cells(rij, 1).Value = IIf(Len(bh) > 0, bh, "(geen budgetbeheerder)")
+            ws.Range(ws.Cells(rij, 1), ws.Cells(rij, nK)).Font.Bold = True
+            ws.Range(ws.Cells(rij, 1), ws.Cells(rij, nK)).Interior.Color = RGB(214, 228, 240)
+            ws.Range(ws.Cells(rij, 1), ws.Cells(rij, nK)).Font.Color = RGB(0, 73, 118)
+            rij = rij + 1: startBh = rij
+            vBh = bh
+        End If
+        ws.Cells(rij, 1).NumberFormat = "@"
+        ws.Cells(rij, 1).Value = NrTekst(v(r, 3))
+        ws.Cells(rij, 2).Value = v(r, 4)
+        ws.Cells(rij, 3).Value = v(r, 15)
+        ws.Cells(rij, 4).Value = CodeNaarWeergave("Tbl_Taakveld", v(r, 19))
+        ws.Cells(rij, 5).Value = v(r, 25)
+        ws.Cells(rij, 6).Value = Nul(v(r, 30))
+        For k = 1 To 5
+            ws.Cells(rij, 6 + k).Value = Nul(v(r, 30 + k))
+        Next k
+        rij = rij + 1
+    Next i
+    Tussentotaal ws, rij, startBh, "Totaal " & vBh, 6, 11, 1
+    ws.Cells(rij, 1).Value = "Eindtotaal"
+    For c = 6 To 11
+        ws.Cells(rij, c).Formula = "=SUBTOTAL(9," & ws.Range(ws.Cells(eersteData, c), ws.Cells(rij - 1, c)).Address(False, False) & ")"
+    Next c
+    With ws.Range(ws.Cells(rij, 1), ws.Cells(rij, nK))
+        .Font.Bold = True
+        .Borders(xlEdgeTop).LineStyle = xlContinuous
+        .Borders(xlEdgeBottom).LineStyle = xlDouble
+    End With
+
+    ' opmaak: in te vullen kolommen geel (budgetten en toelichting)
+    For k = eersteData To rij - 1
+        If Not Leeg(ws.Cells(k, 2).Value) And Not ws.Cells(k, 6).HasFormula Then   ' kredietregel, geen totaalregel
+            ws.Range(ws.Cells(k, 7), ws.Cells(k, 12)).Interior.Color = RGB(255, 255, 204)
+        End If
+    Next k
+    ws.Range(ws.Cells(eersteData, 6), ws.Cells(rij, 11)).NumberFormat = "#,##0;-#,##0;-"
+    ws.Range(ws.Cells(5, 6), ws.Cells(rij, 11)).HorizontalAlignment = xlRight
+    ws.Range(ws.Cells(5, 5), ws.Cells(rij, 5)).HorizontalAlignment = xlCenter
+    ws.Range(ws.Cells(eersteData, 1), ws.Cells(rij, 4)).HorizontalAlignment = xlLeft
+    ws.Range(ws.Cells(eersteData, 12), ws.Cells(rij, 12)).HorizontalAlignment = xlLeft
+    ws.Columns(1).ColumnWidth = 13
+    ws.Columns(2).ColumnWidth = 40
+    ws.Columns(3).ColumnWidth = 20
+    ws.Columns(4).ColumnWidth = 30
+    ws.Columns(5).ColumnWidth = 7
+    ws.Range(ws.Columns(6), ws.Columns(11)).ColumnWidth = 13
+    ws.Columns(12).ColumnWidth = 60
+    ws.Range(ws.Cells(eersteData, 2), ws.Cells(rij, 4)).WrapText = True
+    ws.Range(ws.Cells(eersteData, 12), ws.Cells(rij, 12)).WrapText = True
+    ws.Range(ws.Cells(eersteData, 1), ws.Cells(rij, nK)).VerticalAlignment = xlTop
+    ws.Range(ws.Cells(eersteData, 1), ws.Cells(rij, nK)).Rows.AutoFit
+    RijhoogteBijstellen ws, eersteData, rij, Array(2, 3, 4)
+    LogoPlaatsen ws, 12
+    ws.Activate
+    ActiveWindow.FreezePanes = False
+    ws.Range("C6").Select
+    ActiveWindow.FreezePanes = True
+    On Error Resume Next
+    With ws.PageSetup
+        .Orientation = xlLandscape
+        .PrintTitleRows = "$4:$5"
+        .Zoom = False
+        .FitToPagesWide = 1
+        .FitToPagesTall = False
+        .CenterFooter = "Pagina &P van &N"
+    End With
+    On Error GoTo 0
+    TabbladenOrdenen
+    ws.Activate
+    Set UitvraagBlad = ws
+End Function
+
+' Controle en Voertuigen altijd als laatste tabbladen.
+Private Sub TabbladenOrdenen()
+    Dim naam As Variant
+    On Error Resume Next
+    For Each naam In Array("Voertuigen", "Controle")
+        If BladBestaatStil(CStr(naam)) Then
+            ThisWorkbook.Worksheets(CStr(naam)).Move After:=ThisWorkbook.Worksheets(ThisWorkbook.Worksheets.Count)
+        End If
+    Next naam
 End Sub

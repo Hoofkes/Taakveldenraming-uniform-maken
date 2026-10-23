@@ -68,6 +68,15 @@ Werkwijze in elke schrijfmacro: nulmeting vooraf en achteraf (alleen datarijen, 
 - Afgesloten krediet (A): restant = 0 (formule AD via `RestantFormuleBijwerken`, eenmalig; vervangt handmatige nullen). In de overzichten kolom "Vrijval (+) / overschrijding (-) bij afsluiten" = budget - werkelijk, zodat budget = werkelijk + restant + vrijval altijd sluit.
 - `ToelichtingVoertuigenWissen`: eenmalig, toelichting bij voertuigen leeg (25 regels; leaseconstructie verwarrend, apart probleem).
 
+## Ronde feedback overzichten
+- Raad en jaarrekening: alleen t/m lopend jaar (geen budgetkolommen +1..+5; regels zonder budget en uitgaven t/m het jaar vallen weg). Jaarrekening zonder back-upblad: PROEF op huidige stand (niet opgeslagen).
+- Rijhoogte: na AutoFit schatting via `RijhoogteBijstellen` (lange teksten altijd leesbaar).
+- Oude overzichtbladen (patroon + titel in A1) worden automatisch opgeruimd.
+- Dashboard: blok 3 alleen "Kredietoverzicht op naam" (C58/C59); blok 4 (rij 64-66) voor financieel adviseur: raad, jaarrekening, uitvraag kadernota/begroting, alle budgethouders, tijdschrijven (met rechtencontrole).
+- `UitvraagBegroting`: kolommen C, D, O, S, Y, AD, AE-AI, AJ (leeg, in te vullen), alleen L, per budgetbeheerder groep; rij 4 verwijst naar de kolom in de verzamellijst; gele kolommen = in te vullen; bestand per budgetbeheerder in 02\<naam>; blad 'Laatste uitvraag begroting' (onbeveiligd).
+- Uitgaven bijwerken zet de beveiliging tijdelijk uit en daarna weer aan (ook bij fout).
+- Tabbladen Voertuigen en Controle altijd als laatste.
+
 ## Bladbeveiliging
 - Wachtwoord "Best" (constante WACHTWOORD in de module; VBA-project zelf ook met wachtwoord vergrendelen). `BeveiligingAan` bij elk openen (Auto_Open, UserInterfaceOnly), na upload en na elk overzicht. Verzamellijst, Logboek, Vorige upload, Parameters, Dashboard, Controle, Meldingen en overzichtbladen op slot. Open: Dashboard Kaart_Invoer, bronnen bijdragen (kolom B), C58:C59; Parameters gele tabelkolommen. Filteren mag (autofilter op de verzamellijst), sorteren niet. Geen werkmapstructuur-beveiliging.
 - `BeveiligingUit` (alleen financieel adviseur) voor herstel met de hand. Tabellen op Parameters groeien niet op een beveiligd blad: nieuwe rij met de hand = eerst BeveiligingUit (zelfregistratie via intake regelt het zelf).
