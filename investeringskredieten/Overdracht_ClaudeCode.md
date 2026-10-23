@@ -70,7 +70,7 @@ Werkwijze in elke schrijfmacro: nulmeting vooraf en achteraf (alleen datarijen, 
 
 ## Ronde feedback overzichten
 - Raad en jaarrekening: alleen t/m lopend jaar (geen budgetkolommen +1..+5; regels zonder budget en uitgaven t/m het jaar vallen weg). Jaarrekening zonder back-upblad: PROEF op huidige stand (niet opgeslagen).
-- Rijhoogte: na AutoFit schatting via `RijhoogteBijstellen` (lange teksten altijd leesbaar).
+- Kolombreedte/rijhoogte via `BladOpmaken` (geen AutoFit): kop minstens langste woord breed, bedragkolommen breder bij ####, rijhoogte via `AantalRegels` (woordterugloop, Arial 10). Geldt voor alle overzichten, uitvraag, tijdschrijven en meldingen. Workbook-standaardlettertype is Aptos Narrow 11 (breedte-eenheid ~6 px).
 - Oude overzichtbladen (patroon + titel in A1) worden automatisch opgeruimd.
 - Dashboard: blok 3 alleen "Kredietoverzicht op naam" (C58/C59); blok 4 (rij 64-66) voor financieel adviseur: raad, jaarrekening, uitvraag kadernota/begroting, alle budgethouders, tijdschrijven (met rechtencontrole).
 - `UitvraagBegroting`: kolommen C, D, O, S, Y, AD, AE-AI, AJ (leeg, in te vullen), alleen L, per budgetbeheerder groep; rij 4 verwijst naar de kolom in de verzamellijst; gele kolommen = in te vullen; bestand per budgetbeheerder in 02\<naam>; blad 'Laatste uitvraag begroting' (onbeveiligd).

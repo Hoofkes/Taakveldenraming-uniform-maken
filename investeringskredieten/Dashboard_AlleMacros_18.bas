@@ -3974,6 +3974,9 @@ Private Function MeldingenSchrijven(ByVal bestand As String, ByVal peil As Date)
     ws.Columns("G:I").ColumnWidth = 16
     ws.Columns("J").ColumnWidth = 80
     ws.Range("A4:J" & rij).VerticalAlignment = xlTop
+    ws.Range("A4:J4").WrapText = True
+    ws.Range("A5:A" & rij & ",D5:D" & rij & ",J5:J" & rij).WrapText = True
+    BladOpmaken ws, 4, 5, rij
     KnopTerug ws, ws.Range("D1")
     MeldingenSchrijven = alarm
 End Function
@@ -4382,18 +4385,16 @@ Private Function OverzichtMaken(ByVal soort As String, ByVal bron As Worksheet, 
     ws.Range(ws.Cells(5, cStat), ws.Cells(rij, cStat)).HorizontalAlignment = xlCenter
     If soort = "naam" Then ws.Range(ws.Cells(5, 4), ws.Cells(rij, 4)).HorizontalAlignment = xlCenter
     ws.Range(ws.Cells(5, cToel), ws.Cells(rij, cMeld)).HorizontalAlignment = xlLeft
-    ws.Columns(1).ColumnWidth = IIf(soort = "naam", 13, 8)
-    ws.Columns(2).ColumnWidth = 42
+    ws.Columns(1).ColumnWidth = IIf(soort = "naam", 16, 9)
+    ws.Columns(2).ColumnWidth = 45
     ws.Columns(3).ColumnWidth = 9
-    If soort = "naam" Then ws.Columns(4).ColumnWidth = 7
-    ws.Range(ws.Columns(cEerste), ws.Columns(cLaatste)).ColumnWidth = 13
+    If soort = "naam" Then ws.Columns(4).ColumnWidth = 8
+    ws.Range(ws.Columns(cEerste), ws.Columns(cLaatste)).ColumnWidth = 15
     ws.Columns(cToel).ColumnWidth = 80
     ws.Columns(cMeld).ColumnWidth = 28
     ws.Range(ws.Cells(eersteData, 2), ws.Cells(rij, 2)).WrapText = True
     ws.Range(ws.Cells(eersteData, cToel), ws.Cells(rij, cMeld)).WrapText = True
     ws.Range(ws.Cells(eersteData, 1), ws.Cells(rij, nK + 7)).VerticalAlignment = xlTop
-    ws.Range(ws.Cells(eersteData, 1), ws.Cells(rij, nK + 7)).Rows.AutoFit
-    RijhoogteBijstellen ws, eersteData, rij, Array(2, cToel, cMeld)
     ' standaard verborgen: status (bij A staat "Krediet afgesloten" in de toelichting) en vrijval/overschrijding
     ws.Columns(cStat).Hidden = True
     ws.Columns(cAfs).Hidden = True
@@ -4417,6 +4418,9 @@ Private Function OverzichtMaken(ByVal soort As String, ByVal bron As Worksheet, 
     KnopTerug ws, ws.Range("A3")
     ' raad en jaarrekening: alleen t/m het jaar, dus geen budgetkolommen voor latere jaren
     If soort <> "naam" Then ws.Range(ws.Columns(nK + 1), ws.Columns(nK + 5)).Delete
+
+    ' kolombreedte en rijhoogte op de definitieve kolommen (na verbergen/verwijderen)
+    BladOpmaken ws, 5, eersteData, rij
 
     ' 8. Afdrukken en vastzetten
     ws.Activate
@@ -4829,17 +4833,18 @@ Public Sub OverzichtTijdschrijven()
     Next i
     ws.Range("A3").Value = huidig.Count & " lopende kredieten: " & nNieuw & " nieuw, " & nGewijzigd & " gewijzigd, " & nAfgesloten & " afgesloten."
     ws.Range("A3").Font.Bold = True
-    ws.Columns("A").ColumnWidth = 14
-    ws.Columns("B").ColumnWidth = 40
+    ws.Columns("A").ColumnWidth = 16
+    ws.Columns("B").ColumnWidth = 45
     ws.Columns("C").ColumnWidth = 9
-    ws.Columns("D").ColumnWidth = 22
+    ws.Columns("D").ColumnWidth = 24
     ws.Columns("E").ColumnWidth = 50
-    ws.Columns("F").ColumnWidth = 11
-    ws.Columns("G").ColumnWidth = 13
+    ws.Columns("F").ColumnWidth = 12
+    ws.Columns("G").ColumnWidth = 15
     ws.Range("A5:G" & rij).VerticalAlignment = xlTop
     ws.Range("B5:B" & rij & ",E5:E" & rij).WrapText = True
     ws.Range("A4:G" & Application.Max(5, rij - 1)).AutoFilter
-    ws.Range("A5:G" & rij).Rows.AutoFit
+    ws.Range("A4:G4").WrapText = True
+    BladOpmaken ws, 4, 5, rij
     KnopTerug ws, ws.Range("F1")
     BladOpslaan ws, map, "Tijdschrijven kredieten " & Format$(Date, "yyyy-mm-dd")
     TabbladenOrdenen
@@ -5063,25 +5068,82 @@ Public Sub OudeOverzichtbladenOpruimen()
     Application.DisplayAlerts = True
 End Sub
 
-' AutoFit is bij lange teksten met terugloop niet altijd betrouwbaar. Schat per regel het aantal tekstregels
-' in de opgegeven kolommen en maak de rij zo nodig hoger.
-Private Sub RijhoogteBijstellen(ByVal ws As Worksheet, ByVal van As Long, ByVal tot As Long, ByVal kolommen As Variant)
-    Dim r As Long, k As Variant, regels As Long, n As Long, breedte As Double, tekst As String, hoogte As Double
-    For r = van To tot
-        regels = 1
-        For Each k In kolommen
-            tekst = CStr(ws.Cells(r, CLng(k)).Value)
-            breedte = ws.Columns(CLng(k)).ColumnWidth
-            If Len(tekst) > 0 And breedte > 0 Then
-                n = -Int(-Len(tekst) / (breedte * 1.05))       ' naar boven afronden
-                If n > regels Then regels = n
-            End If
-        Next k
-        hoogte = regels * 12.75 + 2
-        If hoogte > 409 Then hoogte = 409
-        If ws.Rows(r).RowHeight < hoogte Then ws.Rows(r).RowHeight = hoogte
+' Kolombreedte en rijhoogte zo dat niets onlogisch wordt afgekapt (AutoFit is hiervoor niet betrouwbaar):
+' - kopregel: kolom minstens zo breed als het langste woord, rijhoogte naar het aantal regels;
+' - bedragkolommen: breder zolang er #### wordt getoond;
+' - regels: rijhoogte naar het aantal tekstregels in de cellen met terugloop (alleen zichtbare kolommen).
+Private Sub BladOpmaken(ByVal ws As Worksheet, ByVal kopRij As Long, ByVal van As Long, ByVal tot As Long)
+    Dim c As Long, r As Long, lk As Long, w As Variant, nodig As Double, n As Long, regels As Long, cel As Range, stap As Long
+    lk = ws.Cells(kopRij, ws.Columns.Count).End(xlToLeft).Column
+    Application.Calculate
+    ' 1. kopregel: langste woord moet passen
+    For c = 1 To lk
+        If Not ws.Columns(c).Hidden Then
+            For Each w In Split(Replace(CStr(ws.Cells(kopRij, c).Value), "/", "/ "), " ")
+                nodig = (Len(CStr(w)) * 7.4 + 9) / 6
+                If ws.Columns(c).ColumnWidth < nodig Then ws.Columns(c).ColumnWidth = nodig
+            Next w
+        End If
+    Next c
+    ' 2. bedragen: geen ####
+    For c = 1 To lk
+        If Not ws.Columns(c).Hidden Then
+            For stap = 1 To 6
+                n = 0
+                For r = van To tot
+                    Set cel = ws.Cells(r, c)
+                    If Not IsEmpty(cel.Value) Then
+                        If IsNumeric(cel.Value) And Left$(cel.Text, 1) = "#" Then n = n + 1: Exit For
+                    End If
+                Next r
+                If n = 0 Then Exit For
+                ws.Columns(c).ColumnWidth = ws.Columns(c).ColumnWidth + 2
+            Next stap
+        End If
+    Next c
+    ' 3. rijhoogte kopregel en regels
+    For r = kopRij To tot
+        If r = kopRij Or r >= van Then
+            regels = 1
+            For c = 1 To lk
+                If Not ws.Columns(c).Hidden Then
+                    Set cel = ws.Cells(r, c)
+                    If cel.WrapText And Len(CStr(cel.Value)) > 0 And Not IsNumeric(cel.Value) Then
+                        n = AantalRegels(CStr(cel.Value), ws.Columns(c).ColumnWidth, cel.Font.Bold)
+                        If n > regels Then regels = n
+                    End If
+                End If
+            Next c
+            ws.Rows(r).RowHeight = Application.Min(409, regels * 12.75 + IIf(r = kopRij, 8, 3))
+        End If
     Next r
 End Sub
+
+' Aantal tekstregels als de tekst met terugloop in een kolom van deze breedte staat (Arial 10).
+Private Function AantalRegels(ByVal tekst As String, ByVal breedte As Double, ByVal vet As Boolean) As Long
+    Dim ruimte As Double, teken As Double, regel As Double, w As Variant, lw As Double, n As Long, deel As Variant
+    ruimte = breedte * 6 + 5 - 6                 ' pixels in de kolom, min wat marge
+    teken = IIf(vet, 7.4, 6.8)                   ' gemiddelde tekenbreedte Arial 10 in pixels
+    n = 0
+    For Each deel In Split(Replace(tekst, vbCr, ""), vbLf)
+        n = n + 1: regel = 0
+        For Each w In Split(CStr(deel), " ")
+            lw = Len(CStr(w)) * teken
+            If regel = 0 Then
+                regel = lw
+            ElseIf regel + teken + lw <= ruimte Then
+                regel = regel + teken + lw
+            Else
+                n = n + 1: regel = lw
+            End If
+            Do While regel > ruimte                ' woord langer dan de kolom
+                n = n + 1: regel = regel - ruimte
+            Loop
+        Next w
+    Next deel
+    If n < 1 Then n = 1
+    AantalRegels = n
+End Function
 
 ' ======================================================================
 ' Uitvraag kadernota / begroting (financieel adviseur)
@@ -5244,18 +5306,17 @@ Private Function UitvraagBlad(ByVal naam As String) As Worksheet
     ws.Range(ws.Cells(5, 5), ws.Cells(rij, 5)).HorizontalAlignment = xlCenter
     ws.Range(ws.Cells(eersteData, 1), ws.Cells(rij, 4)).HorizontalAlignment = xlLeft
     ws.Range(ws.Cells(eersteData, 12), ws.Cells(rij, 12)).HorizontalAlignment = xlLeft
-    ws.Columns(1).ColumnWidth = 13
-    ws.Columns(2).ColumnWidth = 40
-    ws.Columns(3).ColumnWidth = 20
-    ws.Columns(4).ColumnWidth = 30
-    ws.Columns(5).ColumnWidth = 7
-    ws.Range(ws.Columns(6), ws.Columns(11)).ColumnWidth = 13
+    ws.Columns(1).ColumnWidth = 16
+    ws.Columns(2).ColumnWidth = 45
+    ws.Columns(3).ColumnWidth = 22
+    ws.Columns(4).ColumnWidth = 32
+    ws.Columns(5).ColumnWidth = 8
+    ws.Range(ws.Columns(6), ws.Columns(11)).ColumnWidth = 15
     ws.Columns(12).ColumnWidth = 60
     ws.Range(ws.Cells(eersteData, 2), ws.Cells(rij, 4)).WrapText = True
     ws.Range(ws.Cells(eersteData, 12), ws.Cells(rij, 12)).WrapText = True
     ws.Range(ws.Cells(eersteData, 1), ws.Cells(rij, nK)).VerticalAlignment = xlTop
-    ws.Range(ws.Cells(eersteData, 1), ws.Cells(rij, nK)).Rows.AutoFit
-    RijhoogteBijstellen ws, eersteData, rij, Array(2, 3, 4)
+    BladOpmaken ws, 5, eersteData, rij
     LogoPlaatsen ws, 12
     KnopTerug ws, ws.Range("A3")
     ws.Activate
