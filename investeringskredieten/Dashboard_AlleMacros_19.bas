@@ -3711,7 +3711,8 @@ Private Sub VerdeelGroep(ByVal vS As Variant, ByVal rijen As Collection, ByVal b
     For Each r In rijen
         nieuw(r) = 0
         gezet(r) = True
-        If Nul(vS(r, 11)) > 0 Then somK = somK + Nul(vS(r, 11)): laatsteR = r
+        ' alleen uitgavenregels; een bijdrageregel (negatief budget) telt niet mee in de verdeelsleutel
+        If Nul(vS(r, 11)) > 0 And BudgetRegel(vS, r) >= 0 Then somK = somK + Nul(vS(r, 11)): laatsteR = r
     Next r
     If somK <= 0 Then
         nieuw(rijen(1)) = bedrag
@@ -3719,7 +3720,7 @@ Private Sub VerdeelGroep(ByVal vS As Variant, ByVal rijen As Collection, ByVal b
     End If
     rest = bedrag
     For Each r In rijen
-        If Nul(vS(r, 11)) > 0 And r <> laatsteR Then
+        If Nul(vS(r, 11)) > 0 And BudgetRegel(vS, r) >= 0 And r <> laatsteR Then
             deel = Round(bedrag * Nul(vS(r, 11)) / somK, 2)
             nieuw(r) = deel
             rest = rest - deel
@@ -6222,7 +6223,7 @@ Public Sub ControlesVernieuwen()
             t = "rij " & r & " (" & IIf(Leeg(v(r, 3)), "volgnr " & v(r, 1), NrTekst(v(r, 3))) & ")"
             st = UCase$(Trim$(CStr(v(r, 8))))
             If CStr(v(r, 5)) = "fout" Or CStr(v(r, 7)) = "fout" Then Voeg waar(0), aant(0), t
-            If IsGetal(v(r, 10)) And IsGetal(v(r, 11)) Then
+            If IsGetal(v(r, 10)) And IsGetal(v(r, 11)) And Not HeeftNegatiefBudget(v, r) Then   ' bijdrageregels tellen niet mee
                 grp(CStr(v(r, 10))) = grp(CStr(v(r, 10))) + CDbl(v(r, 11))
                 grpRij(CStr(v(r, 10))) = grpRij(CStr(v(r, 10))) & IIf(Len(grpRij(CStr(v(r, 10)))) > 0, ", ", "") & r
             End If
