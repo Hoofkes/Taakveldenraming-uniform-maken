@@ -11,7 +11,8 @@ Private mMeld As Collection
 Private mVorige As Object          ' bedragen per kredietnummer en jaar uit de vorige upload
 Private mHeeftVorige As Boolean
 Private mAansl As String
-Private Const BL_OVERZICHT As String = "Laatste kredietoverzicht"
+Private Const BL_OVERZICHT As String = "Laatste kredietoverzicht"          ' raad en jaarrekening
+Private Const BL_OVERZICHT_NAAM As String = "Laatste overzicht op naam"  ' budgethouder / projectleider
 Private mStil As Boolean             ' geen meldingen tijdens een reeks overzichten
 
 Private Type TKaart
@@ -4166,19 +4167,20 @@ Private Function OverzichtMaken(ByVal soort As String, ByVal bron As Worksheet, 
     cEerste = cBud: cLaatste = nK + 5
     cToel = nK + 6: cMeld = nK + 7
 
-    ' 4. Blad: er staat altijd maar een overzicht in de werkmap; de vorige opvraging wordt vervangen
+    ' 4. Blad: een blad voor het laatste overzicht op naam en een voor het laatste kredietoverzicht; de vorige opvraging wordt vervangen
     Select Case soort
         Case "raad": selTekst = "L t/m " & jaar & " plus A" & jaar & "; zonder regels met negatief budget"
         Case "naam": selTekst = RolNaam(naamKol) & ": " & naam & "; alleen lopende kredieten"
         Case Else:   selTekst = "stand 31-12-" & jaar & " (blad " & bron.Name & "): L t/m " & jaar & " plus A" & jaar
     End Select
-    If BladBestaatStil(BL_OVERZICHT) Then
+    bladNaam = IIf(soort = "naam", BL_OVERZICHT_NAAM, BL_OVERZICHT)
+    If BladBestaatStil(bladNaam) Then
         Application.DisplayAlerts = False
-        ThisWorkbook.Worksheets(BL_OVERZICHT).Delete
+        ThisWorkbook.Worksheets(bladNaam).Delete
         Application.DisplayAlerts = True
     End If
     Set ws = ThisWorkbook.Worksheets.Add(After:=ThisWorkbook.Worksheets(ThisWorkbook.Worksheets.Count))
-    ws.Name = BL_OVERZICHT
+    ws.Name = bladNaam
     ws.Tab.Color = RGB(0, 73, 118)
     ActiveWindow.DisplayGridlines = False
     ws.Cells.Font.Name = "Arial"
