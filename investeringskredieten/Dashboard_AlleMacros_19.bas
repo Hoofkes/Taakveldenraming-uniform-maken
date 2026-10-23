@@ -4450,7 +4450,7 @@ Private Function OverzichtMaken(ByVal soort As String, ByVal bron As Worksheet, 
     '     met een totaal per project. Telt niet mee in het eindtotaal hierboven (alleen een andere indeling).
     If soort <> "naam" Then
         Dim pg As Object, pk As Variant, pr As Variant, startSec As Long, startPrj As Long, prjNaam As String, pi As Long
-        Dim gesorteerd() As String, ns As Long, a As Long, b As Long, tmpS As String
+        Dim gesorteerd() As String, ns As Long, ia As Long, ib As Long, tmpS As String
         Set pg = CreateObject("Scripting.Dictionary")
         For i = 1 To nSel
             r = sel(i)
@@ -4464,14 +4464,14 @@ Private Function OverzichtMaken(ByVal soort As String, ByVal bron As Worksheet, 
         For Each pk In pg.Keys
             If pg(pk).Count >= 2 Then ns = ns + 1: gesorteerd(ns) = Format$(CLng(pk), "000000")
         Next pk
-        For a = 2 To ns
-            tmpS = gesorteerd(a): b = a - 1
-            Do While b >= 1
-                If gesorteerd(b) <= tmpS Then Exit Do
-                gesorteerd(b + 1) = gesorteerd(b): b = b - 1
+        For ia = 2 To ns
+            tmpS = gesorteerd(ia): ib = ia - 1
+            Do While ib >= 1
+                If gesorteerd(ib) <= tmpS Then Exit Do
+                gesorteerd(ib + 1) = gesorteerd(ib): ib = ib - 1
             Loop
-            gesorteerd(b + 1) = tmpS
-        Next a
+            gesorteerd(ib + 1) = tmpS
+        Next ia
         If ns > 0 Then
             rij = rij + 3
             ws.Cells(rij, 1).Value = "Programma-overstijgende projecten (samengestelde kredieten)"
