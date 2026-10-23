@@ -6125,8 +6125,15 @@ Public Sub ControleblokPlaatsen()
     r = CB_LAATSTE + 2
     ws.Cells(r, 2).Value = "Kengetallen": ws.Cells(r, 2).Font.Bold = True
     r = r + 1
-    Kengetal ws, r, "Aantal lopende kredieten (L)", "=COUNTIF(" & Rg("H") & ",""L*"")", "0"
-    Kengetal ws, r, "Aantal afgesloten kredieten (A)", "=COUNTIF(" & Rg("H") & ",""A*"")", "0"
+    ' lopend: alleen t/m het lopend jaar (geen kredieten die pas in een toekomstig jaar starten)
+    Kengetal ws, r, "=""Aantal lopende kredieten (L t/m ""&Par_LopendJaar&"")""", "=SUMPRODUCT((LEFT(" & Rg("H") & ",1)=""L"")*(IFERROR(--MID(" & _
+             Rg("H") & ",2,4),9999)<=Par_LopendJaar))", "0"
+    ' afgesloten per jaar: lopend jaar, de twee jaren ervoor, en eerder
+    For k = 0 To 2
+        Kengetal ws, r, "=""Aantal afgesloten in ""&(Par_LopendJaar-" & k & ")", "=COUNTIF(" & Rg("H") & ",""A""&(Par_LopendJaar-" & k & "))", "0"
+    Next k
+    Kengetal ws, r, "=""Aantal afgesloten voor ""&(Par_LopendJaar-2)", "=SUMPRODUCT((LEFT(" & Rg("H") & ",1)=""A"")*(IFERROR(--MID(" & _
+             Rg("H") & ",2,4),9999)<Par_LopendJaar-2))", "0"
     Kengetal ws, r, "=""Budget t/m ""&Par_LopendJaar", "=SUM(" & Rg("Z") & ")", ""
     Kengetal ws, r, "=""Werkelijke uitgaven t/m ""&Par_LopendJaar", "=SUM(" & Rg("AA") & ")+SUM(" & Rg("AB") & ")+SUM(" & Rg("AC") & ")", ""
     Kengetal ws, r, "Restantkrediet", "=SUM(" & Rg("AD") & ")", ""
