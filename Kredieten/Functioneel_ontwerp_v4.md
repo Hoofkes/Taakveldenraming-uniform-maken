@@ -574,3 +574,30 @@ Een aparte uitvraag voor het **lopende jaar** bestaat nog niet. Of die nodig is 
 14. Macro **Jaarrol** (§ 2.7) — als laatste, want die raakt alle bedragen. Eerst testen op een kopie van de werkmap.
 
 **Later, nog te ontwerpen:** verzamelkredieten in Coda (§ 6.3) en bladbeveiliging. Bij het later alsnog inbouwen van beveiliging geldt: bij het terugzetten altijd `allowEditObjects: true` meegeven, plus autofilter en sorteren toestaan — anders reageren de macroknoppen niet meer.
+
+---
+
+## 12. Vervolgstappen na macroversie 40 (afspraak versie 4)
+
+### 12.1 Werkwijze om schade te voorkomen
+1. Per stap één nieuwe macroversie (bas41, bas42, …), nooit meerdere stappen tegelijk.
+2. Vóór elke stap een kopie van de werkmap opslaan. Eerst op de kopie testen, daarna pas in het echte bestand.
+3. Na het plakken van de nieuwe versie: Foutopsporing > VBAProject compileren. Pas verder als er geen melding komt.
+4. Per stap één testronde met de macro's die in die stap zijn aangepast. Gaat er iets mis: de kopie terugzetten en de foutmelding (tekst, macronaam, regel) bewaren.
+5. Elke stap past alleen bestaande macro's aan, tenzij de stap uitdrukkelijk iets nieuws bouwt.
+
+### 12.2 Stappen
+
+| Stap | Versie | Onderwerp | Inhoud |
+| --- | --- | --- | --- |
+| 1 | bas41 | Kleine fouten zonder datarisico | Keuzelijsten verversen loopt niet meer vast als kolom J geen groepsnummer bevat; uitlegteksten bij de vraagteken-knopjes korter dan 255 tekens; logregels van Lijstwaarden normaliseren en Werkbereik verruimen via de gewone logregel (met gebruiker, rol en aangepaste cellen); map aanmaken mislukt netjes met een melding; overzicht opslaan mislukt netjes (losse werkmap dicht, meldingen weer aan). |
+| 2 | bas42 | Werkelijke uitgaven veilig maken | Harde controle over beide jaren samen (§ 0.1 punt 2); peildatum, logboek en "Vorige upload" pas bijwerken na een geslaagde verwerking; notities pas zetten na de controle; tekst of foutwaarde in de verdeelsleutel (kolom K) geeft een alarm in plaats van 0%; bedrag dat wegvalt wordt 0 met een melding (§ 0.1 punt 3). |
+| 3 | bas43 | Terugdraaien bij een fout | Krediet toevoegen, wijziging opslaan (met controle of het volgnummer nog bij de rij hoort), krediet verwijderen, formule restant bijwerken, besluiten uitvraag verwerken en de jaarovergang zetten bij een fout alles terug. Jaarovergang: kolom M en N volgens § 2.7 punt 7. |
+| 4 | bas44 | Beveiliging | Na een macro ook de back-up "Verzamellijst 31-12-<jaar>", "Verwerking uitvraag" en "Voorstellen nieuwe kredieten" weer beveiligen. Proefregel wissen alleen voor een regel van vandaag zonder werkelijke uitgaven, met logregel. |
+| 5 | bas45 | Kolom J en overzicht op naam | Een groepsnummer in kolom J dat als tekst is opgeslagen, wordt overal als getal behandeld (sortering, verdeling, overzichten). Overzicht op naam toont ook de kredieten die in het lopende jaar zijn afgesloten (§ 0.1 punt 6). |
+| 6 | bas46 | Uitvraag kadernota/begroting | Bouw van § 11: drie knoppen, één blauw tabblad Uitvraag, ophalen per budgethouder, vastleggen van het lopende jaar. Oude knoppen en bladen vervallen. |
+| 7 | bas47 en verder | Ontbrekende onderdelen | Dynamische bereiken (§ 2.3, apart uitvoeren met nulmeting); jaarkoppen als formule met behoud van de notitie op AC1 (§ 2.6); controles § 8.2 nummer 1 (aantal regels bron en spiegelbladen), 2 (rij-voor-rij controle spiegelbladen) en 6 (werkelijke uitgaven hoger dan budget); waarschuwing als het werkbereik bijna vol is (§ 2.4). |
+
+### 12.3 Later, nog te besluiten
+- Een aparte uitvraag voor het lopende jaar (§ 11.5).
+- Verzamelkredieten in Coda (§ 6.3).
