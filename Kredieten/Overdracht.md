@@ -19,7 +19,7 @@ Bron van alles: `Dashboard_AlleMacros_40.bas` (geüpload door de gebruiker, werk
 | Stap | Versie | Onderwerp | Stand |
 | --- | --- | --- | --- |
 | 1 | 41 | Kleine fouten zonder datarisico | **Klaar en getest**: compileren en opslaan goed. |
-| 2 | 42 | Werkelijke uitgaven veilig maken | **Gebouwd, nog niet bevestigd getest.** Na de eerste test gevraagd: rijnummer en omschrijving in "Meldingen uitgaven" (toegevoegd). Open vraag: ook volgnummer (kolom A) tonen? |
+| 2 | 42 | Werkelijke uitgaven veilig maken | **Klaar en getest.** Inclusief rijnummer(s) en omschrijving in "Meldingen uitgaven". Open vraag: ook volgnummer (kolom A) tonen? |
 | 3 | 43 | Terugdraaien bij een fout + jaarovergang M en N | Te doen |
 | 4 | 44 | Beveiliging back-up- en voorstelbladen, proefregel wissen | Te doen |
 | 5 | 45 | Kolom J als getal, A-lopend jaar in overzicht op naam | Te doen |
@@ -81,6 +81,6 @@ Krediet verwijderen via eigen knop; tot en met 31 maart ook vorig jaar (AB) bijw
 
 ## 7. Nog open
 
-- Uitkomst test bas42 (stap 2) en de vraag of het volgnummer ook in "Meldingen uitgaven" moet.
+- De vraag of het volgnummer ook in "Meldingen uitgaven" moet.
 - Een aparte uitvraag voor het lopende jaar: later besluiten (§ 11.5).
 - Verzamelkredieten in Coda: later ontwerpen (§ 6.3).
