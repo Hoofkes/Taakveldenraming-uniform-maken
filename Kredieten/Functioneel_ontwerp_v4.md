@@ -39,6 +39,7 @@
 | 11 | Bladbeveiliging | De beveiliging staat aan (vervangt § 0 punt 6 "voorlopig niet"). Filteren mag op de Verzamellijst, sorteren niet, omdat sorteren de koppeling met de spiegelbladen breekt. Macro's werken op beveiligde bladen doordat de beveiliging "alleen voor de gebruiker" geldt. Vervangt § 10 slotalinea voor zover afwijkend. | Geen: bas40 doet dit al zo. Wel herstellen: na een macro worden ook de back-up "Verzamellijst 31-12-<jaar>", "Verwerking uitvraag" en "Voorstellen nieuwe kredieten" weer beveiligd. |
 | 12 | Dashboard per rol | Financieel adviseur ziet blok 1 (invoerkaart), blok 2 (financieel adviseur) en blok 4 (controles). Financiële administratie ziet blok 3 (financiële administratie) en blok 4 (controles). Applicatiebeheerder ziet alles. Werkwijze controle: de financiële administratie bevestigt of keurt af **per regel**; na afkeuren herstelt de financieel adviseur de regel en biedt die opnieuw aan voor hercontrole. | Geen: bas40 doet dit al zo. |
 | 13 | Aanpassen door de financiële administratie | Rechtstreeks in de Verzamellijst, niet via de invoerkaart (zie punt 9). | Geen: bas40 doet dit al zo. |
+| 14 | Uitvraag kadernota/begroting | Eén eigen onderdeel op het Dashboard met drie knoppen in vaste volgorde en één blauw tabblad. Zie § 11 (nieuw). | Aanpassen: aparte, latere stap, na de herstelpunten. |
 
 ---
 
@@ -525,6 +526,33 @@ Dit is geen fout in de data — een straatreconstructie staat terecht deels onde
 
 1. **Getal versus tekst in kolom J.** De sortering moet getallen als getal behandelen, niet als tekst — anders komt 10 vóór 2 te staan. Gecontroleerd: op dit moment staan alle 14 groepsnummers als **getal** opgeslagen, geen enkele als tekst. Wel blijven controleren bij nieuwe invoer, want een als tekst opgeslagen `7` sorteert anders én valt buiten `ISNUMBER($J2)` in kolom K.
 2. **Teksten in kolom K.** Naast percentages komen in K ook tekstwaarden voor (`nvt, afgerond`, `administratief`). Bij de verdeling van werkelijke uitgaven over samengestelde kredieten (§ 6.2) en bij controle 4 in § 8.2 moeten die regels worden overgeslagen in plaats van als 0% te worden gelezen.
+
+---
+
+## 11. Onderdeel "Actualiseren investeringskredieten kadernota/begroting" (afspraak versie 4)
+
+### 11.1 Doel
+Budgethouders actualiseren de budgetten van hun lopende kredieten voor de **jaren na het lopende jaar** (lopend jaar + 1 tot en met + 5), met omschrijving en toelichting. Het lopende jaar wordt niet uitgevraagd en niet aangepast.
+
+### 11.2 Indeling op het Dashboard
+Eén eigen onderdeel in blok 2 (financieel adviseur), knoppen naast elkaar in deze volgorde:
+
+| Knop | Werking |
+| --- | --- |
+| 1. Uitvraag versturen | Maakt per budgethouder een bestand in map 02 (submap per persoon) en het blauwe tabblad **Uitvraag** met alle budgethouders. |
+| 2. Aanleveringen ophalen | Toont alleen de budgethouders met een nieuwe of gewijzigde aanlevering sinds de vorige keer ophalen. De adviseur kiest **één** budgethouder; alleen diens regels komen op het tabblad Uitvraag. Regels die een adviseur al heeft aangepast of waarover al een besluit is genomen, worden niet overschreven; wijkt de nieuwe aanlevering af, dan krijgt de regel het signaal "aanlevering gewijzigd na beoordeling". Regels van andere budgethouders worden nooit geraakt. |
+| 3. Uitvraag verwerken | Boekt alle regels met besluit "goedkeuren" door naar de Verzamellijst. Die regels krijgen direct de status "Te controleren door financiële administratie". Nieuwe kredieten gaan naar het blad "Voorstellen nieuwe kredieten" en worden door de adviseur ingevoerd via de invoerkaart. Nulmeting vooraf, nameting achteraf, bij een verschil alles terugzetten. |
+
+### 11.3 Tabblad Uitvraag (blauw)
+- Per budgethouder: verstuurd op, ingeleverd op, opgehaald op, verwerkt op.
+- Per investering: wat de budgethouder heeft ingevuld. Elke adviseur kan bedragen aanpassen en per regel kiezen: goedkeuren, afwijzen of nog niet.
+- Het tabblad legt vast voor welk lopend jaar de uitvraag is gemaakt. Ophalen of verwerken in een ander lopend jaar wordt geweigerd; de jaarovergang wordt geblokkeerd zolang er onverwerkte regels staan.
+
+### 11.4 Vervalt
+Knoppen "Stand uitvraag", "Uitvraag verwerken" (oud), "Begroting vastgesteld" en "Uitvraag kadernota/begroting" (oude naam); bladen "Stand uitvraag" en "Verwerking uitvraag"; de ongebruikte macro "ActualisatieVerwerken".
+
+### 11.5 Open
+Een aparte uitvraag voor het **lopende jaar** bestaat nog niet. Of die nodig is en wat erin wordt gevraagd, moet nog worden besloten.
 
 ---
 
