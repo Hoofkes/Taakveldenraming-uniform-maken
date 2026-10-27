@@ -586,6 +586,8 @@ Een aparte uitvraag voor het **lopende jaar** bestaat nog niet. Of die nodig is 
 3. Na het plakken van de nieuwe versie: Foutopsporing > VBAProject compileren. Pas verder als er geen melding komt.
 4. Per stap één testronde met de macro's die in die stap zijn aangepast. Gaat er iets mis: de kopie terugzetten en de foutmelding (tekst, macronaam, regel) bewaren.
 5. Elke stap past alleen bestaande macro's aan, tenzij de stap uitdrukkelijk iets nieuws bouwt.
+6. **De macro's staan vanaf versie 41 in drie modules**: `Kredieten_1_Basis`, `Kredieten_2_Verwerking` en `Kredieten_3_Overzichten`. Eén module van ruim 435.000 tekens bleek te groot: Excel gaf dan bij opslaan "Er zijn fouten opgetreden tijdens het opslaan". Bij elke nieuwe versie: alle drie de oude modules verwijderen (niet exporteren), alle drie de nieuwe importeren, pas daarna compileren.
+7. Geen enkele coderegel langer dan 1.023 tekens (grens van VBA).
 
 ### 12.2 Stappen
 
