@@ -589,15 +589,19 @@ Een aparte uitvraag voor het **lopende jaar** bestaat nog niet. Of die nodig is 
 
 ### 12.2 Stappen
 
+Uitgangspunt: eerst herstellen wat al bestaat (stap 1 tot en met 5), daarna verbouwen (stap 6 en 7), als laatste de onderdelen die alle regels tegelijk raken (stap 8 en 9). Onderdelen die in een latere stap vervallen, worden niet eerst nog hersteld.
+
 | Stap | Versie | Onderwerp | Inhoud |
 | --- | --- | --- | --- |
 | 1 | bas41 | Kleine fouten zonder datarisico | Keuzelijsten verversen loopt niet meer vast als kolom J geen groepsnummer bevat; uitlegteksten bij de vraagteken-knopjes korter dan 255 tekens; logregels van Lijstwaarden normaliseren en Werkbereik verruimen via de gewone logregel (met gebruiker, rol en aangepaste cellen); map aanmaken mislukt netjes met een melding; overzicht opslaan mislukt netjes (losse werkmap dicht, meldingen weer aan). |
 | 2 | bas42 | Werkelijke uitgaven veilig maken | Harde controle over beide jaren samen (§ 0.1 punt 2); peildatum, logboek en "Vorige upload" pas bijwerken na een geslaagde verwerking; notities pas zetten na de controle; tekst of foutwaarde in de verdeelsleutel (kolom K) geeft een alarm in plaats van 0%; bedrag dat wegvalt wordt 0 met een melding (§ 0.1 punt 3). |
-| 3 | bas43 | Terugdraaien bij een fout | Krediet toevoegen, wijziging opslaan (met controle of het volgnummer nog bij de rij hoort), krediet verwijderen, formule restant bijwerken, besluiten uitvraag verwerken en de jaarovergang zetten bij een fout alles terug. Jaarovergang: kolom M en N volgens § 2.7 punt 7. |
-| 4 | bas44 | Beveiliging | Na een macro ook de back-up "Verzamellijst 31-12-<jaar>", "Verwerking uitvraag" en "Voorstellen nieuwe kredieten" weer beveiligen. Proefregel wissen alleen voor een regel van vandaag zonder werkelijke uitgaven, met logregel. |
+| 3 | bas43 | Terugdraaien bij een fout | Krediet toevoegen, wijziging opslaan (met controle of het volgnummer nog bij de rij hoort), krediet verwijderen (logregels pas na de controle), formule restant bijwerken en de jaarovergang zetten bij een fout alles terug. Jaarovergang: kolom M en N volgens § 2.7 punt 7. De uitvraag valt hier buiten (wordt vervangen in stap 7). |
+| 4 | bas44 | Beveiliging | Na een macro ook de back-up "Verzamellijst 31-12-<jaar>" en "Voorstellen nieuwe kredieten" weer beveiligen. Proefregel wissen alleen voor een regel van vandaag zonder werkelijke uitgaven, met logregel. |
 | 5 | bas45 | Kolom J en overzicht op naam | Een groepsnummer in kolom J dat als tekst is opgeslagen, wordt overal als getal behandeld (sortering, verdeling, overzichten). Overzicht op naam toont ook de kredieten die in het lopende jaar zijn afgesloten (§ 0.1 punt 6). |
-| 6 | bas46 | Blok 2 en uitvraag kadernota/begroting | Blok 2 opnieuw indelen volgens § 13 (subonderdelen, rij 38 en 39 vervallen). Bouw van § 11: drie knoppen, één blauw tabblad Uitvraag, ophalen per budgethouder, vastleggen van het lopende jaar. Oude knoppen en bladen vervallen. |
-| 7 | bas47 en verder | Ontbrekende onderdelen | Dynamische bereiken (§ 2.3, apart uitvoeren met nulmeting); jaarkoppen als formule met behoud van de notitie op AC1 (§ 2.6); controles § 8.2 nummer 1 (aantal regels bron en spiegelbladen), 2 (rij-voor-rij controle spiegelbladen) en 6 (werkelijke uitgaven hoger dan budget); waarschuwing als het werkbereik bijna vol is (§ 2.4). |
+| 6 | bas46 | Indeling blok 2 | Subonderdelen 2a en 2b volgens § 13; Kredietoverzicht op naam met keuzevragen in plaats van rij 38 en 39. De knoppen van de oude uitvraag blijven in deze stap nog werken. |
+| 7 | bas47 | Uitvraag kadernota/begroting | Bouw van § 11 en subonderdeel 2c: drie knoppen, één blauw tabblad Uitvraag, ophalen per budgethouder, vastleggen van het lopende jaar, terugdraaien bij een fout. Daarna pas de oude knoppen, bladen en de macro ActualisatieVerwerken weghalen. |
+| 8 | bas48 | Dynamische bereiken | § 2.3, apart uitvoeren: nulmeting vooraf, formules in K, AL, AM en AN omzetten, nameting achteraf, bij elk verschil alles terugzetten. |
+| 9 | bas49 | Jaarkoppen en controles | Eerst in de werkmap nagaan of de jaarkoppen al formules zijn; zo niet, omzetten met behoud van de notitie op AC1 (§ 2.6). Controles § 8.2 nummer 1 (aantal regels bron en spiegelbladen), 2 (rij-voor-rij controle spiegelbladen) en 6 (werkelijke uitgaven hoger dan budget); waarschuwing als het werkbereik bijna vol is (§ 2.4). |
 
 ### 12.3 Later, nog te besluiten
 - Een aparte uitvraag voor het lopende jaar (§ 11.5).
