@@ -30,6 +30,7 @@
 | 2 | Werkelijke uitgaven rond de jaarrekening | **Tot en met 31 maart** van een jaar worden zowel de jaarschijf van het lopende jaar (AC) als die van het voorgaande jaar (AB) bijgewerkt, omdat de jaarrekening dan nog wordt afgesloten. **Na 31 maart** alleen het lopende jaar (AC). Dit geldt elk jaar. Vervangt § 6.2 punt 4. | Werking blijft. Wel: de harde controle (§ 6.2 punt 5) geldt voor **beide jaren samen**. Sluit één jaar niet aan, dan wordt niets weggeschreven, ook niet in het andere jaar. |
 | 3 | Krediet niet meer in het uitgavenbestand | Stond er bij de vorige keer inlezen een bedrag bij een krediet en komt dat krediet niet meer voor in het nieuwe bestand, dan wordt dat **verwerkt**: het bedrag wordt 0, met een melding in `Meldingen uitgaven`. Een krediet zonder eerder bedrag dat niet in het bestand staat, is geen probleem. | Aanpassen: nu blijft het oude bedrag staan met een notitie. |
 | 4 | Jaarovergang: status en kolom M en N | Zie § 2.7 punt 7 (nieuw). Vervangt de eerdere tekst "status in kolom H niet aanraken". | Aanpassen: nu wordt M en N +1 met minimaal het nieuwe jaar, en wordt geen rekening gehouden met een bedrag in het eerste toekomstige jaar. |
+| 5 | Kredietoverzicht voor de raad | Alleen het lopende jaar: geen kolommen Budget +1 tot en met +5. Vervangt § 7.2 regel 6. | Geen: bas40 doet dit al zo. |
 
 ---
 
@@ -430,8 +431,9 @@ Presentatie:
 | 3 | Z | Budget beschikbaar tot en met `<lopend jaar>` |
 | 4 | AA + AB + AC | Totaal werkelijke uitgaven |
 | 5 | AD | **Restantkrediet** |
-| 6 | AE … AI | Budget `<+1>` … Budget `<+5>` |
-| 7 | AJ | Toelichting |
+| 6 | AJ | Toelichting |
+
+**Afspraak versie 4 (§ 0.1 punt 5):** de budgetten vanaf het volgende jaar (AE … AI) staan **niet** in het kredietoverzicht voor de raad. Dat overzicht gaat over het lopende jaar; de budgetten vanaf het volgende jaar horen bij de begroting.
 
 Kolom C (investering boekhouding) komt **niet** in dit overzicht.
 
