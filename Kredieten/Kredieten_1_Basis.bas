@@ -2,6 +2,7 @@ Attribute VB_Name = "Kredieten_1_Basis"
 Option Explicit
 
 ' Alle macros voor het Dashboard investeringskredieten in een module.
+' Versie 42 (stap 2: werkelijke uitgaven - harde poort over beide jaren samen, vastleggen pas na geslaagde verwerking, notities na de controle, foutwaarde in verdeelsleutel K blokkeert, bedrag dat uit de uitdraai verdwijnt wordt 0).
 ' Versie 41 (stap 1: keuzelijst samengestelde kredieten zonder groepsnummer, lange uitlegteksten, logregels normaliseren en werkbereik, map aanmaken en overzicht opslaan met nette foutmelding).
 ' Versie 40 (rijhoogte overzichten 13,5; uitvraag verwerken met de hele lijst; krediet wijzigen en verwijderen op rij 35; uitvraag per budgethouder: inlezen, per investering besluiten, verwerken, stand uitvraag, begroting vastgesteld; knop Uitvraag verwerken voorlopig weg; Dashboard: 1 invoerkaart, 2 financieel adviseur, 3 financiele administratie, 4 controles; toelichting maximaal 1000 tekens; datum keuzeopties in F3; budget in het statusjaar verplicht en geel; fout bij DashboardAanmaken opgelost; nieuwste samengestelde krediet bovenaan in de keuzelijst; applicatiebeheerder ziet alle blokken; blokken per rol, knoppen onder de kaart, budgethouder/projectleider/tijdschrijver vervangen, kortere veldnamen; naam samengesteld krediet direct onder C16; afgekeurd: signaal, herstellen, aanbieden voor hercontrole; kleuren geel = verplicht, lichtblauw = mag leeg; compact Dashboard, kengetallen op eigen tabblad, naam vervangen).
 

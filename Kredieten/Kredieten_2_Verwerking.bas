@@ -1,6 +1,8 @@
 Attribute VB_Name = "Kredieten_2_Verwerking"
 Option Explicit
 
+Private mBlok As Boolean          ' foutwaarde in de verdeelsleutel: werkelijke uitgaven niet wegschrijven
+
 ' Vervolg van de macro's voor het Dashboard investeringskredieten (gesplitst vanwege de grootte; declaraties in Kredieten_1_Basis).
 
 ' ======================================================================
@@ -742,9 +744,12 @@ End Sub
 ' - Samengesteld krediet (J is een getal): saldo van de hele groep via sleutel K over de deelkredieten.
 ' - Anders: uitgaven op de uitgavenregel, inkomsten op de bijdrageregel(s) (negatief budget) naar verhouding van het budget.
 ' - Peildatum = datum van het bestand. Vorig jaar na 31-3: niets meer wegschrijven, wel alarm bij elk verschil.
-' - Uitgaven zonder krediet: alarm, telt mee in de aansluiting. Krediet niet in de uitdraai: bedrag blijft staan, met notitie.
+' - Uitgaven zonder krediet: alarm, telt mee in de aansluiting. Krediet niet in de uitdraai: bedrag blijft staan, met notitie;
+'   stond het krediet in de vorige upload wel met een bedrag, dan wordt het bedrag 0 (melding en notitie).
 ' - Afgesloten krediet (A) waarvan het bedrag wijzigt: wel verwerkt, melding en notitie.
-' - Harde poort: aansluiting per jaar exact 0,00. Anders wordt dat jaar niet weggeschreven.
+' - Harde poort: aansluiting per jaar exact 0,00 en geen foutwaarde in de verdeelsleutel K. Klopt een jaar niet, dan wordt
+'   NIETS weggeschreven (ook het andere jaar niet) en blijven peildatum en vorige upload ongewijzigd.
+' - Volgorde: berekenen, poort, wegschrijven, nameting (bij verschil terugzetten), vastleggen, notities, nabewerking.
 
 
 Public Sub UitgavenBijwerken()
@@ -761,6 +766,8 @@ Public Sub UitgavenBijwerken()
     Dim m0 As Variant, m1 As Variant, arr() As Variant, rng As Range, tekst As String, alarm As Long
     Dim geschreven(0 To 1) As Boolean, oudKol(0 To 1) As Variant, sOud(0 To 1) As Double, sNieuw(0 To 1) As Double
     Dim rv As Variant, grpBedrag As Object, g As Variant, vAD As Variant, rij0 As Long, bew() As Variant, nb As Long
+    Dim sch(0 To 1) As Boolean, klopt(0 To 1) As Boolean, poortDicht As Boolean, klaar As Boolean, vervallen() As Boolean
+    Dim nw(0 To 1) As Variant, gz(0 To 1) As Variant, od(0 To 1) As Variant, vv(0 To 1) As Variant
 
     On Error GoTo Fout
     If Not HeeftRecht("Wijzigen") Then
@@ -945,14 +952,15 @@ Public Sub UitgavenBijwerken()
         End If
     Next i
 
-    ' 6. Per jaar verwerken
+    ' 6. Per jaar berekenen. Er wordt nog niets weggeschreven: eerst moeten alle jaren aansluiten (harde poort).
     m0 = MeetStap8(wv, laatste)
+    mBlok = False
     For y = 0 To 1
         If cJ(y) = 0 Then GoTo VolgendJaar
         kol = IIf(y = 0, 29, 28)                       ' AC = lopend jaar, AB = vorig jaar
-        schrijven = (y = 0) Or (peil <= DateSerial(lj, 3, 31))
+        sch(y) = (y = 0) Or (peil <= DateSerial(lj, 3, 31))
         ' formules in de kolom (bijv. handmatige verdeling =bedrag*40%) worden vervangen door de waarde uit de uitdraai
-        ReDim oud(1 To ns): ReDim nieuw(1 To ns): ReDim gezet(1 To ns)
+        ReDim oud(1 To ns): ReDim nieuw(1 To ns): ReDim gezet(1 To ns): ReDim vervallen(1 To ns)
         For i = 1 To ns
             If Not Leeg(vS(i, 1)) Then oud(i) = Nul(vS(i, kol))
             nieuw(i) = oud(i)
@@ -991,14 +999,27 @@ VolgendNr:
             VerdeelGroep vS, grpRij(g), CDbl(grpBedrag(g)), nieuw, gezet, CStr(g), lj - y
         Next g
 
-        ' Regels die niet in de uitdraai staan: bedrag blijft staan
+        ' Regels die niet in de uitdraai staan. Stond het krediet in de vorige upload wel met een bedrag,
+        ' dan is dat bedrag vervallen en wordt het 0. Anders blijft het bedrag staan.
         For i = 1 To ns
             If Not gezet(i) And oud(i) <> 0 And Not Leeg(vS(i, 1)) Then
-                ni = ni + oud(i)
+                nr = NrTekst(vS(i, 3))
+                If sch(y) And mHeeftVorige And Len(nr) > 0 Then
+                    If mVorige.Exists(nr & "|" & (lj - y)) Then
+                        If Round(mVorige(nr & "|" & (lj - y)), 2) <> 0 Then vervallen(i) = True
+                    End If
+                End If
+                If vervallen(i) Then
+                    nieuw(i) = 0
+                    Meld 4, "Bedrag vervallen: krediet niet meer in de uitdraai", lj - y, nr, CStr(vS(i, 4)), i + 1, oud(i), 0, _
+                         "Stond in de vorige upload wel met een bedrag. Het bedrag wordt 0."
+                Else
+                    ni = ni + oud(i)
+                End If
             End If
         Next i
 
-        If schrijven Then
+        If sch(y) Then
             ' Harde poort: aansluiting
             som = 0
             For i = 1 To ns
@@ -1008,36 +1029,17 @@ VolgendNr:
             verwacht = det(y) - onb - geenNr(y) - zk + ni
             If Round(som - verwacht, 2) <> 0 Then
                 Meld 1, "ALARM: aansluiting sluit niet", lj - y, "", "", 0, verwacht, som, _
-                     "Verschil " & Format$(som - verwacht, "#,##0.00") & ". Jaar " & (lj - y) & " is NIET bijgewerkt."
+                     "Verschil " & Format$(som - verwacht, "#,##0.00") & ". Er is NIETS bijgewerkt, ook niet in het andere jaar."
                 GoTo VolgendJaar
             End If
+            klopt(y) = True
             mAansl = mAansl & "Aansluiting " & (lj - y) & ": uitdraai " & Format$(det(y), "#,##0.00") & ", verzamellijst " & _
                      Format$(som, "#,##0.00") & IIf(Round(som - det(y), 2) <> 0, " (verschil verklaard door uitgaven zonder krediet / bedragen die blijven staan)", "") & ". Sluit.  "
-            ReDim arr(1 To ns, 1 To 1)
-            For i = 1 To ns
-                If Leeg(vS(i, 1)) Then arr(i, 1) = vS(i, kol) Else arr(i, 1) = nieuw(i)
-            Next i
-            Set rng = wv.Range(wv.Cells(2, kol), wv.Cells(laatste, kol))
-            oudKol(y) = rng.Formula                     ' formules bewaren voor terugzetten
-            rng.Value = arr
-            geschreven(y) = True
             sOud(y) = 0: sNieuw(y) = som
             For i = 1 To ns
                 sOud(y) = sOud(y) + oud(i)
             Next i
-            ' notities: oude weg, nieuwe bij regels die niet in de uitdraai staan
-            rng.ClearComments
-            For i = 1 To ns
-                If Not gezet(i) And oud(i) <> 0 Then
-                    wv.Cells(i + 1, kol).AddComment "Niet in uitdraai " & Dir(pad) & " (peildatum " & Format$(peil, "dd-mm-yyyy") & "). Bedrag blijft staan."
-                End If
-                If gezet(i) And Round(nieuw(i) - oud(i), 2) <> 0 And UCase$(Left$(CStr(vS(i, 8)), 1)) = "A" Then
-                    Meld 2, "Afgesloten krediet, toch uitgaven/inkomsten verwerkt", lj - y, NrTekst(vS(i, 3)), CStr(vS(i, 4)), i + 1, oud(i), nieuw(i), _
-                         "Status " & vS(i, 8) & ". Bedrag gewijzigd en wel verwerkt. Gemarkeerd met een notitie in kolom '" & wv.Cells(1, kol).Text & "'."
-                    wv.Cells(i + 1, kol).AddComment "Afgesloten krediet (" & vS(i, 8) & "): bedrag gewijzigd van " & Format$(oud(i), "#,##0.00") & _
-                                                    " naar " & Format$(nieuw(i), "#,##0.00") & " (uitdraai " & Format$(peil, "dd-mm-yyyy") & ")."
-                End If
-            Next i
+            nw(y) = nieuw: gz(y) = gezet: od(y) = oud: vv(y) = vervallen
         Else
             ' Vorig jaar na 31-3: alleen controleren
             For Each g In stamRij.Keys
@@ -1059,7 +1061,38 @@ VolgendNr:
 VolgendJaar:
     Next y
 
-    ' 7. Nulmeting achteraf: alleen AB/AC mogen veranderd zijn
+    ' 7. Harde poort over alle jaren samen: sluit een jaar niet aan, of is een verdeelsleutel fout, dan wordt niets weggeschreven.
+    poortDicht = mBlok
+    For y = 0 To 1
+        If cJ(y) > 0 And sch(y) And Not klopt(y) Then poortDicht = True
+    Next y
+    If poortDicht Then
+        alarm = MeldingenSchrijven(Dir(pad), peil)
+        BeveiligingAan
+        Application.ScreenUpdating = True
+        ThisWorkbook.Worksheets(BL_MELD).Activate
+        MsgBox "Er is NIETS bijgewerkt: " & Dir(pad) & vbCrLf & vbCrLf & _
+               "Een jaar sluit niet aan of een verdeelsleutel (kolom K) is fout. Zie de ALARM-regels op blad '" & BL_MELD & "'." & vbCrLf & _
+               "Peildatum en vorige upload zijn ook niet aangepast. Los het op en verwerk het bestand opnieuw.", vbCritical, "Niets bijgewerkt"
+        Exit Sub
+    End If
+
+    ' 8. Wegschrijven (alle jaren in een keer)
+    For y = 0 To 1
+        If cJ(y) > 0 And sch(y) Then
+            kol = IIf(y = 0, 29, 28)
+            ReDim arr(1 To ns, 1 To 1)
+            For i = 1 To ns
+                If Leeg(vS(i, 1)) Then arr(i, 1) = vS(i, kol) Else arr(i, 1) = nw(y)(i)
+            Next i
+            Set rng = wv.Range(wv.Cells(2, kol), wv.Cells(laatste, kol))
+            oudKol(y) = rng.Formula                     ' formules bewaren voor terugzetten
+            geschreven(y) = True
+            rng.Value = arr
+        End If
+    Next y
+
+    ' 9. Nameting: alleen AB/AC mogen veranderd zijn. Anders terugzetten (via Fout).
     Application.Calculate
     m1 = MeetStap8(wv, laatste)
     For j = 0 To 9
@@ -1067,10 +1100,9 @@ VolgendJaar:
             If Round(m0(j) - m1(j), 2) <> 0 Then Err.Raise vbObjectError + 11, , "Nulmeting wijkt af in meting " & j & ". Alles is teruggedraaid."
         End If
     Next j
+    klaar = True                                 ' vanaf hier zijn de bedragen definitief: bij een fout niet meer terugdraaien
 
-    Application.Calculate
-
-    ' 9. Vastleggen
+    ' 10. Vastleggen: peildatum, notitie in de kop, logboek en de bedragen van deze upload (vergelijking voor de volgende keer)
     ThisWorkbook.Names("Par_PadUitgavenbestand").RefersToRange.Value = pad
     ThisWorkbook.Names("Par_PeildatumUitgaven").RefersToRange.Value = peil
     For y = 0 To 1
@@ -1082,7 +1114,6 @@ VolgendJaar:
             LogRegel "werkelijke uitgaven bijwerken", , , wv.Cells(1, kol).Text, Format$(sOud(y), "0.00"), Format$(sNieuw(y), "0.00"), Dir(pad) & " (" & (lj - y) & ")"
         End If
     Next y
-    ' bedragen van deze upload bewaren als vergelijking voor de volgende keer
     ReDim bew(1 To 2 * nN + 1, 1 To 3)
     For i = 1 To nN
         For y = 0 To 1
@@ -1095,6 +1126,30 @@ VolgendJaar:
         Next y
     Next i
     VorigeUploadSchrijven bew, nb, Dir(pad)
+
+    ' 11. Notities per regel (pas na de controle): oude weg, nieuwe bij regels die niet in de uitdraai staan
+    For y = 0 To 1
+        If geschreven(y) Then
+            kol = IIf(y = 0, 29, 28)
+            wv.Range(wv.Cells(2, kol), wv.Cells(laatste, kol)).ClearComments
+            For i = 1 To ns
+                If vv(y)(i) Then
+                    wv.Cells(i + 1, kol).AddComment "Niet meer in uitdraai " & Dir(pad) & " (peildatum " & Format$(peil, "dd-mm-yyyy") & "). Bedrag " & _
+                                                    Format$(od(y)(i), "#,##0.00") & " is vervallen en op 0 gezet."
+                ElseIf Not gz(y)(i) And od(y)(i) <> 0 Then
+                    wv.Cells(i + 1, kol).AddComment "Niet in uitdraai " & Dir(pad) & " (peildatum " & Format$(peil, "dd-mm-yyyy") & "). Bedrag blijft staan."
+                End If
+                If gz(y)(i) And Round(nw(y)(i) - od(y)(i), 2) <> 0 And UCase$(Left$(CStr(vS(i, 8)), 1)) = "A" Then
+                    Meld 2, "Afgesloten krediet, toch uitgaven/inkomsten verwerkt", lj - y, NrTekst(vS(i, 3)), CStr(vS(i, 4)), i + 1, od(y)(i), nw(y)(i), _
+                         "Status " & vS(i, 8) & ". Bedrag gewijzigd en wel verwerkt. Gemarkeerd met een notitie in kolom '" & wv.Cells(1, kol).Text & "'."
+                    wv.Cells(i + 1, kol).AddComment "Afgesloten krediet (" & vS(i, 8) & "): bedrag gewijzigd van " & Format$(od(y)(i), "#,##0.00") & _
+                                                    " naar " & Format$(nw(y)(i), "#,##0.00") & " (uitdraai " & Format$(peil, "dd-mm-yyyy") & ")."
+                End If
+            Next i
+        End If
+    Next y
+
+    ' 12. Nabewerking
     UitgavenOpmaakAanmaken
     Alert7999998 vS, lj
     alarm = MeldingenSchrijven(Dir(pad), peil)
@@ -1119,12 +1174,19 @@ Fout:
     foutTekst = Err.Description
     On Error Resume Next
     If Not wbU Is Nothing Then wbU.Close SaveChanges:=False
-    For y = 0 To 1
-        If geschreven(y) Then wv.Range(wv.Cells(2, IIf(y = 0, 29, 28)), wv.Cells(laatste, IIf(y = 0, 29, 28))).Formula = oudKol(y)
-    Next y
+    If Not klaar Then
+        For y = 0 To 1
+            If geschreven(y) Then wv.Range(wv.Cells(2, IIf(y = 0, 29, 28)), wv.Cells(laatste, IIf(y = 0, 29, 28))).Formula = oudKol(y)
+        Next y
+    End If
     BeveiligingAan
     Application.ScreenUpdating = True
-    MsgBox "Fout: " & foutTekst & vbCrLf & "Er is niets gewijzigd.", vbCritical
+    If klaar Then
+        MsgBox "De werkelijke uitgaven zijn bijgewerkt en vastgelegd, maar daarna ging iets mis:" & vbCrLf & foutTekst & vbCrLf & vbCrLf & _
+               "Kijk op blad '" & BL_MELD & "' en maak het kredietoverzicht zo nodig opnieuw.", vbExclamation
+    Else
+        MsgBox "Fout: " & foutTekst & vbCrLf & "Er is niets gewijzigd.", vbCritical
+    End If
 End Sub
 
 ' Verdeelt een kredietnummer zonder groep: uitgaven op de uitgavenregel(s), inkomsten op de bijdrageregel(s).
@@ -1154,11 +1216,19 @@ Private Sub VerdeelGroep(ByVal vS As Variant, ByVal rijen As Collection, ByVal b
     For Each r In rijen
         nieuw(r) = 0
         gezet(r) = True
+        ' een foutwaarde in K (bijv. #DEEL/0!) blokkeert de hele verwerking; tekst (nvt, administratief) wordt overgeslagen
+        If IsError(vS(r, 11)) And bedrag <> 0 Then
+            mBlok = True
+            Meld 1, "ALARM: verdeelsleutel (kolom K) is een foutwaarde", jaar, NrTekst(vS(r, 3)), CStr(vS(r, 4)), r + 1, Empty, bedrag, _
+                 "Samengesteld krediet groep " & grp & ". Herstel kolom K. Er is NIETS bijgewerkt."
+        End If
         ' alleen uitgavenregels; een bijdrageregel (negatief budget) telt niet mee in de verdeelsleutel
         If Nul(vS(r, 11)) > 0 And BudgetRegel(vS, r) >= 0 Then somK = somK + Nul(vS(r, 11)): laatsteR = r
     Next r
     If somK <= 0 Then
         nieuw(rijen(1)) = bedrag
+        If bedrag <> 0 Then Meld 4, "Geen geldige verdeelsleutel in groep " & grp, jaar, NrTekst(vS(rijen(1), 3)), CStr(vS(rijen(1), 4)), rijen(1) + 1, Empty, bedrag, _
+                                "Geen enkele regel van de groep heeft een percentage in kolom K. Het hele bedrag staat op deze regel. Controleer de verdeling."
         Exit Sub
     End If
     rest = bedrag
