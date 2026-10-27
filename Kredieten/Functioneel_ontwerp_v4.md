@@ -40,6 +40,7 @@
 | 12 | Dashboard per rol | Financieel adviseur ziet blok 1 (invoerkaart), blok 2 (financieel adviseur) en blok 4 (controles). Financiële administratie ziet blok 3 (financiële administratie) en blok 4 (controles). Applicatiebeheerder ziet alles. Werkwijze controle: de financiële administratie bevestigt of keurt af **per regel**; na afkeuren herstelt de financieel adviseur de regel en biedt die opnieuw aan voor hercontrole. | Geen: bas40 doet dit al zo. |
 | 13 | Aanpassen door de financiële administratie | Rechtstreeks in de Verzamellijst, niet via de invoerkaart (zie punt 9). | Geen: bas40 doet dit al zo. |
 | 14 | Uitvraag kadernota/begroting | Eén eigen onderdeel op het Dashboard met drie knoppen in vaste volgorde en één blauw tabblad. Zie § 11 (nieuw). | Aanpassen: aparte, latere stap, na de herstelpunten. |
+| 15 | Indeling blok 2 (financieel adviseur) | Drie subonderdelen, en geen keuzecellen meer op rij 38 en 39. Zie § 13 (nieuw). | Aanpassen: samen met stap 6. |
 
 ---
 
@@ -595,9 +596,31 @@ Een aparte uitvraag voor het **lopende jaar** bestaat nog niet. Of die nodig is 
 | 3 | bas43 | Terugdraaien bij een fout | Krediet toevoegen, wijziging opslaan (met controle of het volgnummer nog bij de rij hoort), krediet verwijderen, formule restant bijwerken, besluiten uitvraag verwerken en de jaarovergang zetten bij een fout alles terug. Jaarovergang: kolom M en N volgens § 2.7 punt 7. |
 | 4 | bas44 | Beveiliging | Na een macro ook de back-up "Verzamellijst 31-12-<jaar>", "Verwerking uitvraag" en "Voorstellen nieuwe kredieten" weer beveiligen. Proefregel wissen alleen voor een regel van vandaag zonder werkelijke uitgaven, met logregel. |
 | 5 | bas45 | Kolom J en overzicht op naam | Een groepsnummer in kolom J dat als tekst is opgeslagen, wordt overal als getal behandeld (sortering, verdeling, overzichten). Overzicht op naam toont ook de kredieten die in het lopende jaar zijn afgesloten (§ 0.1 punt 6). |
-| 6 | bas46 | Uitvraag kadernota/begroting | Bouw van § 11: drie knoppen, één blauw tabblad Uitvraag, ophalen per budgethouder, vastleggen van het lopende jaar. Oude knoppen en bladen vervallen. |
+| 6 | bas46 | Blok 2 en uitvraag kadernota/begroting | Blok 2 opnieuw indelen volgens § 13 (subonderdelen, rij 38 en 39 vervallen). Bouw van § 11: drie knoppen, één blauw tabblad Uitvraag, ophalen per budgethouder, vastleggen van het lopende jaar. Oude knoppen en bladen vervallen. |
 | 7 | bas47 en verder | Ontbrekende onderdelen | Dynamische bereiken (§ 2.3, apart uitvoeren met nulmeting); jaarkoppen als formule met behoud van de notitie op AC1 (§ 2.6); controles § 8.2 nummer 1 (aantal regels bron en spiegelbladen), 2 (rij-voor-rij controle spiegelbladen) en 6 (werkelijke uitgaven hoger dan budget); waarschuwing als het werkbereik bijna vol is (§ 2.4). |
 
 ### 12.3 Later, nog te besluiten
 - Een aparte uitvraag voor het lopende jaar (§ 11.5).
 - Verzamelkredieten in Coda (§ 6.3).
+
+---
+
+## 13. Indeling blok 2 — Financieel adviseur (afspraak versie 4)
+
+### 13.1 Subonderdelen
+
+| Subonderdeel | Knoppen |
+| --- | --- |
+| 2a. Kredietoverzichten | Kredietoverzicht op naam · Kredietoverzicht raad · Kredietoverzicht jaarrekening · Overzichten alle budgethouders · Overzicht tijdschrijven |
+| 2b. Omzetting en controle | Verwerken werkelijk · Jaarovergang uitvoeren · Afgekeurd krediet herstellen · Aanbieden voor hercontrole · Budgethouder vervangen · Projectleider vervangen · Tijdschrijver vervangen |
+| 2c. Uitvraag en verwerking kadernota/begroting | 1. Uitvraag versturen · 2. Aanleveringen ophalen · 3. Uitvraag verwerken (zie § 11) |
+
+Elk subonderdeel krijgt een eigen kopregel; de knoppen staan onder die kopregel bij elkaar.
+
+### 13.2 Kredietoverzicht op naam zonder keuzecellen
+De keuzecellen voor rol en naam (rij 38 en 39) vervallen. Werking van de knop:
+1. Vraag: 1 = budgetbeheerder, 2 = projectleider, 3 = tijdschrijver.
+2. Genummerde lijst met de namen bij die rol; de adviseur kiest een nummer.
+3. Het overzicht wordt gemaakt en opgeslagen, zoals nu.
+
+Dezelfde manier van kiezen als bij "Budgethouder vervangen".
