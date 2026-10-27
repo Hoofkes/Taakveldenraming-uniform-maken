@@ -1449,14 +1449,24 @@ End Sub
 ' Schrijft blad 'Meldingen uitgaven' opnieuw, gesorteerd op ernst. Geeft het aantal ALARM-meldingen terug.
 Private Function MeldingenSchrijven(ByVal bestand As String, ByVal peil As Date) As Long
     Dim ws As Worksheet, rij As Long, p As Long, m As Variant, kleur As Long, alarm As Long
-    Dim wv As Worksheet, stat As Object, r As Long, laatste As Long, nrT As String
-    ' status (kolom H) per kredietnummer, voor de kolom Status
+    Dim wv As Worksheet, stat As Object, r As Long, laatste As Long, nrT As String, rijNr As Object, omsNr As Object
+    ' status (kolom H), rijnummer(s) en omschrijving per kredietnummer, voor de kolommen Status, Rij en Omschrijving
     Set wv = Vz()
     Set stat = CreateObject("Scripting.Dictionary")
+    Set rijNr = CreateObject("Scripting.Dictionary")
+    Set omsNr = CreateObject("Scripting.Dictionary")
     laatste = CLng(ThisWorkbook.Names("Par_LaatsteRij").RefersToRange.Value)
     For r = 2 To laatste
         nrT = NrTekst(wv.Cells(r, 3).Value)
-        If Len(nrT) > 0 And Not stat.Exists(nrT) Then stat.Add nrT, CStr(wv.Cells(r, 8).Value)
+        If Len(nrT) > 0 Then
+            If Not stat.Exists(nrT) Then
+                stat.Add nrT, CStr(wv.Cells(r, 8).Value)
+                omsNr.Add nrT, CStr(wv.Cells(r, 4).Value)
+                rijNr.Add nrT, CStr(r)
+            Else
+                rijNr(nrT) = rijNr(nrT) & ", " & r
+            End If
+        End If
     Next r
     If Not BladBestaat(BL_MELD) Then
         Set ws = NieuwBlad()
@@ -1488,6 +1498,7 @@ Private Function MeldingenSchrijven(ByVal bestand As String, ByVal peil As Date)
                 ws.Cells(rij, 3).NumberFormat = "@"
                 ws.Cells(rij, 3).Value = m(3)
                 ws.Cells(rij, 4).Value = m(4)
+                If Len(CStr(m(4))) = 0 And omsNr.Exists(CStr(m(3))) Then ws.Cells(rij, 4).Value = omsNr(CStr(m(3)))
                 If m(5) > 1 Then
                     ws.Cells(rij, 5).Value = wv.Cells(m(5), 8).Value
                 ElseIf stat.Exists(CStr(m(3))) Then
@@ -1495,7 +1506,12 @@ Private Function MeldingenSchrijven(ByVal bestand As String, ByVal peil As Date)
                 ElseIf Len(CStr(m(3))) > 0 Then
                     ws.Cells(rij, 5).Value = "geen krediet"
                 End If
-                If m(5) > 0 Then ws.Cells(rij, 6).Value = m(5)
+                If m(5) > 0 Then
+                    ws.Cells(rij, 6).Value = m(5)
+                ElseIf rijNr.Exists(CStr(m(3))) Then
+                    ws.Cells(rij, 6).NumberFormat = "@"
+                    ws.Cells(rij, 6).Value = rijNr(CStr(m(3)))          ' alle rijen van dit kredietnummer in de Verzamellijst
+                End If
                 If Not IsEmpty(m(6)) Then ws.Cells(rij, 7).Value = m(6)
                 If Not IsEmpty(m(7)) Then ws.Cells(rij, 8).Value = m(7)
                 If Not IsEmpty(m(6)) And Not IsEmpty(m(7)) Then ws.Cells(rij, 9).Value = m(7) - m(6)
@@ -1530,12 +1546,12 @@ Private Function MeldingenSchrijven(ByVal bestand As String, ByVal peil As Date)
     ws.Columns("C").ColumnWidth = 14
     ws.Columns("D").ColumnWidth = 36
     ws.Columns("E").ColumnWidth = 12
-    ws.Columns("F").ColumnWidth = 7
+    ws.Columns("F").ColumnWidth = 10
     ws.Columns("G:I").ColumnWidth = 16
     ws.Columns("J").ColumnWidth = 80
     ws.Range("A4:J" & rij).VerticalAlignment = xlTop
     ws.Range("A4:J4").WrapText = True
-    ws.Range("A5:A" & rij & ",D5:D" & rij & ",J5:J" & rij).WrapText = True
+    ws.Range("A5:A" & rij & ",D5:D" & rij & ",F5:F" & rij & ",J5:J" & rij).WrapText = True
     BladOpmaken ws, 4, 5, rij
     KnopTerug ws, ws.Range("D1")
     MeldingenSchrijven = alarm
