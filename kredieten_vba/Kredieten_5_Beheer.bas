@@ -1,5 +1,6 @@
 Attribute VB_Name = "Kredieten_5_Beheer"
 Option Explicit
+Private Const MAX_WAAR As Long = 5            ' blok 4: zoveel vindplaatsen tonen, daarna 'en .. meer'
 
 ' Alle tekst uit de toelichtingskolom van het Logboek (om dubbel verwerken te herkennen).
 Public Function LogboekTekst() As String
@@ -513,7 +514,7 @@ Public Sub ControlesVernieuwen()
     hint = Array("macro OmschrijvingenInkorten (max 36 tekens)", "kolom K van de groep (moet samen 100% zijn)", _
                  "restant moet 0 zijn; macro RestantFormuleBijwerken", "invullen via Krediet wijzigen", "invullen via Krediet wijzigen", _
                  "invullen zodra bekend", "invullen via Krediet wijzigen", "kredietnummer en activanummer controleren", _
-                 "zie tabblad Controle", "macro LijstwaardenNormaliseren", "macro WerkbereikVerruimen", "status moet L of A met jaartal zijn", _
+                 "financi" & ChrW(235) & "le administratie: knop 'Volgend krediet controleren' in blok 3", "macro LijstwaardenNormaliseren", "macro WerkbereikVerruimen", "status moet L of A met jaartal zijn", _
                  "invullen zodra bekend", "echt kredietnummer invullen", "macro FormulesNaarWaarden", "macro SubtotaalRegelsVerwijderen")
 
     Set grp = CreateObject("Scripting.Dictionary")
@@ -569,7 +570,7 @@ Public Sub ControlesVernieuwen()
 
     For i = 0 To 15
         If aant(i) > 0 Then
-            wd.Cells(CB_EERSTE + i, 5).Value = waar(i) & IIf(aant(i) > 12, " en " & (aant(i) - 12) & " meer", "") & "  >  " & hint(i)
+            wd.Cells(CB_EERSTE + i, 5).Value = waar(i) & IIf(aant(i) > MAX_WAAR, " en " & (aant(i) - MAX_WAAR) & " meer", "") & "  >  " & hint(i)
         Else
             wd.Cells(CB_EERSTE + i, 5).Value = ""
         End If
@@ -587,10 +588,10 @@ Fout:
     wd.Range("C" & (CB_KOP + 1)).Value = "fout bij vernieuwen: " & Err.Description & " (rij " & r & ")"
 End Sub
 
-' Voegt een vindplaats toe aan de lijst (maximaal 12 tonen) en telt mee.
+' Voegt een vindplaats toe aan de lijst (maximaal MAX_WAAR tonen, anders wordt de regel onleesbaar lang) en telt mee.
 Private Sub Voeg(ByRef lijst As String, ByRef n As Long, ByVal t As String)
     n = n + 1
-    If n <= 12 Then lijst = lijst & IIf(Len(lijst) > 0, "; ", "") & t
+    If n <= MAX_WAAR Then lijst = lijst & IIf(Len(lijst) > 0, "; ", "") & t
 End Sub
 
 ' Regel in de verzamellijst met een negatief budget (bijdrage van derden).
