@@ -435,6 +435,67 @@ End Sub
 
 ' Rekent de controles uit die niet met een formule kunnen en zet bij elke controle in kolom D waar het zit
 ' (rij en kredietnummer in de Verzamellijst) en wat te doen.
+' Kredieten met 'Te controleren' waarbij sinds de laatste goedkeuring alleen velden zijn gewijzigd die geen controle nodig
+' hebben (zie ZonderControle: omschrijving, namen, afschrijftermijn, budgetten, uitgaven, toelichting) krijgen hun status
+' 'Gecontroleerd' terug. Bron is het Logboek. Nieuwe kredieten, bijdrageregels en afgekeurde kredieten blijven staan.
+Public Sub StatusZonderControleHerstellen(ByVal wv As Worksheet, ByVal laatste As Long)
+    Dim lg As Worksheet, lv As Variant, nL As Long, i As Long, r As Long, c As Long, vn As String, actie As String
+    Dim vrij As Object, open1 As Object, telt As Object, nHersteld As Long
+    On Error GoTo Klaar
+    If Not BladBestaat("Logboek") Then Exit Sub
+    Set lg = ThisWorkbook.Worksheets("Logboek")
+    nL = lg.Cells(lg.Rows.Count, 1).End(xlUp).Row
+    If nL < 2 Then Exit Sub
+    lv = lg.Range("A1:K" & nL).Value
+    ' kopteksten van de kolommen zonder controle (zo staan ze als veld in het Logboek)
+    Set vrij = CreateObject("Scripting.Dictionary")
+    vrij.CompareMode = vbTextCompare
+    For c = 1 To 49
+        If ZonderControle(c) Then vrij(Trim$(CStr(wv.Cells(1, c).Value))) = True
+    Next c
+    ' per volgnummer: kan de status terug (True) of niet (False), gerekend vanaf de laatste goedkeuring
+    Set open1 = CreateObject("Scripting.Dictionary")
+    Set telt = CreateObject("Scripting.Dictionary")
+    For i = 2 To nL
+        vn = Trim$(CStr(lv(i, 6)))
+        If Len(vn) > 0 Then
+            actie = LCase$(Trim$(CStr(lv(i, 5))))
+            Select Case actie
+                Case "goedkeuren"
+                    open1(vn) = True: telt(vn) = False                    ' opnieuw beginnen na een goedkeuring
+                Case "wijzigen"
+                    If Not open1.Exists(vn) Then open1(vn) = True
+                    If Not vrij.Exists(Trim$(CStr(lv(i, 8)))) Then open1(vn) = False
+                    telt(vn) = True
+                Case "ter controle na uitvraag", "uitvraag verwerkt"
+                    If Not open1.Exists(vn) Then open1(vn) = True
+                    telt(vn) = True
+                Case "toevoegen", "toevoegen bijdrage", "afkeuren", "aangeboden voor hercontrole"
+                    open1(vn) = False: telt(vn) = True
+            End Select
+        End If
+    Next i
+    For r = 2 To laatste
+        vn = Trim$(CStr(wv.Cells(r, 1).Value))
+        If Len(vn) > 0 And CStr(wv.Cells(r, 42).Value) = CtlTeControleren() Then
+            If open1.Exists(vn) And telt.Exists(vn) Then
+                If open1(vn) And telt(vn) Then
+                    wv.Cells(r, 42).Value = CtlGecontroleerd()
+                    wv.Cells(r, 43).Value = "geen controle nodig"
+                    wv.Cells(r, 44).NumberFormat = "dd-mm-yyyy"
+                    wv.Cells(r, 44).Value = Date
+                    wv.Cells(r, 45).Value = "alleen wijziging zonder controle (status hersteld)"
+                    LogRegel "status hersteld", wv.Cells(r, 1).Value, wv.Cells(r, 3).Value, "Controlestatus", CtlTeControleren(), CtlGecontroleerd(), "rij " & r
+                    nHersteld = nHersteld + 1
+                End If
+            End If
+        End If
+    Next r
+    If nHersteld > 0 Then MsgBox nHersteld & " krediet(en) hoeven niet meer gecontroleerd te worden (alleen namen, budgetten, uitgaven, " & _
+                                 "afschrijftermijn, omschrijving of toelichting gewijzigd). De status is weer 'Gecontroleerd'.", vbInformation
+Klaar:
+End Sub
+
 Public Sub ControlesVernieuwen()
     WerkStart                                    ' beveiliging even uit, daarna vanzelf weer aan
     Dim wd As Worksheet, wv As Worksheet, laatste As Long, maxRij As Long, lj As Long, v As Variant, r As Long, i As Long
@@ -447,6 +508,7 @@ Public Sub ControlesVernieuwen()
     laatste = CLng(ThisWorkbook.Names("Par_LaatsteRij").RefersToRange.Value)
     maxRij = CLng(ThisWorkbook.Names("Par_MaxRij").RefersToRange.Value)
     lj = CLng(ThisWorkbook.Names("Par_LopendJaar").RefersToRange.Value)
+    StatusZonderControleHerstellen wv, laatste
     v = wv.Range("A1:AW" & laatste).Value
     JGetalNormaliseren v
     hint = Array("macro OmschrijvingenInkorten (max 36 tekens)", "kolom K van de groep (moet samen 100% zijn)", _
