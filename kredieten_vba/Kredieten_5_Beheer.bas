@@ -1,6 +1,7 @@
 Attribute VB_Name = "Kredieten_5_Beheer"
 Option Explicit
 Private Const MAX_WAAR As Long = 5            ' blok 4: zoveel vindplaatsen tonen, daarna 'en .. meer'
+Private Const MAX_NUMMERS As Long = 25         ' blok 4, te controleren: zoveel kredietnummers tonen
 
 ' Alle tekst uit de toelichtingskolom van het Logboek (om dubbel verwerken te herkennen).
 Public Function LogboekTekst() As String
@@ -514,7 +515,7 @@ Public Sub ControlesVernieuwen()
     hint = Array("macro OmschrijvingenInkorten (max 36 tekens)", "kolom K van de groep (moet samen 100% zijn)", _
                  "restant moet 0 zijn; macro RestantFormuleBijwerken", "invullen via Krediet wijzigen", "invullen via Krediet wijzigen", _
                  "invullen zodra bekend", "invullen via Krediet wijzigen", "kredietnummer en activanummer controleren", _
-                 "financi" & ChrW(235) & "le administratie: knop 'Volgend krediet controleren' in blok 3", "macro LijstwaardenNormaliseren", "macro WerkbereikVerruimen", "status moet L of A met jaartal zijn", _
+                 "zoeken met 'Bestaand krediet aanpassen' of 'Volgend krediet controleren' (blok 3)", "macro LijstwaardenNormaliseren", "macro WerkbereikVerruimen", "status moet L of A met jaartal zijn", _
                  "invullen zodra bekend", "echt kredietnummer invullen", "macro FormulesNaarWaarden", "macro SubtotaalRegelsVerwijderen")
 
     Set grp = CreateObject("Scripting.Dictionary")
@@ -538,7 +539,11 @@ Public Sub ControlesVernieuwen()
                 sleutel = NrTekst(v(r, 3)) & "|" & Tkst(v(r, 24))
                 If dubbel.Exists(sleutel) Then Voeg waar(7), aant(7), t & " = rij " & dubbel(sleutel) Else dubbel.Add sleutel, r
             End If
-            If Tkst(v(r, 42)) = CtlTeControleren() Or Tkst(v(r, 42)) = "Afgekeurd" Then Voeg waar(8), aant(8), t
+            If Tkst(v(r, 42)) = CtlTeControleren() Or Tkst(v(r, 42)) = "Afgekeurd" Then
+                ' alleen het kredietnummer (zonder kredietnummer: het volgnummer), elk nummer een keer: daarop zoekt de administratie
+                eerste = IIf(Len(NrTekst(v(r, 3))) > 0, NrTekst(v(r, 3)), "volgnr " & Tkst(v(r, 1)))
+                If InStr(1, "; " & waar(8) & ";", "; " & eerste & ";") = 0 Then Voeg waar(8), aant(8), eerste, MAX_NUMMERS
+            End If
             For Each c In Array(9, 10)
                 If Not Leeg(v(r, c)) And Not IsGetal(v(r, c)) Then
                     If StrComp(Tkst(v(r, c)), LCase$(Trim$(Tkst(v(r, c)))), vbBinaryCompare) <> 0 Then Voeg waar(9), aant(9), t: Exit For
@@ -570,7 +575,7 @@ Public Sub ControlesVernieuwen()
 
     For i = 0 To 15
         If aant(i) > 0 Then
-            wd.Cells(CB_EERSTE + i, 5).Value = waar(i) & IIf(aant(i) > MAX_WAAR, " en " & (aant(i) - MAX_WAAR) & " meer", "") & "  >  " & hint(i)
+            wd.Cells(CB_EERSTE + i, 5).Value = waar(i) & IIf(aant(i) > MaxWaar(i), " en " & (aant(i) - MaxWaar(i)) & " meer", "") & "  >  " & hint(i)
         Else
             wd.Cells(CB_EERSTE + i, 5).Value = ""
         End If
@@ -589,10 +594,15 @@ Fout:
 End Sub
 
 ' Voegt een vindplaats toe aan de lijst (maximaal MAX_WAAR tonen, anders wordt de regel onleesbaar lang) en telt mee.
-Private Sub Voeg(ByRef lijst As String, ByRef n As Long, ByVal t As String)
+Private Sub Voeg(ByRef lijst As String, ByRef n As Long, ByVal t As String, Optional ByVal maxN As Long = MAX_WAAR)
     n = n + 1
-    If n <= MAX_WAAR Then lijst = lijst & IIf(Len(lijst) > 0, "; ", "") & t
+    If n <= maxN Then lijst = lijst & IIf(Len(lijst) > 0, "; ", "") & t
 End Sub
+
+' Aantal vindplaatsen dat blok 4 toont: bij 'te controleren of afgekeurd' (8) meer, want dat zijn korte kredietnummers.
+Private Function MaxWaar(ByVal i As Long) As Long
+    MaxWaar = IIf(i = 8, MAX_NUMMERS, MAX_WAAR)
+End Function
 
 ' Regel in de verzamellijst met een negatief budget (bijdrage van derden).
 Public Function NegatiefBudgetRij(ByVal wv As Worksheet, ByVal r As Long) As Boolean
