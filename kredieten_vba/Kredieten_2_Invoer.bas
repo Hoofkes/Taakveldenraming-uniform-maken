@@ -1228,6 +1228,7 @@ End Sub
 ' Knop 'Klaar: goedkeuren' (Verzamellijst): keurt de regel goed die open staat.
 Public Sub RegelBevestigen()
     WerkStart                                    ' beveiliging even uit, daarna vanzelf weer aan
+    Dim nog As Long
     Dim wv As Worksheet, r As Long, st As String, gebr As String, n As Long, Fout As String, isOpen As Boolean
     On Error GoTo Fout
     If Not FaRecht() Then Exit Sub
@@ -1258,9 +1259,21 @@ Public Sub RegelBevestigen()
     BladBeveiligen wv
     LogRegel "goedkeuren", wv.Cells(r, 1).Value, wv.Cells(r, 3).Value, "", , , "rij " & r & IIf(n > 0, ", " & n & " veld(en) aangepast", "")
     ControleLijstVernieuwen
+    ' nog meer te controleren: direct door naar het volgende krediet (zonder eerst terug naar het Dashboard)
+    nog = Application.WorksheetFunction.CountIf(wv.Range("AP:AP"), CtlTeControleren())
+    If nog > 0 Then
+        If MsgBox("Goedgekeurd" & IIf(n > 0, " (" & n & " veld(en) aangepast, staan in het Logboek)", "") & "." & vbCrLf & _
+                  "Nog te controleren: " & nog & "." & vbCrLf & vbCrLf & "Door naar het volgende krediet?", _
+                  vbYesNo + vbQuestion, "Goedgekeurd") = vbYes Then
+            FaVolgende
+            Exit Sub
+        End If
+        NaarBlok6
+        Exit Sub
+    End If
     NaarBlok6
     MsgBox "Goedgekeurd" & IIf(n > 0, " (" & n & " veld(en) aangepast, staan in het Logboek)", "") & "." & vbCrLf & _
-           "Nog te controleren: " & Application.WorksheetFunction.CountIf(wv.Range("AP:AP"), CtlTeControleren()) & ".", vbInformation
+           "Er zijn geen kredieten meer te controleren.", vbInformation
     Exit Sub
 Fout:
     MsgBox "Fout: " & Err.Description, vbCritical
