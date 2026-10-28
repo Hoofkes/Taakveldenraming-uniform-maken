@@ -745,21 +745,20 @@ Public Sub BladOpmaken(ByVal ws As Worksheet, ByVal kopRij As Long, ByVal van As
 End Sub
 
 ' Aantal tekstregels als de tekst met terugloop in een kolom van deze breedte staat (Arial 10).
-' Rekent per teken met de echte breedte van Arial (smalle letters zoals i en l tellen minder dan m en w).
 Private Function AantalRegels(ByVal tekst As String, ByVal breedte As Double, ByVal vet As Boolean) As Long
-    Dim ruimte As Double, spatie As Double, Regel As Double, w As Variant, lw As Double, n As Long, deel As Variant
-    ruimte = (breedte * 7 + 5 - 6) * 0.98        ' pixels in de kolom (7 per teken kolombreedte), min de rand en 2% marge
+    Dim ruimte As Double, teken As Double, Regel As Double, w As Variant, lw As Double, n As Long, deel As Variant
+    ruimte = breedte * 6 + 5 - 6                 ' pixels in de kolom, min wat marge
     If ruimte < 30 Then ruimte = 30                ' smalle of verborgen kolom: geen eindeloze lus
-    spatie = TekenPx(" ", vet)
+    teken = IIf(vet, 7.4, 6.8)                   ' gemiddelde tekenbreedte Arial 10 in pixels
     n = 0
     For Each deel In Split(Replace(tekst, vbCr, ""), vbLf)
         n = n + 1: Regel = 0
         For Each w In Split(CStr(deel), " ")
-            lw = WoordPx(CStr(w), vet)
+            lw = Len(CStr(w)) * teken
             If Regel = 0 Then
                 Regel = lw
-            ElseIf Regel + spatie + lw <= ruimte Then
-                Regel = Regel + spatie + lw
+            ElseIf Regel + teken + lw <= ruimte Then
+                Regel = Regel + teken + lw
             Else
                 n = n + 1: Regel = lw
             End If
@@ -770,45 +769,6 @@ Private Function AantalRegels(ByVal tekst As String, ByVal breedte As Double, By
     Next deel
     If n < 1 Then n = 1
     AantalRegels = n
-End Function
-
-' Breedte van een woord in pixels (Arial 10).
-Private Function WoordPx(ByVal woord As String, ByVal vet As Boolean) As Double
-    Dim i As Long
-    For i = 1 To Len(woord)
-        WoordPx = WoordPx + TekenPx(Mid$(woord, i, 1), vet)
-    Next i
-End Function
-
-' Breedte van een teken in pixels (Arial 10, breedtes van het lettertype in duizendsten). Vet is ongeveer 10% breder.
-Private Function TekenPx(ByVal ch As String, ByVal vet As Boolean) As Double
-    Dim e As Long
-    If InStr(1, "ijl", ch, vbBinaryCompare) > 0 Then
-        e = 222
-    ElseIf InStr(1, "ft .,:;!I/'|", ch, vbBinaryCompare) > 0 Then
-        e = 278
-    ElseIf InStr(1, "r-()[]", ch, vbBinaryCompare) > 0 Then
-        e = 333
-    ElseIf InStr(1, "cksvxyzJ", ch, vbBinaryCompare) > 0 Then
-        e = 500
-    ElseIf InStr(1, "Labdeghnopqu0123456789", ch, vbBinaryCompare) > 0 Then
-        e = 556
-    ElseIf InStr(1, "FTZ", ch, vbBinaryCompare) > 0 Then
-        e = 611
-    ElseIf InStr(1, "ABEKPSVXY&", ch, vbBinaryCompare) > 0 Then
-        e = 667
-    ElseIf InStr(1, "CDHNRUw", ch, vbBinaryCompare) > 0 Then
-        e = 722
-    ElseIf InStr(1, "GOQ", ch, vbBinaryCompare) > 0 Then
-        e = 778
-    ElseIf InStr(1, "mM", ch, vbBinaryCompare) > 0 Then
-        e = 833
-    ElseIf ch = "W" Then
-        e = 944
-    Else
-        e = 600                                  ' overige tekens: iets ruim
-    End If
-    TekenPx = e * 13.333 / 1000 * IIf(vet, 1.1, 1)
 End Function
 
 ' Vervolg van de macro's voor het Dashboard investeringskredieten (gesplitst vanwege de grootte; declaraties in Kredieten_1_Basis).
@@ -1353,3 +1313,39 @@ End Sub
 '    kredieten naar 'Voorstellen nieuwe kredieten'. Nulmeting vooraf en achteraf.
 ' 4. 'Stand uitvraag' toont per budgethouder: verstuurd, ingeleverd, verwerkt of nog open.
 ' 5. 'Begroting vastgesteld': pas dan gaan de verwerkte wijzigingen ter controle naar de financiele administratie.
+
+' Kopregel van de Verzamellijst: elke kolom wordt breder tot de koptekst past (geen afgebroken woorden, en niet meer
+' tekstregels dan in de hoogte van rij 1 passen). Kolommen worden nooit smaller gemaakt. Ook via Ontwikkelaars > Macro's.
+Public Sub KoppenVerzamellijstPassend()
+    Dim wv As Worksheet, c As Long, lk As Long, maxRegels As Long, tekst As String, w As Variant, stap As Long, nBreder As Long
+    Set wv = Vz()
+    On Error Resume Next
+    wv.Unprotect WACHTWOORD
+    On Error GoTo 0
+    Application.Calculate
+    lk = wv.Cells(1, wv.Columns.Count).End(xlToLeft).Column
+    maxRegels = Int((wv.Rows(1).RowHeight - 3) / 12.75)
+    If maxRegels < 1 Then maxRegels = 1
+    For c = 1 To lk
+        tekst = Trim$(CStr(wv.Cells(1, c).Value))
+        If Len(tekst) > 0 Then
+            wv.Cells(1, c).WrapText = True
+            For stap = 1 To 60
+                If KopPast(tekst, wv.Columns(c).ColumnWidth, maxRegels) Then Exit For
+                wv.Columns(c).ColumnWidth = wv.Columns(c).ColumnWidth + 1
+                If stap = 1 Then nBreder = nBreder + 1
+            Next stap
+        End If
+    Next c
+    BladBeveiligen wv
+    If Not mStil Then MsgBox nBreder & " kolom(men) op de Verzamellijst zijn breder gemaakt zodat de kopregel past.", vbInformation
+End Sub
+
+' Past de koptekst (vet) in een kolom van deze breedte: elk woord past op een regel en het aantal regels is niet te groot.
+Private Function KopPast(ByVal tekst As String, ByVal breedte As Double, ByVal maxRegels As Long) As Boolean
+    Dim w As Variant
+    For Each w In Split(tekst, " ")
+        If WoordPx(CStr(w), True) > (breedte * 7 + 5 - 6) * 0.98 Then Exit Function
+    Next w
+    KopPast = (AantalRegels(tekst, breedte, True) <= maxRegels)
+End Function

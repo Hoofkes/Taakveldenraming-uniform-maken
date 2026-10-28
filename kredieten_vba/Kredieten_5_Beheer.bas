@@ -1499,6 +1499,10 @@ Public Sub Stap8DynamischeBereiken()
     wv.Cells(1, 25).Value = "Afschrijving"
     wv.Columns("E").Hidden = True
     wv.Columns("G").Hidden = True
+    mStil = True
+    KoppenVerzamellijstPassend                   ' kopregel past na het hernoemen
+    mStil = False
+    wv.Unprotect WACHTWOORD
 
     ' 5. nameting: alles moet gelijk zijn aan de nulmeting
     Application.Calculate
@@ -1529,6 +1533,7 @@ Public Sub Stap8DynamischeBereiken()
 
 Terug:
     On Error Resume Next
+    mStil = False
     ThisWorkbook.Names("Krediet_Aantal").RefersTo = oudNaam
     If Not hard Is Nothing Then
         For Each kopKol In hard.Keys
