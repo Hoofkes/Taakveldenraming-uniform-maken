@@ -401,8 +401,7 @@ Public Sub ControleblokPlaatsen()
 
     ' statusregel
     aantalAf = "(COUNTIF(C" & CB_EERSTE & ":C" & CB_LAATSTE & ","">0"")-N(C" & (CB_EERSTE + 5) & ">0)-N(C" & (CB_EERSTE + 12) & ">0))"
-    ws.Range("C4").Formula = "=IF(" & aantalAf & "=0,""OK - alles sluit aan"",""LET OP - ""&" & aantalAf & _
-                             "&"" controle(s) wijken af: zie blok 4 onderaan (vanaf rij " & CB_EERSTE & ", rood = nakijken)"")"
+    ws.Range("C4").Formula = "=IF(" & aantalAf & "=0,""OK - alles sluit aan"",""Te controleren: ""&" & aantalAf & ")"
     ws.Range("C4").Font.Bold = True
     ' klik op 'Controlestatus' (B4) = naar blok 5
     ws.Range("B4").Hyperlinks.Delete
