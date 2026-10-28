@@ -885,7 +885,7 @@ Public Sub UitvraagVerwerken()
     End If
     If MsgBox("Alle budgetbeheerders samen:" & vbCrLf & nGoed & " goedkeuren (waarvan " & nGoedZonder & " zonder wijziging), " & nAf & " afwijzen, " & nOpen & " nog niet." & vbCrLf & vbCrLf & _
               "Goedgekeurde regels nu verwerken in de Verzamellijst?" & vbCrLf & _
-              "Een gewijzigd krediet krijgt direct de status 'Te controleren door financi" & ChrW(235) & "le administratie'.", _
+              "Budgetten, omschrijving en toelichting hoeven niet door de financi" & ChrW(235) & "le administratie te worden gecontroleerd.", _
               vbYesNo + vbQuestion + vbDefaultButton2, "Uitvraag verwerken") <> vbYes Then Exit Sub
 
     Set wv = Vz()
@@ -1006,13 +1006,7 @@ Public Sub UitvraagVerwerken()
                     Else
                         wv.Cells(r, 48).Value = gebr
                         wv.Cells(r, 49).Value = Now
-                        ' direct ter controle bij de financiele administratie
-                        wv.Cells(r, 42).Value = CtlTeControleren()
-                        wv.Cells(r, 43).ClearContents
-                        wv.Cells(r, 44).ClearContents
-                        wv.Cells(r, 45).Value = "uitvraag kadernota/begroting"
-                        LogRegel "ter controle na uitvraag", wv.Cells(r, 1).Value, wv.Cells(r, 3).Value, "", , , naam
-                        nTer = nTer + 1
+                        ' alleen budgetten, omschrijving en toelichting: geen controle door de financiele administratie nodig
                         ws.Cells(i, 19).Value = "verwerkt " & Format$(Date, "dd-mm-yyyy")
                     End If
                     nVerwerkt = nVerwerkt + 1
@@ -1050,7 +1044,6 @@ Public Sub UitvraagVerwerken()
     ws.Activate
     Application.ScreenUpdating = True
     MsgBox "Verwerkt." & vbCrLf & nVerwerkt & " regel(s) goedgekeurd en verwerkt, " & nAfgewezen & " afgewezen." & vbCrLf & _
-           nTer & " krediet(en) staan nu ter controle bij de financi" & ChrW(235) & "le administratie." & vbCrLf & _
            "Regels met 'nog niet' blijven open op het blad '" & BL_UITVRAAG & "'." & vbCrLf & vbCrLf & _
            "Nieuwe kredieten staan op het blad 'Voorstellen nieuwe kredieten': voer die in via de invoerkaart.", vbInformation, "Uitvraag verwerken"
     Exit Sub

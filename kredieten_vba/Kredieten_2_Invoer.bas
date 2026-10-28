@@ -678,7 +678,7 @@ Public Sub WijzigingOpslaan()
     Dim nB As Long, kk As Long, jj As Long, fb As String, laatste As Long, rN As Long, volgnr0 As Long, maxRij As Long
     Dim bron(1 To 12) As String, bed(1 To 12, 0 To 5) As Variant, sumB(0 To 5) As Double, ext(0 To 9) As Double
     Dim geschreven As Boolean, klaar As Boolean, ctlGezet As Boolean, foutTekst As String, c As Long, c2 As Variant
-    Dim terug(1 To 45) As Boolean, ctlOud(42 To 49) As Variant
+    Dim terug(1 To 45) As Boolean, ctlOud(42 To 49) As Variant, nCtl As Long
 
     On Error GoTo Fout
     If Not HeeftRecht("Wijzigen") Then
@@ -716,6 +716,7 @@ Public Sub WijzigingOpslaan()
         If Not GelijkWaarde(wv.Cells(r, cols(i)).Value, vals(i)) Then
             nw = nw + 1
             wijzig(i) = True
+            If Not ZonderControle(cols(i)) Then nCtl = nCtl + 1
         End If
     Next i
 
@@ -813,6 +814,9 @@ Public Sub WijzigingOpslaan()
         ElseIf CStr(wv.Cells(r, 42).Value) = "Afgekeurd" And Not HeeftRecht("Bevestigen") Then
             ' afgekeurd krediet: blijft afgekeurd tot de adviseur het opnieuw aanbiedt (hieronder of later met de knop)
             herAanbieden = True
+        ElseIf nCtl = 0 Then
+            ' alleen namen, budgetten, uitgaven, afschrijftermijn, omschrijving of toelichting gewijzigd: geen controle nodig,
+            ' de controlestatus blijft zoals hij was
         Else
             wv.Cells(r, 42).Value = CtlTeControleren()
             wv.Cells(r, 43).ClearContents
@@ -1297,6 +1301,15 @@ Fout:
 End Sub
 
 ' Vervolg van de macro's voor het Dashboard investeringskredieten (gesplitst vanwege de grootte; declaraties in Kredieten_1_Basis).
+
+' Kolommen op de Verzamellijst waarvan een wijziging GEEN controle door de financiele administratie nodig heeft:
+' omschrijving (D, F), namen (O, P, Q), afschrijftermijn (Y), budgetten (Z, AE t/m AI), werkelijke uitgaven (AA t/m AC)
+' en toelichting (AJ). Alle andere wijzigingen gaan ter controle naar de financiele administratie.
+Public Function ZonderControle(ByVal kol As Long) As Boolean
+    Select Case kol
+        Case 4, 6, 15, 16, 17, 25, 26, 27, 28, 29, 31, 32, 33, 34, 35, 36: ZonderControle = True
+    End Select
+End Function
 
 ' ======================================================================
 ' Tijdschrijvers toevoegen
