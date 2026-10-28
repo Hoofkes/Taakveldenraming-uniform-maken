@@ -901,8 +901,20 @@ Public Sub FinAdmBlokPlaatsen()
     ws.Range("B" & FA_KOP).Value = "3. Financi" & ChrW(235) & "le administratie"
     ws.Range("B" & FA_KOP).Font.Bold = True
     ws.Range("B" & FA_KOP).Font.Size = 12
-    ws.Range("C" & FA_KOP).Formula = "=COUNTIF(" & VL & "$AP:$AP,""" & CtlTeControleren() & """)&"" te controleren, ""&COUNTIF(" & VL & "$AP:$AP,""Afgekeurd"")&"" afgekeurd"""
-    ws.Range("C" & FA_KOP).Font.Bold = True
+    ' teller te controleren / afgekeurd: rechts naast de knoppen (stond eerst bovenaan in B5)
+    ws.Range("B5").FormatConditions.Delete
+    ws.Range("B5").ClearContents
+    With ws.Range("E" & (FA_KOP + 2))
+        .Formula = "=COUNTIF(" & VL & "$AP:$AP,""" & CtlTeControleren() & """)&"" regels te controleren, ""&COUNTIF(" & VL & "$AP:$AP,""Afgekeurd"")&"" afgekeurd"""
+        .Font.Bold = True
+        .VerticalAlignment = xlCenter
+        .FormatConditions.Delete
+    End With
+    Dim fc As Object
+    Set fc = VoegCF(ws.Range("E" & (FA_KOP + 2)), "=COUNTIF(" & VL & "$AP:$AP,""Afgekeurd"")>0")
+    If Not fc Is Nothing Then fc.Interior.Color = RGB(255, 150, 150)
+    Set fc = VoegCF(ws.Range("E" & (FA_KOP + 2)), "=COUNTIF(" & VL & "$AP:$AP,""" & CtlTeControleren() & """)>0")
+    If Not fc Is Nothing Then fc.Interior.Color = RGB(255, 200, 120)
     ws.Range("B" & (FA_KOP + 1)).Value = "Standaard: nieuwe kredieten controleren. Incidenteel: een bestaand (al goedgekeurd) krediet aanpassen. " & _
                                           "Beide in de Verzamellijst; daarna bovenaan op 'Klaar: goedkeuren'."
     ws.Range("B" & (FA_KOP + 1)).Font.Italic = True
