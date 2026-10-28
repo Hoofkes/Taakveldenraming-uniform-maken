@@ -720,6 +720,19 @@ Public Sub WijzigingOpslaan()
         End If
     Next i
 
+    ' financiele administratie (zonder rechten van de adviseur): alleen de kolommen die zij mag aanpassen
+    If HeeftRecht("Bevestigen") And Not HeeftRecht("Toevoegen") Then
+        fb = ""
+        For i = 1 To n
+            If wijzig(i) And Not IsFaInvoerKolom(cols(i)) Then fb = fb & IIf(Len(fb) > 0, ", ", "") & CStr(wv.Cells(1, cols(i)).Value)
+        Next i
+        If Len(fb) > 0 Then
+            MsgBox "Niet opgeslagen. De financi" & ChrW(235) & "le administratie mag deze velden niet aanpassen:" & vbCrLf & vbCrLf & fb & vbCrLf & vbCrLf & _
+                   "Klopt er iets niet? Keur het krediet dan af, dan past de financieel adviseur het aan.", vbExclamation
+            Exit Sub
+        End If
+    End If
+
     ' bijdragen van derden (nieuwe regels)
     nB = LeesBijdragen(bron, bed, fb)
     If Len(fb) > 0 Then
@@ -1006,9 +1019,30 @@ End Sub
 
 ' Invoerkolommen van de verzamellijst die de financiele administratie in de regel mag aanpassen
 ' (niet: volgnr, formulekolommen E, G, K, AD, AL t/m AN, werkelijke uitgaven AA t/m AC en de controlekolommen).
-Private Function FaInvoerKolommen() As Variant
-    FaInvoerKolommen = Array(2, 3, 4, 6, 8, 9, 10, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 31, 32, 33, 34, 35, 36, 46)
+' Kolommen die de financiele administratie mag aanpassen: C, H, R t/m W, AJ (toelichting) en AT (naam samengesteld krediet).
+' Niet aanpasbaar voor de administratie: A, B, D t/m G, I t/m Q, X, Y en Z t/m AI (afspraak gebruiker).
+Public Function FaInvoerKolommen() As Variant
+    FaInvoerKolommen = Array(3, 8, 18, 19, 20, 21, 22, 23, 36, 46)
 End Function
+
+Private Function IsFaInvoerKolom(ByVal kol As Long) As Boolean
+    Dim c As Variant
+    For Each c In FaInvoerKolommen()
+        If CLng(c) = kol Then IsFaInvoerKolom = True: Exit Function
+    Next c
+End Function
+
+' Tijdens de controle door de financiele administratie: budgetten van de volgende jaren (AE t/m AI) verborgen.
+' Kolom E en G (lengte omschrijving) zijn altijd verborgen.
+Private Sub FaKolommenTonen(ByVal controle As Boolean)
+    Dim wv As Worksheet
+    Set wv = Vz()
+    On Error Resume Next
+    wv.Unprotect WACHTWOORD
+    wv.Columns("E").Hidden = True
+    wv.Columns("G").Hidden = True
+    wv.Range("AE:AI").EntireColumn.Hidden = controle
+End Sub
 
 Private Function WerkBlad(ByVal maken As Boolean) As Worksheet
     If BladBestaatStil(BL_WERK) Then
@@ -1065,7 +1099,8 @@ Private Sub FaRegelOpenen(ByVal r As Long, ByVal soort As String)
     LogRegel IIf(soort = "controle", "controle geopend", "aanpassen geopend"), wv.Cells(r, 1).Value, wv.Cells(r, 3).Value, "", , , "rij " & r
     MsgBox "Volgnummer " & wv.Cells(r, 1).Value & " (rij " & r & ") staat open. Pas de regel hier in de Verzamellijst aan." & vbCrLf & vbCrLf & _
            "Klaar? Klik bovenaan op 'Klaar: goedkeuren'." & vbCrLf & _
-           "Werkelijke uitgaven (AA t/m AC) en formulekolommen blijven op slot.", vbInformation, "Regel open"
+           "Aan te passen: kredietnummer, status, exploitatie, taakveld, balanscode, organisatieonderdeel, budgetbeheerder administratie, btw/bcf en toelichting." & vbCrLf & _
+           "De andere kolommen blijven op slot; budgetten van de volgende jaren zijn verborgen tot de regel weer dicht is.", vbInformation, "Regel open"
 End Sub
 
 ' Knoppen bovenaan de Verzamellijst zolang er een regel open staat.
@@ -1078,6 +1113,7 @@ Private Sub FaKnoppenVerzamellijst(ByVal tonen As Boolean)
         wv.Shapes("uitleg_" & CStr(naam)).Delete
     Next naam
     On Error GoTo 0
+    FaKolommenTonen tonen
     If Not tonen Then Exit Sub
     x = wv.Range("A1").Left + 140
     namen = Array("btnVzKlaar", "btnVzAfkeuren", "btnVzSluiten")

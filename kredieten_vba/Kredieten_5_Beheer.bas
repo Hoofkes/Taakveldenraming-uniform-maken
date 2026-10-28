@@ -454,6 +454,7 @@ Public Sub StatusZonderControleHerstellen(ByVal wv As Worksheet, ByVal laatste A
     For c = 1 To 49
         If ZonderControle(c) Then vrij(Trim$(CStr(wv.Cells(1, c).Value))) = True
     Next c
+    vrij("Afschr") = True: vrij("Afschrijving") = True        ' kop Y heette eerder 'Afschr'
     ' per volgnummer: kan de status terug (True) of niet (False), gerekend vanaf de laatste goedkeuring
     Set open1 = CreateObject("Scripting.Dictionary")
     Set telt = CreateObject("Scripting.Dictionary")
@@ -1412,3 +1413,147 @@ Public Sub BladMailen()
                  IIf(ws.Name = BL_UITVRAAG, "", " (" & CStr(ws.Range("A2").Value) & ")") & ".</p>" & m.HTMLBody
     LogRegel "pdf gemaild", , , "", , , ws.Name & " | " & naam
 End Sub
+
+' ======================================================================
+' Stap 8: dynamische bereiken robuust maken (eenmalig, via Ontwikkelaars > Macro's)
+' ======================================================================
+' 1. Krediet_Aantal telt niet meer de gevulde cellen in kolom A, maar gaat uit van de laatste gevulde rij (Par_LaatsteRij).
+'    Een lege rij tussen de kredieten maakt de bereiken Krediet_J, Krediet_AL, Krediet_AM dan niet meer te kort.
+' 2. Harde getallen in kolom K worden weer de formule, maar alleen als de uitkomst precies gelijk blijft.
+' 3. Koppen U, X en Y krijgen een duidelijke naam; kolom E en G worden verborgen.
+' Nulmeting vooraf en nameting achteraf; bij elk verschil gaat alles terug.
+Public Sub Stap8DynamischeBereiken()
+    WerkStart                                    ' beveiliging even uit, daarna vanzelf weer aan
+    Dim wv As Worksheet, laatste As Long, r As Long, i As Long, rf As Long
+    Dim voor As Variant, na As Variant, kVoor As Variant, amVoor As Variant, kNa As Variant, amNa As Variant
+    Dim oudNaam As String, formR1C1 As String, hard As Object, hersteld As String, nOm As Long, nHard As Long, verschil As String
+    Dim kopOud(1 To 3) As Variant, kopKol As Variant
+
+    On Error GoTo Fout
+    If Not HeeftRecht("Toevoegen") Then
+        MsgBox "Dit wordt gedaan door de financieel adviseur.", vbExclamation
+        Exit Sub
+    End If
+    If MsgBox("Stap 8: dynamische bereiken robuust maken, harde getallen in kolom K weer formule (alleen als de uitkomst gelijk blijft), " & _
+              "koppen U, X en Y hernoemen en kolom E en G verbergen." & vbCrLf & vbCrLf & _
+              "Vooraf wordt alles gemeten; bij elk verschil gaat alles terug. Doorgaan?", vbYesNo + vbQuestion, "Stap 8") <> vbYes Then Exit Sub
+    Application.ScreenUpdating = False
+    Set wv = Vz()
+    wv.Unprotect WACHTWOORD
+    Application.Calculate
+    laatste = CLng(ThisWorkbook.Names("Par_LaatsteRij").RefersToRange.Value)
+
+    ' 1. nulmeting
+    voor = MeetStap8(wv, laatste)
+    kVoor = wv.Range("K2:K" & laatste).Value
+    amVoor = wv.Range("AM2:AM" & laatste).Value
+    oudNaam = ThisWorkbook.Names("Krediet_Aantal").RefersTo
+    kopKol = Array(21, 24, 25)
+    For i = 1 To 3
+        kopOud(i) = wv.Cells(1, kopKol(i - 1)).Formula
+    Next i
+
+    ' 2. Krediet_Aantal vanaf de laatste gevulde rij
+    ThisWorkbook.Names("Krediet_Aantal").RefersTo = "=Par_LaatsteRij-1"
+    Application.Calculate
+    kNa = wv.Range("K2:K" & laatste).Value
+    amNa = wv.Range("AM2:AM" & laatste).Value
+    For r = 1 To UBound(kVoor, 1)
+        If Not GelijkStap8(kVoor(r, 1), kNa(r, 1)) Or Not GelijkStap8(amVoor(r, 1), amNa(r, 1)) Then
+            verschil = "rij " & (r + 1) & " kolom K of AM": Exit For
+        End If
+    Next r
+    If Len(verschil) > 0 Then GoTo Terug
+
+    ' 3. harde getallen in K: formule terug als de uitkomst gelijk blijft
+    For r = 2 To laatste
+        If wv.Cells(r, 11).HasFormula Then rf = r: Exit For
+    Next r
+    If rf = 0 Then verschil = "geen formule in kolom K gevonden om te kopieren": GoTo Terug
+    formR1C1 = wv.Cells(rf, 11).FormulaR1C1
+    Set hard = CreateObject("Scripting.Dictionary")
+    For r = 2 To laatste
+        If Not wv.Cells(r, 11).HasFormula And Not IsEmpty(wv.Cells(r, 1).Value) Then
+            hard(r) = wv.Cells(r, 11).Value
+            nHard = nHard + 1
+            wv.Cells(r, 11).FormulaR1C1 = formR1C1
+        End If
+    Next r
+    Application.Calculate
+    For Each kopKol In hard.Keys
+        r = CLng(kopKol)
+        If GelijkStap8(hard(r), wv.Cells(r, 11).Value) Then
+            nOm = nOm + 1
+        Else
+            wv.Cells(r, 11).Value = hard(r)                 ' uitkomst wijkt af: hard getal blijft staan
+            hersteld = hersteld & IIf(Len(hersteld) > 0, ", ", "") & "K" & r
+        End If
+    Next kopKol
+    Application.Calculate
+
+    ' 4. koppen en verborgen kolommen
+    wv.Cells(1, 21).Value = "Code organisatieonderdeel"
+    wv.Cells(1, 24).Value = "Activanr"
+    wv.Cells(1, 25).Value = "Afschrijving"
+    wv.Columns("E").Hidden = True
+    wv.Columns("G").Hidden = True
+
+    ' 5. nameting: alles moet gelijk zijn aan de nulmeting
+    Application.Calculate
+    na = MeetStap8(wv, laatste)
+    For i = 0 To 9
+        If Round(na(i) - voor(i), 2) <> 0 Then verschil = "som of aantal (meting " & i & ")": Exit For
+    Next i
+    If Len(verschil) = 0 Then
+        kNa = wv.Range("K2:K" & laatste).Value
+        amNa = wv.Range("AM2:AM" & laatste).Value
+        For r = 1 To UBound(kVoor, 1)
+            If Not GelijkStap8(kVoor(r, 1), kNa(r, 1)) Or Not GelijkStap8(amVoor(r, 1), amNa(r, 1)) Then
+                verschil = "rij " & (r + 1) & " kolom K of AM": Exit For
+            End If
+        Next r
+    End If
+    If Len(verschil) > 0 Then GoTo Terug
+
+    LogRegel "stap 8 dynamische bereiken", , , "Krediet_Aantal", oudNaam, "=Par_LaatsteRij-1", _
+             nOm & " van " & nHard & " harde getallen in K weer formule" & IIf(Len(hersteld) > 0, "; hard gebleven: " & hersteld, "")
+    BladBeveiligen wv
+    Application.ScreenUpdating = True
+    MsgBox "Stap 8 is klaar. De nameting is gelijk aan de nulmeting." & vbCrLf & vbCrLf & _
+           "Kolom K: " & nOm & " van de " & nHard & " harde getallen zijn weer een formule." & _
+           IIf(Len(hersteld) > 0, vbCrLf & "Hard gebleven (de formule geeft een andere uitkomst): " & hersteld, "") & vbCrLf & _
+           "Koppen U, X en Y hernoemd; kolom E en G verborgen.", vbInformation, "Stap 8"
+    Exit Sub
+
+Terug:
+    On Error Resume Next
+    ThisWorkbook.Names("Krediet_Aantal").RefersTo = oudNaam
+    If Not hard Is Nothing Then
+        For Each kopKol In hard.Keys
+            wv.Cells(CLng(kopKol), 11).Value = hard(kopKol)
+        Next kopKol
+    End If
+    kopKol = Array(21, 24, 25)
+    For i = 1 To 3
+        If Not IsEmpty(kopOud(i)) Then wv.Cells(1, kopKol(i - 1)).Formula = kopOud(i)
+    Next i
+    Application.Calculate
+    BladBeveiligen wv
+    Application.ScreenUpdating = True
+    LogRegel "stap 8 teruggedraaid", , , "", , , verschil
+    MsgBox "Stap 8 is teruggedraaid: er was een verschil (" & verschil & "). Er is niets veranderd.", vbCritical, "Stap 8"
+    Exit Sub
+Fout:
+    verschil = "fout: " & Err.Description
+    Resume Terug
+End Sub
+
+' Twee celwaarden gelijk (getallen tot 6 decimalen, anders als tekst).
+Private Function GelijkStap8(ByVal a As Variant, ByVal b As Variant) As Boolean
+    If IsError(a) Or IsError(b) Then GelijkStap8 = (IsError(a) And IsError(b)): Exit Function
+    If IsNumeric(a) And IsNumeric(b) And Not IsEmpty(a) And Not IsEmpty(b) And CStr(a) <> "" And CStr(b) <> "" Then
+        GelijkStap8 = (Round(CDbl(a) - CDbl(b), 6) = 0)
+    Else
+        GelijkStap8 = (CStr(a) = CStr(b))
+    End If
+End Function
