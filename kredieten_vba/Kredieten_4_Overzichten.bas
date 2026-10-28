@@ -745,20 +745,21 @@ Public Sub BladOpmaken(ByVal ws As Worksheet, ByVal kopRij As Long, ByVal van As
 End Sub
 
 ' Aantal tekstregels als de tekst met terugloop in een kolom van deze breedte staat (Arial 10).
+' Rekent per teken met de echte breedte van Arial (smalle letters zoals i en l tellen minder dan m en w).
 Private Function AantalRegels(ByVal tekst As String, ByVal breedte As Double, ByVal vet As Boolean) As Long
-    Dim ruimte As Double, teken As Double, Regel As Double, w As Variant, lw As Double, n As Long, deel As Variant
-    ruimte = breedte * 6 + 5 - 6                 ' pixels in de kolom, min wat marge
+    Dim ruimte As Double, spatie As Double, Regel As Double, w As Variant, lw As Double, n As Long, deel As Variant
+    ruimte = (breedte * 7 + 5 - 6) * 0.98        ' pixels in de kolom (7 per teken kolombreedte), min de rand en 2% marge
     If ruimte < 30 Then ruimte = 30                ' smalle of verborgen kolom: geen eindeloze lus
-    teken = IIf(vet, 7.4, 6.8)                   ' gemiddelde tekenbreedte Arial 10 in pixels
+    spatie = TekenPx(" ", vet)
     n = 0
     For Each deel In Split(Replace(tekst, vbCr, ""), vbLf)
         n = n + 1: Regel = 0
         For Each w In Split(CStr(deel), " ")
-            lw = Len(CStr(w)) * teken
+            lw = WoordPx(CStr(w), vet)
             If Regel = 0 Then
                 Regel = lw
-            ElseIf Regel + teken + lw <= ruimte Then
-                Regel = Regel + teken + lw
+            ElseIf Regel + spatie + lw <= ruimte Then
+                Regel = Regel + spatie + lw
             Else
                 n = n + 1: Regel = lw
             End If
@@ -769,6 +770,45 @@ Private Function AantalRegels(ByVal tekst As String, ByVal breedte As Double, By
     Next deel
     If n < 1 Then n = 1
     AantalRegels = n
+End Function
+
+' Breedte van een woord in pixels (Arial 10).
+Private Function WoordPx(ByVal woord As String, ByVal vet As Boolean) As Double
+    Dim i As Long
+    For i = 1 To Len(woord)
+        WoordPx = WoordPx + TekenPx(Mid$(woord, i, 1), vet)
+    Next i
+End Function
+
+' Breedte van een teken in pixels (Arial 10, breedtes van het lettertype in duizendsten). Vet is ongeveer 10% breder.
+Private Function TekenPx(ByVal ch As String, ByVal vet As Boolean) As Double
+    Dim e As Long
+    If InStr(1, "ijl", ch, vbBinaryCompare) > 0 Then
+        e = 222
+    ElseIf InStr(1, "ft .,:;!I/'|", ch, vbBinaryCompare) > 0 Then
+        e = 278
+    ElseIf InStr(1, "r-()[]", ch, vbBinaryCompare) > 0 Then
+        e = 333
+    ElseIf InStr(1, "cksvxyzJ", ch, vbBinaryCompare) > 0 Then
+        e = 500
+    ElseIf InStr(1, "Labdeghnopqu0123456789", ch, vbBinaryCompare) > 0 Then
+        e = 556
+    ElseIf InStr(1, "FTZ", ch, vbBinaryCompare) > 0 Then
+        e = 611
+    ElseIf InStr(1, "ABEKPSVXY&", ch, vbBinaryCompare) > 0 Then
+        e = 667
+    ElseIf InStr(1, "CDHNRUw", ch, vbBinaryCompare) > 0 Then
+        e = 722
+    ElseIf InStr(1, "GOQ", ch, vbBinaryCompare) > 0 Then
+        e = 778
+    ElseIf InStr(1, "mM", ch, vbBinaryCompare) > 0 Then
+        e = 833
+    ElseIf ch = "W" Then
+        e = 944
+    Else
+        e = 600                                  ' overige tekens: iets ruim
+    End If
+    TekenPx = e * 13.333 / 1000 * IIf(vet, 1.1, 1)
 End Function
 
 ' Vervolg van de macro's voor het Dashboard investeringskredieten (gesplitst vanwege de grootte; declaraties in Kredieten_1_Basis).
