@@ -1016,7 +1016,9 @@ Public Sub KnoppenUitlegPlaatsen()
                "die niet in de lijst staan blijven behouden. Daarna kun je nog een naam typen die niet in de lijst " & _
                "staat. Het resultaat komt in het veld Tijdschrijvers op de invoerkaart. Er wordt pas iets opgeslagen " & _
                "als je op 'Ingevuld? Verwerken!' klikt."
-    KnopUitleg ws, "btnUitgaven", "Verwerken werkelijk: werkt de werkelijke uitgaven en inkomsten van het lopende jaar bij (tot en met " & _
+    KnopUitleg ws, "btnExport", "Export naar financieel pakket: maakt een bestand waarmee de kredieten en budgetten in het " & _
+               "boekhoudpakket (Coda, later Centric) worden geladen. Wordt nog gebouwd (stap 10)."
+    KnopUitleg ws, "btnUitgaven", "Import werkelijke uitgaven: werkt de werkelijke uitgaven en inkomsten van het lopende jaar bij (tot en met " & _
                "31 maart ook die van het vorige jaar). De macro zoekt in de map 'export coda' het nieuwste " & _
                "Excelbestand en vraagt of je dat wilt uploaden (Ja of Nee). Daarna worden de bedragen per " & _
                "kredietnummer opgeteld en gecontroleerd. Sluit een jaar niet aan, dan wordt er niets bijgewerkt. " & _
@@ -1557,3 +1559,8 @@ Private Function GelijkStap8(ByVal a As Variant, ByVal b As Variant) As Boolean
         GelijkStap8 = (CStr(a) = CStr(b))
     End If
 End Function
+
+' Knop Export naar financieel pakket (blok 2b). Wordt gebouwd in stap 10 (functioneel ontwerp paragraaf 14).
+Public Sub ExportNaarFinancieelPakket()
+    MsgBox "De export naar het financieel pakket wordt nog gebouwd (stap 10).", vbInformation, "Export naar financieel pakket"
+End Sub
