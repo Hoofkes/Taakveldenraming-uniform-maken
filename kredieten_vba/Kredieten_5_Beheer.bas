@@ -1,5 +1,6 @@
 Attribute VB_Name = "Kredieten_5_Beheer"
 Option Explicit
+Private Const WACHTWOORD_JAAROVERGANG As String = "Best"   ' wachtwoord knop Jaarovergang uitvoeren (hoofdletter B)
 Private Const MAX_WAAR As Long = 5            ' blok 4: zoveel vindplaatsen tonen, daarna 'en .. meer'
 Private Const MAX_NUMMERS As Long = 25         ' blok 4, te controleren: zoveel kredietnummers tonen
 
@@ -762,6 +763,15 @@ Public Sub JaarovergangUitvoeren()
 
     If Not HeeftRecht("Toevoegen") Then
         MsgBox "De jaarovergang wordt uitgevoerd door de financieel adviseur.", vbExclamation
+        Exit Sub
+    End If
+    ' extra slot: wachtwoord voor de jaarovergang
+    Dim jw As String
+    jw = InputBox("Wachtwoord voor de jaarovergang:", "Jaarovergang uitvoeren")
+    If StrPtr(jw) = 0 Or Len(jw) = 0 Then Exit Sub
+    If StrComp(jw, WACHTWOORD_JAAROVERGANG, vbBinaryCompare) <> 0 Then
+        MsgBox "Wachtwoord onjuist. De jaarovergang is niet uitgevoerd.", vbExclamation, "Jaarovergang uitvoeren"
+        LogRegel "jaarovergang geweigerd", , , "", , , "wachtwoord onjuist"
         Exit Sub
     End If
     oud = CLng(ThisWorkbook.Names("Par_LopendJaar").RefersToRange.Value)
