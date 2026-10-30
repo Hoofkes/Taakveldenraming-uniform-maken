@@ -20,7 +20,7 @@ Private Const V_STATUS As Long = 17
 ' Kolommen Vervangingsinvesteringen
 Private Const I_NR As Long = 1, I_DOEL As Long = 2, I_REG As Long = 3, I_JAAR As Long = 4
 Private Const I_EINDE As Long = 5, I_AFSCHR As Long = 10, I_ACTIVA As Long = 11, I_TEACT As Long = 12
-Private Const I_ACTJR As Long = 13, I_EXPL As Long = 15, I_OPM As Long = 16
+Private Const I_ACTJR As Long = 13, I_JLEASE As Long = 14, I_EXPL As Long = 15, I_OPM As Long = 16
 
 ' ================= bij openen =================
 Public Sub Auto_Open()
@@ -93,11 +93,13 @@ Private Sub ZetOverNaarVoertuigen(wsI As Worksheet, r As Long, wsV As Worksheet,
     w = wsI.Cells(r, I_EXPL).Value
     If Len(CStr(w)) = 0 And ro > 0 Then w = wsV.Cells(ro, V_EXPL).Value
     If lease Then
+        Dim d As Variant
+        d = LeaseDelen(wsI, r)
         wsV.Cells(nr, V_LEV).Value = Naam("p_Lev").Value
-        wsV.Cells(nr, V_AANB).Value = Naam("p_Aanbet").Value
-        wsV.Cells(nr, V_BIJK).Value = Naam("p_Belet").Value + Naam("p_Opbouw").Value
-        wsV.Cells(nr, V_SLOT).Value = Naam("p_Slot").Value
-        wsV.Cells(nr, V_LEASE).Value = Naam("p_Lease").Value
+        wsV.Cells(nr, V_AANB).Value = d(0)
+        wsV.Cells(nr, V_BIJK).Value = d(1) + d(2)
+        wsV.Cells(nr, V_SLOT).Value = d(3)
+        wsV.Cells(nr, V_LEASE).Value = wsI.Cells(r, I_JLEASE).Value
         wsV.Cells(nr, V_EXPL).Value = Leeg(w, "n.n.b.")
     Else
         wsV.Cells(nr, V_LEV).Value = wsI.Cells(r, I_AFSCHR).Value
@@ -117,6 +119,7 @@ Private Sub VolgendVoertuigInVI(wsI As Worksheet, r As Long)
     wsI.Cells(r, I_JAAR).Value = nieuwJaar
     wsI.Cells(r, I_ACTIVA).ClearContents
     wsI.Cells(r, I_OPM).ClearContents
+    If wsI.Cells(r, I_REG).Value = "Lease-koop" Then SchrijfVIRij wsI, r, Empty   ' volgend voertuig weer op standaardbedragen
     If b = DoorschuifVan() Then
         rd = ZoekVIRij(wsI, DoorschuifNaar())
         If rd > 0 Then
@@ -186,6 +189,11 @@ Public Sub AanschafBevestigen()
     If Len(CStr(Naam("AB_Krediet").Value)) > 0 Then wsV.Cells(rn, V_KRED).Value = Naam("AB_Krediet").Value
     If Len(CStr(Naam("AB_Activa").Value)) > 0 Then wsV.Cells(rn, V_ACTIVA).Value = Naam("AB_Activa").Value
     wsV.Cells(rn, V_STATUS).Value = "In gebruik"
+    Application.ScreenUpdating = True
+    If MsgBox("Wil je de bedragen van " & v & " aanpassen aan de werkelijkheid?", vbYesNo + vbQuestion, "Wagenpark") = vbYes Then
+        BedragenVoertuigWijzigen wsV, rn
+    End If
+    Application.ScreenUpdating = False
 
     ' 3. opruimen
     Dim n As Variant
@@ -213,6 +221,279 @@ Private Sub NaarBuitenGebruik(wsV As Worksheet, r As Long, datum As Date)
     wsB.Cells(nb, 7).Value = wsV.Cells(r, V_ACTIVA).Value
     wsV.Rows(r).Delete
 End Sub
+
+' ================= wijzigen achteraf: voertuigen =================
+Public Sub VoertuigWijzigen()
+    Dim wsV As Worksheet, v As Variant, r As Long, keuze As Variant, c As Long, w As Variant, lijst As String
+    Set wsV = VoertuigenBlad()
+    v = InvoerTekst("Welk voertuig wil je wijzigen? (bijv. V05-01)", "")
+    If IsEmpty(v) Then Exit Sub
+    r = ZoekNummer(wsV, CStr(v))
+    If r = 0 Then MsgBox v & " staat niet op '" & wsV.Name & "'.", vbExclamation, "Wagenpark": Exit Sub
+    For c = V_KRED To V_LEASE
+        lijst = lijst & c & ". " & wsV.Cells(4, c).Value & ":  " & wsV.Cells(r, c).Text & vbCrLf
+    Next c
+    Do
+        keuze = InvoerGetal(v & vbCrLf & vbCrLf & lijst & vbCrLf & "99. Alle bedragen in één keer" & vbCrLf & vbCrLf & _
+                            "Kies een nummer (Annuleren = klaar):", "")
+        If IsEmpty(keuze) Then Exit Do
+        c = CLng(keuze)
+        If c = 99 Then
+            BedragenVoertuigWijzigen wsV, r
+        ElseIf c >= V_KRED And c <= V_LEASE Then
+            w = InvoerTekst(wsV.Cells(4, c).Value & " (nu: " & wsV.Cells(r, c).Text & ")", CStr(wsV.Cells(r, c).Value))
+            If Not IsEmpty(w) Then
+                If IsNumeric(w) And c <> V_KRED And c <> V_ACTIVA And c <> V_EXPL Then wsV.Cells(r, c).Value = CDbl(w) Else wsV.Cells(r, c).Value = w
+            End If
+        End If
+        lijst = ""
+        For c = V_KRED To V_LEASE
+            lijst = lijst & c & ". " & wsV.Cells(4, c).Value & ":  " & wsV.Cells(r, c).Text & vbCrLf
+        Next c
+    Loop
+    VernieuwKeuzelijst
+End Sub
+
+Private Sub BedragenVoertuigWijzigen(wsV As Worksheet, r As Long)
+    Dim a As Variant, b As Variant, o As Variant, s As Variant, l As Variant, k As Variant
+    If wsV.Cells(r, V_WIJZE).Value = "Lease-koop" Then
+        a = InvoerGetal("Aanbetaling", wsV.Cells(r, V_AANB).Value): If IsEmpty(a) Then Exit Sub
+        b = InvoerGetal("Belettering", Naam("p_Belet").Value): If IsEmpty(b) Then Exit Sub
+        o = InvoerGetal("Opbouw", Naam("p_Opbouw").Value): If IsEmpty(o) Then Exit Sub
+        s = InvoerGetal("Slotbetaling", wsV.Cells(r, V_SLOT).Value): If IsEmpty(s) Then Exit Sub
+        l = InvoerGetal("Leasesom per jaar", wsV.Cells(r, V_LEASE).Value): If IsEmpty(l) Then Exit Sub
+        wsV.Cells(r, V_AANB).Value = a
+        wsV.Cells(r, V_BIJK).Value = b + o
+        wsV.Cells(r, V_SLOT).Value = s
+        wsV.Cells(r, V_LEASE).Value = l
+    Else
+        k = InvoerGetal("Aanschafkosten (werkelijk)", wsV.Cells(r, V_KOST).Value): If IsEmpty(k) Then Exit Sub
+        wsV.Cells(r, V_KOST).Value = k
+    End If
+    SorteerVoertuigen
+End Sub
+
+Public Sub VoertuigAfvoeren()
+    Dim wsV As Worksheet, v As Variant, r As Long, d As Variant, ri As Long
+    Set wsV = VoertuigenBlad()
+    v = InvoerTekst("Welk voertuig gaat buiten gebruik zonder vervanging? (bijv. V25-01)", "")
+    If IsEmpty(v) Then Exit Sub
+    r = ZoekNummer(wsV, CStr(v))
+    If r = 0 Then MsgBox v & " staat niet op '" & wsV.Name & "'.", vbExclamation, "Wagenpark": Exit Sub
+    d = InvoerTekst("Datum buiten gebruik (dd-mm-jjjj)", Format(Date, "dd-mm-yyyy"))
+    If IsEmpty(d) Then Exit Sub
+    If Not IsDate(d) Then MsgBox "Geen geldige datum.", vbExclamation, "Wagenpark": Exit Sub
+    If MsgBox(v & " naar 'Buiten gebruik' verplaatsen?", vbYesNo + vbQuestion, "Wagenpark") = vbNo Then Exit Sub
+    Application.ScreenUpdating = False
+    NaarBuitenGebruik wsV, r, CDate(d)
+    SorteerVoertuigen
+    ri = ZoekVIRij(ThisWorkbook.Worksheets(VI), Basis(CStr(v)))
+    Application.ScreenUpdating = True
+    If ri > 0 Then
+        If MsgBox("Ook de geplande vervanging " & ThisWorkbook.Worksheets(VI).Cells(ri, I_NR).Value & _
+                  " schrappen uit Vervangingsinvesteringen?", vbYesNo + vbQuestion, "Wagenpark") = vbYes Then
+            ThisWorkbook.Worksheets(VI).Rows(ri).Delete
+            SorteerVI
+        End If
+    End If
+    VernieuwKeuzelijst
+    MsgBox v & " staat nu op 'Buiten gebruik'.", vbInformation, "Wagenpark"
+End Sub
+
+' ================= toekomstige vervangingsinvesteringen =================
+Public Sub InvesteringWijzigen()
+    Dim ws As Worksheet, v As Variant, r As Long, keuze As Variant, w As Variant, rd As Long
+    Set ws = ThisWorkbook.Worksheets(VI)
+    v = InvoerTekst("Welke investering wil je wijzigen? (V-nummer, bijv. V05 of V05-02)", "")
+    If IsEmpty(v) Then Exit Sub
+    r = ZoekVIRij(ws, Basis(CStr(v)))
+    If r = 0 Then MsgBox v & " staat niet op 'Vervangingsinvesteringen'.", vbExclamation, "Wagenpark": Exit Sub
+    Do
+        keuze = InvoerGetal(ws.Cells(r, I_NR).Value & "  (" & ws.Cells(r, I_REG).Value & ", " & ws.Cells(r, I_JAAR).Value & _
+                ", te activeren " & Format(ws.Cells(r, I_TEACT).Value, "€ #,##0") & ")" & vbCrLf & vbCrLf & _
+                "1. Bedragen" & vbCrLf & "2. Aanschafjaar" & vbCrLf & "3. Regime (koop / lease-koop)" & vbCrLf & _
+                "4. Gebruiksdoel" & vbCrLf & "5. Afschrijftermijn (koop)" & vbCrLf & "6. Activanummer" & vbCrLf & _
+                "7. Jaarlease" & vbCrLf & "8. Exploitatienummer" & vbCrLf & "9. Opmerking" & vbCrLf & _
+                "10. Terug naar standaardbedragen (lease-koop)" & vbCrLf & vbCrLf & "Kies een nummer (Annuleren = klaar):", "")
+        If IsEmpty(keuze) Then Exit Do
+        Select Case CLng(keuze)
+            Case 1: BedragenInvesteringWijzigen ws, r
+            Case 2
+                w = InvoerGetal("Aanschafjaar", ws.Cells(r, I_JAAR).Value)
+                If Not IsEmpty(w) Then
+                    ws.Cells(r, I_JAAR).Value = CLng(w)
+                    If Basis(CStr(ws.Cells(r, I_NR).Value)) = DoorschuifVan() Then
+                        rd = ZoekVIRij(ws, DoorschuifNaar())
+                        If rd > 0 Then ws.Cells(rd, I_JAAR).Value = CLng(w)
+                    End If
+                End If
+            Case 3
+                w = InvoerGetal("Regime: 1 = Koop, 2 = Lease-koop", "")
+                If Not IsEmpty(w) Then
+                    ws.Cells(r, I_REG).Value = IIf(CLng(w) = 2, "Lease-koop", "Koop")
+                    SchrijfVIRij ws, r, Empty
+                    If CLng(w) <> 2 Then BedragenInvesteringWijzigen ws, r
+                End If
+            Case 4: ZetTekst ws.Cells(r, I_DOEL), "Gebruiksdoel"
+            Case 5
+                w = InvoerGetal("Afschrijftermijn (jaar)", ws.Cells(r, I_AFSCHR).Value)
+                If Not IsEmpty(w) And ws.Cells(r, I_REG).Value = "Koop" Then ws.Cells(r, I_AFSCHR).Value = CLng(w)
+            Case 6: ZetTekst ws.Cells(r, I_ACTIVA), "Activanummer"
+            Case 7
+                w = InvoerGetal("Jaarlease", ws.Cells(r, I_JLEASE).Value)
+                If Not IsEmpty(w) Then ws.Cells(r, I_JLEASE).Value = w
+            Case 8: ZetTekst ws.Cells(r, I_EXPL), "Exploitatienummer"
+            Case 9: ZetTekst ws.Cells(r, I_OPM), "Opmerking"
+            Case 10: SchrijfVIRij ws, r, Empty
+        End Select
+    Loop
+    SorteerVI
+End Sub
+
+Private Sub BedragenInvesteringWijzigen(ws As Worksheet, r As Long)
+    Dim d As Variant, a As Variant, b As Variant, o As Variant, s As Variant, k As Variant
+    If ws.Cells(r, I_REG).Value = "Lease-koop" Then
+        d = LeaseDelen(ws, r)
+        a = InvoerGetal("Aanbetaling", d(0)): If IsEmpty(a) Then Exit Sub
+        b = InvoerGetal("Belettering", d(1)): If IsEmpty(b) Then Exit Sub
+        o = InvoerGetal("Opbouw", d(2)): If IsEmpty(o) Then Exit Sub
+        s = InvoerGetal("Slotbetaling", d(3)): If IsEmpty(s) Then Exit Sub
+        SchrijfVIRij ws, r, Array(a, b, o, s)
+    ElseIf ws.Cells(r, I_REG).Value = "Koop" Then
+        k = InvoerGetal("Koopprijs", ws.Cells(r, I_TEACT).Value): If IsEmpty(k) Then Exit Sub
+        ws.Cells(r, I_TEACT).Value = k
+        If Len(CStr(ws.Cells(r, I_AFSCHR).Value)) = 0 Or ws.Cells(r, I_AFSCHR).HasFormula Then
+            k = InvoerGetal("Afschrijftermijn (jaar)", 8): If Not IsEmpty(k) Then ws.Cells(r, I_AFSCHR).Value = CLng(k)
+        End If
+    End If
+End Sub
+
+Public Sub InvesteringToevoegen()
+    Dim ws As Worksheet, b As Variant, nr As Long, volgnr As Long, reg As Variant, j As Variant, doel As Variant
+    Dim wsV As Worksheet, ro As Long
+    Set ws = ThisWorkbook.Worksheets(VI)
+    Set wsV = VoertuigenBlad()
+    b = InvoerTekst("V-nummer van het nieuwe of uit te breiden voertuig (zonder volgnummer, bijv. V30)", "")
+    If IsEmpty(b) Then Exit Sub
+    b = UCase(Trim(Basis(CStr(b))))
+    If ZoekVIRij(ws, CStr(b)) > 0 Then MsgBox b & " staat al op 'Vervangingsinvesteringen'. Gebruik 'Investering wijzigen'.", vbExclamation, "Wagenpark": Exit Sub
+    ro = ZoekRij(wsV, CStr(b), "In gebruik")
+    volgnr = 1
+    If ro > 0 Then volgnr = Volg(CStr(wsV.Cells(ro, V_NR).Value)) + 1
+    Dim doelNu As String
+    If ro > 0 Then doelNu = CStr(wsV.Cells(ro, V_DOEL).Value)
+    doel = InvoerTekst("Gebruiksdoel", doelNu)
+    If IsEmpty(doel) Then Exit Sub
+    reg = InvoerGetal("Regime: 1 = Koop, 2 = Lease-koop", 2): If IsEmpty(reg) Then Exit Sub
+    j = InvoerGetal("Aanschafjaar", LopendJaar() + 1): If IsEmpty(j) Then Exit Sub
+
+    Application.ScreenUpdating = False
+    nr = NieuweRij(ws)
+    ws.Range(ws.Cells(nr, 1), ws.Cells(nr, I_OPM)).ClearContents
+    ws.Cells(nr, I_NR).Value = Nummer(CStr(b), volgnr)
+    ws.Cells(nr, I_DOEL).Value = doel
+    ws.Cells(nr, I_REG).Value = IIf(CLng(reg) = 2, "Lease-koop", "Koop")
+    ws.Cells(nr, I_JAAR).Value = CLng(j)
+    If ro > 0 Then ws.Cells(nr, I_EXPL).Value = wsV.Cells(ro, V_EXPL).Value
+    SchrijfVIRij ws, nr, Empty
+    Application.ScreenUpdating = True
+    If CLng(reg) <> 2 Then
+        BedragenInvesteringWijzigen ws, nr
+    End If
+    SorteerVI
+    MsgBox Nummer(CStr(b), volgnr) & " is toegevoegd.", vbInformation, "Wagenpark"
+End Sub
+
+Public Sub InvesteringSchrappen()
+    Dim ws As Worksheet, v As Variant, r As Long
+    Set ws = ThisWorkbook.Worksheets(VI)
+    v = InvoerTekst("Welke investering wil je schrappen? (V-nummer)", "")
+    If IsEmpty(v) Then Exit Sub
+    r = ZoekVIRij(ws, Basis(CStr(v)))
+    If r = 0 Then MsgBox v & " staat niet op 'Vervangingsinvesteringen'.", vbExclamation, "Wagenpark": Exit Sub
+    If MsgBox(ws.Cells(r, I_NR).Value & " (" & ws.Cells(r, I_JAAR).Value & ") schrappen?" & vbCrLf & _
+              "Het huidige voertuig blijft in gebruik.", vbYesNo + vbQuestion, "Wagenpark") = vbNo Then Exit Sub
+    ws.Rows(r).Delete
+    SorteerVI
+End Sub
+
+' Schrijft de formules van een regel op Vervangingsinvesteringen.
+' delen = Empty: standaardbedragen; anders Array(aanbetaling, belettering, opbouw, slotbetaling).
+Private Sub SchrijfVIRij(ws As Worksheet, r As Long, delen As Variant)
+    Dim reg As String, d1 As String, sl As String, c As Long, kop As String
+    reg = ws.Cells(r, I_REG).Value
+    ws.Cells(r, I_EINDE).Formula = "=IF($C" & r & "=""Lease-koop"",$D" & r & "+p_Lev,IF($C" & r & "=""Koop"",$D" & r & "+$J" & r & ",0))"
+    ws.Cells(r, I_ACTJR).Formula = "=IF($C" & r & "=""Lease-koop"",$D" & r & "+p_SlotJr,IF($C" & r & "=""Koop"",$D" & r & ",0))"
+    If reg = "Lease-koop" Then
+        If IsEmpty(delen) Then
+            ws.Cells(r, I_TEACT).Formula = "=p_Aanbet+p_Belet+p_Opbouw+p_Slot"
+            d1 = "p_Aanbet+p_Belet+p_Opbouw": sl = "p_Slot"
+        Else
+            ws.Cells(r, I_TEACT).Formula = "=" & Getal(delen(0)) & "+" & Getal(delen(1)) & "+" & Getal(delen(2)) & "+" & Getal(delen(3))
+            d1 = "(" & Getal(delen(0)) & "+" & Getal(delen(1)) & "+" & Getal(delen(2)) & ")": sl = Getal(delen(3))
+        End If
+        ws.Cells(r, I_AFSCHR).Formula = "=p_Afschr"
+        If Len(CStr(ws.Cells(r, I_JLEASE).Value)) = 0 Or ws.Cells(r, I_JLEASE).Value = 0 Then ws.Cells(r, I_JLEASE).Formula = "=p_Lease"
+    Else
+        If ws.Cells(r, I_TEACT).HasFormula Then ws.Cells(r, I_TEACT).ClearContents
+        If ws.Cells(r, I_AFSCHR).HasFormula Then ws.Cells(r, I_AFSCHR).ClearContents
+        ws.Cells(r, I_JLEASE).Value = 0
+    End If
+    For c = 6 To 9
+        kop = ws.Cells(4, c).Address(True, False)          ' bijv. F$4
+        If reg = "Lease-koop" Then
+            ws.Cells(r, c).Formula = "=IF(" & kop & "=$D" & r & "," & d1 & ",0)+IF(" & kop & "=$M" & r & "," & sl & ",0)"
+        Else
+            ws.Cells(r, c).Formula = "=IF(" & kop & "=$D" & r & ",N($L" & r & "),0)"
+        End If
+    Next c
+End Sub
+
+' Leest aanbetaling, belettering, opbouw en slotbetaling uit de formule 'Te activeren' (=a+b+o+s).
+Private Function LeaseDelen(ws As Worksheet, r As Long) As Variant
+    Dim f As String, p As Variant, i As Long, uit(3) As Double
+    f = ws.Cells(r, I_TEACT).Formula
+    p = Split(Mid(f, 2), "+")
+    If Left(f, 1) = "=" And UBound(p) = 3 Then
+        For i = 0 To 3
+            p(i) = Trim(p(i))
+            If IsNumeric(p(i)) Then uit(i) = Val(p(i)) Else uit(i) = Naam(CStr(p(i))).Value
+        Next i
+    Else
+        uit(0) = Naam("p_Aanbet").Value: uit(1) = Naam("p_Belet").Value
+        uit(2) = Naam("p_Opbouw").Value: uit(3) = Naam("p_Slot").Value
+    End If
+    LeaseDelen = uit
+End Function
+
+Private Function Getal(x As Variant) As String
+    Getal = Replace(CStr(CDbl(x)), ",", ".")
+End Function
+
+Private Sub ZetTekst(cel As Range, label As String)
+    Dim w As Variant
+    w = InvoerTekst(label & " (nu: " & cel.Text & ")", CStr(cel.Value))
+    If Not IsEmpty(w) Then cel.Value = w
+End Sub
+
+' Application.InputBox geeft False bij Annuleren; dan Empty teruggeven.
+Private Function InvoerGetal(vraag As String, standaard As Variant) As Variant
+    Dim w As Variant
+    w = Application.InputBox(vraag, "Wagenpark", standaard, Type:=1)
+    If VarType(w) = vbBoolean Then InvoerGetal = Empty Else InvoerGetal = w
+End Function
+
+Private Function InvoerTekst(vraag As String, standaard As String) As Variant
+    Dim w As Variant
+    w = Application.InputBox(vraag, "Wagenpark", standaard, Type:=2)
+    If VarType(w) = vbBoolean Then
+        InvoerTekst = Empty
+    ElseIf Len(Trim(CStr(w))) = 0 Then
+        InvoerTekst = Empty
+    Else
+        InvoerTekst = Trim(CStr(w))
+    End If
+End Function
 
 ' ================= sorteren, keuzelijst, knoppen =================
 Private Sub SorteerVoertuigen()
@@ -273,16 +554,22 @@ Private Sub VernieuwKeuzelijst()
 End Sub
 
 Private Sub MaakKnoppen()
-    Dim ws As Worksheet, b As Object
+    Dim ws As Worksheet
     Set ws = ThisWorkbook.Worksheets(DASH)
-    If Not KnopBestaat(ws, "btnAanschaf") Then
-        Set b = ws.Buttons.Add(ws.Range("E7").Left, ws.Range("E7").Top, 170, 26)
-        b.Name = "btnAanschaf": b.Caption = "Aanschaf bevestigen": b.OnAction = "AanschafBevestigen"
-    End If
-    If Not KnopBestaat(ws, "btnJaar") Then
-        Set b = ws.Buttons.Add(ws.Range("E3").Left, ws.Range("E3").Top, 170, 26)
-        b.Name = "btnJaar": b.Caption = "Jaarovergang nu": b.OnAction = "JaarovergangHandmatig"
-    End If
+    Knop ws, "btnJaar", "E3", "Jaarovergang nu", "JaarovergangHandmatig"
+    Knop ws, "btnAanschaf", "E7", "Aanschaf bevestigen", "AanschafBevestigen"
+    Knop ws, "btnWijzig", "E10", "Voertuig wijzigen", "VoertuigWijzigen"
+    Knop ws, "btnAfvoer", "E12", "Voertuig afvoeren", "VoertuigAfvoeren"
+    Knop ws, "btnInvWijzig", "G7", "Investering wijzigen", "InvesteringWijzigen"
+    Knop ws, "btnInvToev", "G10", "Investering toevoegen", "InvesteringToevoegen"
+    Knop ws, "btnInvSchrap", "G12", "Investering schrappen", "InvesteringSchrappen"
+End Sub
+
+Private Sub Knop(ws As Worksheet, n As String, cel As String, tekst As String, actie As String)
+    Dim b As Object
+    If KnopBestaat(ws, n) Then Exit Sub
+    Set b = ws.Buttons.Add(ws.Range(cel).Left, ws.Range(cel).Top, 170, 26)
+    b.Name = n: b.Caption = tekst: b.OnAction = actie
 End Sub
 
 Private Function KnopBestaat(ws As Worksheet, n As String) As Boolean
