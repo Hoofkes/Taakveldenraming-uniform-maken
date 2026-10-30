@@ -686,10 +686,12 @@ End Sub
 
 ' Afdrukinstellingen voor elk overzicht: A3 liggend, 1 pagina breed, kopregel(s) op elke pagina, knoppen niet afdrukken.
 ' Zo kan het overzicht (ook het losse bestand) direct met Ctrl+P worden geprint.
-Public Sub AfdrukA3(ByVal ws As Worksheet, ByVal titelRijen As String, ByVal kopRij As Long, ByVal lr As Long)
+Public Sub AfdrukA3(ByVal ws As Worksheet, ByVal titelRijen As String, ByVal kopRij As Long, ByVal lr As Long, _
+                    Optional ByVal lcVast As Long = 0)
     Dim lc As Long, b As Object
     On Error Resume Next                         ' paginainstellingen kunnen per printer verschillen
     lc = ws.Cells(kopRij, ws.Columns.Count).End(xlToLeft).Column
+    If lcVast > 0 Then lc = lcVast
     For Each b In ws.Buttons
         b.PrintObject = False
     Next b

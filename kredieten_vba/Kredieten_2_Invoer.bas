@@ -43,6 +43,7 @@ Public Sub DashboardKnoppenPlaatsen()
     FinAdmBlokPlaatsen
     KoppenStartEindjaar
     TabbladkiezerPlaatsen
+    RaadplegenKnopPlaatsen
     GebruikerKnopPlaatsen
     KnoppenTerugPlaatsen
     KnoppenUitlegPlaatsen
