@@ -1712,15 +1712,7 @@ Public Function OverzichtMaken(ByVal soort As String, ByVal bron As Worksheet, B
     ActiveWindow.FreezePanes = False
     ws.Range("C6").Select
     ActiveWindow.FreezePanes = True
-    On Error Resume Next
-    With ws.PageSetup
-        .Orientation = xlLandscape
-        .PrintTitleRows = "$5:$5"
-        .Zoom = False
-        .FitToPagesWide = 1
-        .FitToPagesTall = False
-        .CenterFooter = "Pagina &P van &N"
-    End With
+    AfdrukA3 ws, "$5:$5", 5, rij
     On Error GoTo Fout
     BladBeveiligen ws
     TabbladenOrdenen

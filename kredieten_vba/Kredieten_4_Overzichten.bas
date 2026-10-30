@@ -349,6 +349,7 @@ Public Sub OverzichtTijdschrijven()
     ws.Range("A5").Select
     ActiveWindow.FreezePanes = True
     KnopTerug ws, ws.Range("A3")
+    AfdrukA3 ws, "$4:$4", 4, rij
     BladOpslaan ws, map, "Tijdschrijven kredieten " & Format$(Date, "yyyy-mm-dd")
 
     ' nieuwe stand bewaren (alle lopende kredieten), met de datum 'toegevoegd op'
@@ -681,6 +682,37 @@ Public Sub OudeOverzichtbladenOpruimen()
         End If
     Next i
     Application.DisplayAlerts = True
+End Sub
+
+' Afdrukinstellingen voor elk overzicht: A3 liggend, 1 pagina breed, kopregel(s) op elke pagina, knoppen niet afdrukken.
+' Zo kan het overzicht (ook het losse bestand) direct met Ctrl+P worden geprint.
+Public Sub AfdrukA3(ByVal ws As Worksheet, ByVal titelRijen As String, ByVal kopRij As Long, ByVal lr As Long)
+    Dim lc As Long, b As Object
+    On Error Resume Next                         ' paginainstellingen kunnen per printer verschillen
+    lc = ws.Cells(kopRij, ws.Columns.Count).End(xlToLeft).Column
+    For Each b In ws.Buttons
+        b.PrintObject = False
+    Next b
+    Application.PrintCommunication = False
+    With ws.PageSetup
+        .PrintArea = ws.Range(ws.Cells(1, 1), ws.Cells(lr, lc)).Address
+        .PrintTitleRows = titelRijen
+        .Orientation = xlLandscape
+        .PaperSize = xlPaperA3
+        .Zoom = False
+        .FitToPagesWide = 1
+        .FitToPagesTall = False
+        .LeftMargin = Application.CentimetersToPoints(1)
+        .RightMargin = Application.CentimetersToPoints(1)
+        .TopMargin = Application.CentimetersToPoints(1.5)
+        .BottomMargin = Application.CentimetersToPoints(1.5)
+        .HeaderMargin = Application.CentimetersToPoints(0.6)
+        .FooterMargin = Application.CentimetersToPoints(0.6)
+        .CenterHorizontally = True
+        .PrintGridlines = False
+        .CenterFooter = "Pagina &P van &N"
+    End With
+    Application.PrintCommunication = True
 End Sub
 
 ' Kolombreedte en rijhoogte zo dat niets onlogisch wordt afgekapt (AutoFit is hiervoor niet betrouwbaar):
@@ -1089,16 +1121,7 @@ Public Function UitvraagBlad(ByVal naam As String) As Worksheet
     ActiveWindow.FreezePanes = False
     ws.Range("C6").Select
     ActiveWindow.FreezePanes = True
-    On Error Resume Next
-    With ws.PageSetup
-        .Orientation = xlLandscape
-        .PrintTitleRows = "$4:$5"
-        .Zoom = False
-        .FitToPagesWide = 1
-        .FitToPagesTall = False
-        .CenterFooter = "Pagina &P van &N"
-    End With
-    On Error GoTo 0
+    AfdrukA3 ws, "$4:$5", 5, rij
     ws.Protect Password:=WACHTWOORD, DrawingObjects:=True, Contents:=True, UserInterfaceOnly:=True
     TabbladenOrdenen
     ws.Activate

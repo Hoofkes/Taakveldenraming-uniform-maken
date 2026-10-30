@@ -1261,7 +1261,7 @@ Private Function PdfMaken(ByVal ws As Worksheet, ByVal pad As String) As Boolean
         .PrintArea = ws.Range(ws.Cells(1, 1), ws.Cells(lr, lc)).Address
         .PrintTitleRows = IIf(ws.Name = BL_UITVRAAG, "$4:$5", "$" & kop & ":$" & kop)
         .Orientation = xlLandscape
-        .PaperSize = xlPaperA4
+        .PaperSize = xlPaperA3
         .Zoom = False
         .FitToPagesWide = 1
         .FitToPagesTall = False
@@ -1317,7 +1317,7 @@ Private Sub VervolgRegelsWeg(ByVal ws As Worksheet, ByVal kop As Long, ByRef lr 
     Next r
 End Sub
 
-' Zet de pagina-einden zelf (A4 liggend, passend op de breedte). Elke pagina begint met de kopregel (herhaald) en
+' Zet de pagina-einden zelf (A3 liggend, passend op de breedte). Elke pagina begint met de kopregel (herhaald) en
 ' daaronder een lichtblauwe regel. Afbreken gebeurt bij voorkeur voor een lichtblauwe regel. Past een programma niet
 ' op een pagina, dan wordt afgebroken voor een groepskopje (of anders een gewone regel) en komt bovenaan de nieuwe
 ' pagina een lichtblauwe regel '<programma> (vervolg)'.
@@ -1331,15 +1331,15 @@ Private Sub PaginasIndelen(ByVal ws As Worksheet, ByVal kop As Long, ByRef lr As
         If Not ws.Columns(c).Hidden Then breed = breed + ws.Columns(c).Width
     Next c
     If breed <= 0 Then Exit Sub
-    ' A4 liggend 841,9 x 595,3 punten; marges links/rechts 1 cm, boven/onder 1,5 cm
-    schaal = (841.9 - 2 * 28.35) / breed
+    ' A3 liggend 1190,6 x 841,9 punten; marges links/rechts 1 cm, boven/onder 1,5 cm
+    schaal = (1190.6 - 2 * 28.35) / breed
     If schaal > 1 Then schaal = 1
     schaal = Int(schaal * 100) / 100
     eersteTitel = IIf(ws.Name = BL_UITVRAAG, 4, kop)
     For r = eersteTitel To kop
         titelH = titelH + ws.Rows(r).Height
     Next r
-    ruimte = (595.3 - 2 * 42.5) / schaal * 0.96 - titelH      ' 4% veiligheidsmarge
+    ruimte = (841.9 - 2 * 42.5) / schaal * 0.96 - titelH      ' 4% veiligheidsmarge
     If ruimte < 100 Then Exit Sub
     For r = 1 To eersteTitel - 1                              ' titel bovenaan de eerste pagina
         gebruikt = gebruikt + ws.Rows(r).Height
