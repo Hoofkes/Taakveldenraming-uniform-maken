@@ -58,10 +58,13 @@ End Sub
 Public Sub DashboardAdmOpbouwen()
     WerkStart                                    ' beveiliging even uit, daarna vanzelf weer aan
     Dim wd As Worksheet, wa As Worksheet, b As Object, r As Long, c As Long, naam As Variant, kopieer As Boolean, actief As Object
+    Dim stap As String
     On Error GoTo Fout
+    stap = "begin"
     Set actief = ActiveSheet
     Set wd = ThisWorkbook.Worksheets(BL_DASH)
     Application.ScreenUpdating = False
+    stap = "blad Dashboard Adm leegmaken of maken"
     If BladBestaatStil(BL_ADM) Then
         Set wa = ThisWorkbook.Worksheets(BL_ADM)
         wa.Visible = xlSheetVisible
@@ -84,6 +87,7 @@ Public Sub DashboardAdmOpbouwen()
         wa.Columns(c).ColumnWidth = wd.Columns(c).ColumnWidth
     Next c
 
+    stap = "kop en controles overnemen"
     ' kop (rij 1 tot en met 4) en blok 4 (controles) overnemen van Dashboard FinAdv, zonder knoppen
     kopieer = Application.CopyObjectsWithCells
     Application.CopyObjectsWithCells = False
@@ -94,8 +98,12 @@ Public Sub DashboardAdmOpbouwen()
         wa.Rows(r).RowHeight = wd.Rows(r).RowHeight
     Next r
     wa.Range("B1").Value = "Dashboard financi" & ChrW(235) & "le administratie"
-    wa.Range("E2:F2,E3:F4").ClearContents                         ' alleen voor de financieel adviseur
+    On Error Resume Next
+    wa.Range("E3:F3").ClearContents                              ' keuzeopties ververst op: alleen voor de financieel adviseur
+    wa.Range("E2").ClearContents
+    On Error GoTo Fout
     wa.Range("F2").Value = "Naar tabblad:"
+    stap = "controles koppelen met formules"
     ' controles: dezelfde cellen als op Dashboard FinAdv (formule), zodat ze altijd gelijk zijn
     For r = CB_KOP To CB_LAATSTE + 2
         wa.Rows(r).RowHeight = wd.Rows(r).RowHeight
@@ -108,8 +116,10 @@ Public Sub DashboardAdmOpbouwen()
     Next r
     wa.Range("B" & CB_KOP).Value = "3. Controles"
 
+    stap = "blok 1 Controle kredieten"
     ' 1. Controle door de financiele administratie (de knoppen die eerst in blok 3 van het Dashboard stonden)
     FinAdmBlokPlaatsen
+    stap = "oud blok 3 op Dashboard FinAdv leegmaken"
     ' oud blok 3 op Dashboard FinAdv leegmaken (de rijen worden verborgen door DashboardNaarRol)
     wd.Unprotect WACHTWOORD
     wd.Range("A" & FA_KOP & ":H" & (CB_KOP - 1)).Clear
@@ -120,6 +130,7 @@ Public Sub DashboardAdmOpbouwen()
     Next naam
     On Error GoTo Fout
 
+    stap = "blok 2 Kredietoverzichten"
     ' 2. Kredietoverzichten
     wa.Range("B" & ADM_OV_KOP).Value = "2. Kredietoverzichten"
     wa.Range("B" & ADM_OV_KOP).Font.Bold = True
@@ -143,6 +154,7 @@ Public Sub DashboardAdmOpbouwen()
                "bij de jaarovergang is gemaakt. Het wordt als los bestand bewaard in de map 'FinAdm Kredietoverzicht jaarrekening'. " & _
                "Bestaat er nog geen back-up, dan kun je een proef zien op basis van de huidige lijst (wordt niet bewaard)."
 
+    stap = "knop Controles vernieuwen"
     ' knop Controles vernieuwen bij blok 3
     Set b = wa.Buttons.Add(wa.Range("E" & (CB_KOP + 1)).Left + 2, wa.Range("E" & (CB_KOP + 1)).Top + 3, 170, 18)
     b.Name = "btnAdmControles"
@@ -151,12 +163,13 @@ Public Sub DashboardAdmOpbouwen()
     KnopUitleg wa, "btnAdmControles", "Controles vernieuwen: rekent de controles opnieuw uit. Het zijn dezelfde controles als op het " & _
                "Dashboard van de financieel adviseurs. Er wordt niets gewijzigd in de kredieten."
 
+    stap = "rijen verbergen"
     ' lege rijen tussen blok 2 en de controles verbergen
     wa.Rows((ADM_OV_KOP + 4) & ":" & (CB_KOP - 2)).Hidden = True
+    stap = "tabbladkiezer en Krediet raadplegen"
     ' knoppen bovenaan: tabbladkiezer en krediet raadplegen
     TabbladkiezerPlaatsen BL_ADM
     RaadplegenKnopPlaatsen BL_ADM
-    BeheerKnoppenPlaatsen                        ' knoppen applicatiebeheerder (alleen zichtbaar voor de applicatiebeheerder)
     Set wa = ThisWorkbook.Worksheets(BL_ADM)
     wa.Unprotect WACHTWOORD
     wa.Range("A1").Select
@@ -167,7 +180,8 @@ Public Sub DashboardAdmOpbouwen()
 Fout:
     Application.CopyObjectsWithCells = True
     Application.ScreenUpdating = True
-    MsgBox "Dashboard Adm kon niet worden opgebouwd: " & Err.Description, vbExclamation, BL_ADM
+    MsgBox "Dashboard Adm kon niet worden opgebouwd." & vbCrLf & vbCrLf & "Stap: " & stap & vbCrLf & _
+           "Fout " & Err.Number & ": " & Err.Description & vbCrLf & vbCrLf & "Stuur deze melding door.", vbExclamation, BL_ADM
 End Sub
 
 ' Knoppen op Dashboard Adm: zelfde overzichten als de financieel adviseur, maar in eigen mappen (FinAdm ...).

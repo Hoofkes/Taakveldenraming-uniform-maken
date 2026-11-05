@@ -288,7 +288,7 @@ End Sub
 Public Sub BeheerKnoppenPlaatsen()
     WerkStart                                    ' beveiliging even uit, daarna vanzelf weer aan
     Dim ws As Worksheet, b As Object, naam As Variant, blad As Variant, pre As String
-    For Each blad In Array(BL_DASH, BL_ADM)                 ' op beide dashboards; op Dashboard Adm beginnen de namen met btnAdm
+    For Each blad In Array(BL_DASH)                         ' alleen op Dashboard FinAdv (niet op Dashboard Adm)
         If BladBestaatStil(CStr(blad)) Then
             Set ws = ThisWorkbook.Worksheets(CStr(blad))
             pre = IIf(CStr(blad) = BL_ADM, "btnAdm", "btn")
@@ -470,11 +470,8 @@ Public Sub DashboardNaarRol()
     End If
     BeheerKnoppenZichtbaar ws, "btn"                                         ' alleen de applicatiebeheerder
     If BladBestaatStil(BL_ADM) Then
-        Set shp = Nothing
-        Set shp = ThisWorkbook.Worksheets(BL_ADM).Shapes("btnAdmBeheerToevoegen")
-        If shp Is Nothing Then BeheerKnoppenPlaatsen                          ' ontbreken op Dashboard Adm: alsnog plaatsen
         ThisWorkbook.Worksheets(BL_ADM).Unprotect WACHTWOORD
-        BeheerKnoppenZichtbaar ThisWorkbook.Worksheets(BL_ADM), "btnAdm"
+        BeheerKnoppenZichtbaar ThisWorkbook.Worksheets(BL_ADM), "btnAdm"         ' oude knoppen daar (als ze er nog staan) verbergen
         BladBeveiligen ThisWorkbook.Worksheets(BL_ADM)
     End If
     If beveiligd Then BladBeveiligen ws
