@@ -227,6 +227,8 @@ Private Function KolomBeheerToevoegen(ByVal lo As ListObject) As ListColumn
     End If
     naast.Cells(1, 1).Value = "Beheer"
     lo.Resize lo.Range.Resize(, lo.Range.Columns.Count + 1)
+    lo.HeaderRowRange.Font.Color = RGB(0, 0, 0)
+    lo.HeaderRowRange.Font.Bold = True
     Set KolomBeheerToevoegen = lo.ListColumns("Beheer")
 End Function
 
@@ -299,6 +301,11 @@ Public Sub ApplicatiebeheerInstellen()
             End If
         Next r
     End If
+    stap = "kop van de rollentabel leesbaar maken"
+    With lo.HeaderRowRange
+        .Font.Color = RGB(0, 0, 0)                   ' zwarte letters (witte tekst op geel was onleesbaar)
+        .Font.Bold = True
+    End With
     stap = "Parameters weer beveiligen"
     BladBeveiligen wp
     stap = "knoppen applicatiebeheerder plaatsen"
