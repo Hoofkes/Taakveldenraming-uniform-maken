@@ -216,6 +216,58 @@ klaar:
     MsgBox "De kolom Beheer kon niet aan de rollentabel worden toegevoegd: " & Err.Description, vbExclamation
 End Function
 
+' Eenmalig met de hand te starten (Alt+F8): zet de kolom Beheer in de rollentabel en maakt Michiel applicatiebeheerder
+' als er nog geen applicatiebeheerder is. Meldt precies wat er gebeurt (ook een foutmelding).
+Public Sub ApplicatiebeheerInstellen()
+    Dim wp As Worksheet, lo As ListObject, lc As ListColumn, r As ListRow, stap As String, n As Long, gevonden As Boolean
+    On Error GoTo Fout
+    stap = "blad Parameters en rollentabel zoeken"
+    Set wp = ThisWorkbook.Worksheets("Parameters")
+    Set lo = wp.ListObjects("Tbl_Rollen")
+    stap = "beveiliging van Parameters uitzetten"
+    wp.Unprotect WACHTWOORD
+    stap = "kolom Beheer zoeken"
+    On Error Resume Next
+    Set lc = lo.ListColumns("Beheer")
+    On Error GoTo Fout
+    If lc Is Nothing Then
+        stap = "kolom Beheer toevoegen aan de rollentabel"
+        Set lc = lo.ListColumns.Add
+        lc.Name = "Beheer"
+        For Each r In lo.ListRows
+            r.Range.Cells(1, lc.Index).Value = "nee"
+        Next r
+        lc.DataBodyRange.Interior.Color = RGB(217, 217, 217)
+        LogRegel "rollentabel", , , "Beheer", "", "kolom toegevoegd", "via ApplicatiebeheerInstellen"
+    End If
+    stap = "applicatiebeheerders tellen"
+    For Each r In lo.ListRows
+        If LCase$(Trim$(CStr(r.Range.Cells(1, lc.Index).Value))) = "ja" Then n = n + 1
+    Next r
+    If n = 0 Then
+        stap = "Michiel applicatiebeheerder maken"
+        For Each r In lo.ListRows
+            If LCase$(Trim$(CStr(r.Range.Cells(1, 1).Value))) Like "michiel*" Then
+                r.Range.Cells(1, lc.Index).Value = "ja"
+                gevonden = True
+                LogRegel "applicatiebeheerder toegevoegd", , , "Beheer", "nee", "ja", CStr(r.Range.Cells(1, 1).Value) & " (eerste applicatiebeheerder)"
+            End If
+        Next r
+    End If
+    stap = "Parameters weer beveiligen"
+    BladBeveiligen wp
+    stap = "dashboard bijwerken"
+    DashboardNaarRol
+    MsgBox "Klaar. Kolom Beheer staat in de rollentabel (kolom " & Split(lc.Range.Cells(1, 1).Address(True, False), "$")(0) & ")." & vbCrLf & _
+           IIf(n > 0, "Er waren al " & n & " applicatiebeheerder(s).", IIf(gevonden, "Michiel is applicatiebeheerder.", _
+           "Let op: Michiel staat niet in de rollentabel; niemand is applicatiebeheerder.")) & vbCrLf & _
+           "Huidige gebruiker: " & CStr(ThisWorkbook.Names("Par_HuidigeGebruiker").RefersToRange.Value) & _
+           IIf(HeeftRecht("Beheer"), " (applicatiebeheerder).", " (geen applicatiebeheerder)."), vbInformation, "Applicatiebeheer"
+    Exit Sub
+Fout:
+    MsgBox "Niet gelukt bij de stap: " & stap & vbCrLf & vbCrLf & "Fout " & Err.Number & ": " & Err.Description, vbExclamation, "Applicatiebeheer"
+End Sub
+
 ' Knoppen Applicatiebeheerder toevoegen en verwijderen bovenaan het Dashboard (rij 4), alleen zichtbaar voor een
 ' applicatiebeheerder (dat regelt DashboardNaarRol).
 Public Sub BeheerKnoppenPlaatsen()
