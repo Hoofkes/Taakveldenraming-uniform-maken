@@ -1348,6 +1348,11 @@ Private Sub PdfNaam(ByVal ws As Worksheet, ByRef naam As String, ByRef mapNaam A
             naam = "Tijdschrijven kredieten " & Format$(Date, "dd-mm-yyyy")
             mapNaam = "01 Applicatiebeheer Tijdschrijven"
     End Select
+    ' financiele administratie (werkt vanuit Dashboard Adm): pdf van een overzicht naar de eigen FinAdm-map
+    If EigenDashboard.Name = BL_ADM Then
+        If ws.Name = BL_OVERZICHT_NAAM Then mapNaam = "FinAdm Kredietoverzicht op naam"
+        If ws.Name = BL_OVERZICHT Then mapNaam = "FinAdm Kredietoverzicht jaarrekening"
+    End If
     For Each t In Array("\", "/", "?", "*", "[", "]", ":", """", "<", ">", "|")
         naam = Replace(naam, CStr(t), "-")
     Next t

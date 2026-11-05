@@ -689,7 +689,7 @@ Deze drie onderdelen staan in de werkmap `KREDIETEN - NIEUW.xlsm` (gecontroleerd
 - **Dashboard FinAdv:** blok 1 invoerkaart, blok 2 financieel adviseur, blok 4 controles. De rijen van het oude blok 3 blijven leeg en verborgen (zodat de rijnummers van blok 4 gelijk blijven).
 - **Dashboard Adm:** kop (gebruiker, lopend jaar, controlestatus, tabbladkiezer, Krediet raadplegen) · 1. Controle kredieten (rij 6-8: Volgend krediet controleren, Bestaand krediet aanpassen, teller) · 2. Kredietoverzichten (rij 10-12: Kredietoverzicht op naam, Kredietoverzicht jaarrekening) · 3. Controles (zelfde rijen als blok 4 op FinAdv, cellen via formule naar Dashboard FinAdv, eigen knop Controles vernieuwen).
 - **Zichtbaar:** financieel adviseur alleen FinAdv, financiële administratie alleen Adm, applicatiebeheerder beide, zonder rechten alleen FinAdv. Bij openen en bij "Terug naar dashboard" kom je op je eigen dashboard (`EigenDashboard`, `NaarEigenDashboard`).
-- **Mappen financiële administratie:** overzichten via Dashboard Adm gaan naar eigen mappen naast de andere: `FinAdm Kredietoverzicht op naam` (submap per persoon) en `FinAdm Kredietoverzicht jaarrekening` (vlag `mFinAdm`, functie `OverzichtMap`). De financiële administratie mag via Dashboard Adm ook het overzicht jaarrekening maken.
+- **Mappen financiële administratie:** overzichten via Dashboard Adm gaan naar eigen mappen naast de andere: `FinAdm Kredietoverzicht op naam` (submap per persoon) en `FinAdm Kredietoverzicht jaarrekening` (vlag `mFinAdm`, functie `OverzichtMap`). De financiële administratie mag via Dashboard Adm ook het overzicht jaarrekening maken. Ook de pdf-knop bewaart bij de financiële administratie in deze FinAdm-mappen (`PdfNaam`, module 5).
 - Knopnamen op Dashboard Adm beginnen met `btnAdm` (uitlegteksten worden per knopnaam in de werkmap bewaard, dus namen moeten uniek zijn).
 - Opbouwen: `DashboardAdmOpbouwen` (aangeroepen door `DashboardKnoppenPlaatsen`; bij het openen vanzelf als Dashboard Adm ontbreekt, via `DashboardIndelingKlopt`).
 
@@ -755,5 +755,4 @@ Krediet verwijderen via eigen knop; tot en met 31 maart ook vorig jaar (AB) bijw
 4. Blad **Laatste uitvraag begroting** staat nog in de werkmap; de code gebruikt nu het blad "Uitvraag". Waarschijnlijk een oud blad dat weg kan: eerst met de gebruiker nagaan.
 5. Een aparte uitvraag voor het lopende jaar (§ 11.5).
 6. Verzamelkredieten in Coda (§ 6.3).
-7. Pdf-knop op een overzicht dat de financiële administratie maakt, bewaart de pdf nog in de map van de adviseurs (map 02/03).
-8. Verdere verbeteringen van de gebruiker (aangekondigd op 03-11-2026): verbetering 1 (twee dashboards) is gebouwd, de rest volgt.
+7. Verdere verbeteringen van de gebruiker (aangekondigd op 03-11-2026): verbetering 1 (twee dashboards) is gebouwd, de rest volgt.
