@@ -605,7 +605,6 @@ Public Sub BladBeveiligen(ByVal ws As Worksheet)
             ws.Cells.Locked = True
             For Each kol In Array(Array("Tbl_Rollen", "Naam"), Array("Tbl_Rollen", "Windows-naam"), Array("Tbl_Rollen", "Rol"), _
                                   Array("Tbl_Rollen", "Toevoegen"), Array("Tbl_Rollen", "Wijzigen"), Array("Tbl_Rollen", "Bevestigen"), _
-                                  Array("Tbl_Rollen", "Beheer"), _
                                   Array("Tbl_Programma", "Code"), Array("Tbl_Programma", "Omschrijving"), _
                                   Array("Tbl_Taakveld", "Taakveld"), Array("Tbl_Taakveld", "Omschrijving"), _
                                   Array("Tbl_Balanscode", "Code"), Array("Tbl_Balanscode", "Omschrijving"), Array("Tbl_BijdrageBron", "Bron"))

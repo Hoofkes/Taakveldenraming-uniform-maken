@@ -333,16 +333,21 @@ Private Sub ZetGebruiker(ByVal naam As String)
     DashboardNaarRol                             ' blokken tonen of verbergen voor deze rol
 End Sub
 
-' Geeft True als de huidige gebruiker het recht heeft: "Toevoegen", "Wijzigen" of "Bevestigen".
+' Geeft True als de huidige gebruiker het recht heeft: "Toevoegen", "Wijzigen", "Bevestigen" of "Beheer".
+' Ontbreekt de kolom van dat recht in de rollentabel, dan is het antwoord nee (geen foutmelding).
 Public Function HeeftRecht(ByVal recht As String) As Boolean
-    Dim lo As ListObject, r As ListRow, naam As String
+    Dim lo As ListObject, r As ListRow, naam As String, c As Long
     If Not TabelBestaat() Then Exit Function
     naam = CStr(ThisWorkbook.Names("Par_HuidigeGebruiker").RefersToRange.Value)
     If Len(naam) = 0 Then Exit Function
     Set lo = ThisWorkbook.Worksheets("Parameters").ListObjects("Tbl_Rollen")
+    On Error Resume Next
+    c = lo.ListColumns(recht).Index
+    On Error GoTo 0
+    If c = 0 Then Exit Function
     For Each r In lo.ListRows
         If StrComp(CStr(r.Range.Cells(1, 1).Value), naam, vbTextCompare) = 0 Then
-            HeeftRecht = (LCase$(CStr(r.Range.Cells(1, lo.ListColumns(recht).Index).Value)) = "ja")
+            HeeftRecht = (LCase$(CStr(r.Range.Cells(1, c).Value)) = "ja")
             Exit Function
         End If
     Next r
@@ -436,6 +441,27 @@ Public Sub GebruikerVerwijderen()
     If StrComp(naam, CStr(ThisWorkbook.Names("Par_HuidigeGebruiker").RefersToRange.Value), vbTextCompare) = 0 Then
         MsgBox "U kunt uzelf niet verwijderen.", vbExclamation
         Exit Sub
+    End If
+
+    ' een applicatiebeheerder kan alleen door een applicatiebeheerder worden verwijderd, en de laatste nooit
+    Dim cB As Long, nB As Long, j As Long
+    On Error Resume Next
+    cB = lo.ListColumns("Beheer").Index
+    On Error GoTo Fout
+    If cB > 0 Then
+        If LCase$(Trim$(CStr(lo.ListRows(idx(k)).Range.Cells(1, cB).Value))) = "ja" Then
+            If Not HeeftRecht("Beheer") Then
+                MsgBox naam & " is applicatiebeheerder. Alleen een applicatiebeheerder kan " & naam & " verwijderen.", vbExclamation
+                Exit Sub
+            End If
+            For j = 1 To lo.ListRows.Count
+                If LCase$(Trim$(CStr(lo.ListRows(j).Range.Cells(1, cB).Value))) = "ja" Then nB = nB + 1
+            Next j
+            If nB <= 1 Then
+                MsgBox naam & " is de enige applicatiebeheerder en kan niet worden verwijderd.", vbExclamation
+                Exit Sub
+            End If
+        End If
     End If
 
     If MsgBox("Weet u zeker dat u " & naam & " (" & rol & ") wilt verwijderen?", _

@@ -187,42 +187,156 @@ Private Sub KengetallenBladMaken()
     BladBeveiligen ws
 End Sub
 
-' Kolom 'Beheer' in de rollentabel (applicatiebeheerder: ziet alle blokken op het Dashboard). Wordt eenmalig
-' toegevoegd; Michiel en Monique krijgen 'ja'. Daarna zelf aan te passen in de tabel op het blad Parameters.
-Private Sub BeheerKolomZorgen()
-    Dim wp As Worksheet, lo As ListObject, lc As ListColumn, r As ListRow, nm As String, beveiligd As Boolean
+' Kolom 'Beheer' in de rollentabel: ja = applicatiebeheerder (ziet alles en beheert de applicatiebeheerders).
+' Ontbreekt de kolom, dan wordt hij toegevoegd; Michiel wordt dan applicatiebeheerder, de rest niet.
+' Het recht Beheer kan alleen via de knoppen Applicatiebeheerder toevoegen / verwijderen worden gewijzigd (de kolom staat op slot).
+Public Function BeheerKolomZorgen() As Boolean
+    Dim wp As Worksheet, lo As ListObject, lc As ListColumn, r As ListRow, nm As String, wasBeveiligd As Boolean
     On Error GoTo klaar
     Set wp = ThisWorkbook.Worksheets("Parameters")
     Set lo = wp.ListObjects("Tbl_Rollen")
     On Error Resume Next
     Set lc = lo.ListColumns("Beheer")
     On Error GoTo klaar
-    If Not lc Is Nothing Then Exit Sub
-    beveiligd = wp.ProtectContents
-    If beveiligd Then wp.Unprotect WACHTWOORD
+    If Not lc Is Nothing Then BeheerKolomZorgen = True: Exit Function
+    wasBeveiligd = wp.ProtectContents
+    wp.Unprotect WACHTWOORD
     Set lc = lo.ListColumns.Add
     lc.Name = "Beheer"
     For Each r In lo.ListRows
         nm = LCase$(Trim$(CStr(r.Range.Cells(1, 1).Value)))
-        r.Range.Cells(1, lc.Index).Value = IIf(nm Like "michiel*" Or nm Like "monique*", "ja", "nee")
+        r.Range.Cells(1, lc.Index).Value = IIf(nm Like "michiel*", "ja", "nee")
     Next r
-    lc.DataBodyRange.Interior.Color = RGB(255, 255, 204)
-    If beveiligd Then BladBeveiligen wp
-    LogRegel "rollentabel", , , "Beheer", "", "kolom toegevoegd", "applicatiebeheerders: Michiel en Monique"
+    lc.DataBodyRange.Interior.Color = RGB(217, 217, 217)      ' grijs: niet zelf aanpassen, alleen via de knoppen
+    If wasBeveiligd Then BladBeveiligen wp
+    LogRegel "rollentabel", , , "Beheer", "", "kolom toegevoegd", "applicatiebeheerder: Michiel"
+    BeheerKolomZorgen = True
+    Exit Function
 klaar:
+    MsgBox "De kolom Beheer kon niet aan de rollentabel worden toegevoegd: " & Err.Description, vbExclamation
+End Function
+
+' Knoppen Applicatiebeheerder toevoegen en verwijderen bovenaan het Dashboard (rij 4), alleen zichtbaar voor een
+' applicatiebeheerder (dat regelt DashboardNaarRol).
+Public Sub BeheerKnoppenPlaatsen()
+    WerkStart                                    ' beveiliging even uit, daarna vanzelf weer aan
+    Dim ws As Worksheet, b As Object, naam As Variant
+    Set ws = ThisWorkbook.Worksheets("Dashboard")
+    On Error Resume Next
+    For Each naam In Array("btnBeheerToevoegen", "btnBeheerVerwijderen")
+        ws.Shapes("uitleg_" & CStr(naam)).Delete
+        ws.Shapes(CStr(naam)).Delete
+    Next naam
+    On Error GoTo 0
+    If ws.Rows(4).RowHeight < 22 Then ws.Rows(4).RowHeight = 22
+    Set b = ws.Buttons.Add(ws.Range("E4").Left + 2, ws.Range("E4").Top + 2, 190, 18)
+    b.Name = "btnBeheerToevoegen"
+    b.Caption = "Applicatiebeheerder toevoegen"
+    b.OnAction = "BeheerderToevoegen"
+    b.Placement = xlFreeFloating
+    b.PrintObject = False
+    Set b = ws.Buttons.Add(ws.Range("E4").Left + 202, ws.Range("E4").Top + 2, 190, 18)
+    b.Name = "btnBeheerVerwijderen"
+    b.Caption = "Applicatiebeheerder verwijderen"
+    b.OnAction = "BeheerderVerwijderen"
+    b.Placement = xlFreeFloating
+    b.PrintObject = False
+    KnopUitleg ws, "btnBeheerToevoegen", "Applicatiebeheerder toevoegen (alleen applicatiebeheerder): toont een genummerde lijst met de " & _
+               "gebruikers uit de rollentabel die nog geen applicatiebeheerder zijn. Typ het nummer. Die persoon krijgt " & _
+               "dezelfde bevoegdheden als jij: alle blokken zien en applicatiebeheerders toevoegen of verwijderen. " & _
+               "Zijn eigen rol (financieel adviseur of financi" & ChrW(235) & "le administratie) blijft. Komt in het Logboek."
+    KnopUitleg ws, "btnBeheerVerwijderen", "Applicatiebeheerder verwijderen (alleen applicatiebeheerder): toont de applicatiebeheerders. " & _
+               "Typ het nummer. Die persoon blijft gebruiker met zijn eigen rol, maar is geen applicatiebeheerder meer. " & _
+               "Er moet altijd minstens " & ChrW(233) & ChrW(233) & "n applicatiebeheerder overblijven. Komt in het Logboek."
+End Sub
+
+Public Sub BeheerderToevoegen()
+    BeheerderWijzigen True
+End Sub
+
+Public Sub BeheerderVerwijderen()
+    BeheerderWijzigen False
+End Sub
+
+' toevoegen = True: iemand applicatiebeheerder maken; False: het recht weghalen (minstens een beheerder blijft over).
+Private Sub BeheerderWijzigen(ByVal toevoegen As Boolean)
+    WerkStart                                    ' beveiliging even uit, daarna vanzelf weer aan
+    Dim wp As Worksheet, lo As ListObject, cB As Long, i As Long, n As Long, k As Long, nBeheer As Long
+    Dim idx() As Long, lijst As String, antw As String, naam As String, titel As String, ik As String, isBeheer As Boolean
+    titel = IIf(toevoegen, "Applicatiebeheerder toevoegen", "Applicatiebeheerder verwijderen")
+    On Error GoTo Fout
+    If Not BeheerKolomZorgen() Then Exit Sub
+    If Not HeeftRecht("Beheer") Then
+        MsgBox "Dit mag alleen een applicatiebeheerder.", vbExclamation, titel
+        Exit Sub
+    End If
+    Set wp = ThisWorkbook.Worksheets("Parameters")
+    Set lo = wp.ListObjects("Tbl_Rollen")
+    cB = lo.ListColumns("Beheer").Index
+    ik = CStr(ThisWorkbook.Names("Par_HuidigeGebruiker").RefersToRange.Value)
+    For i = 1 To lo.ListRows.Count
+        naam = Trim$(CStr(lo.ListRows(i).Range.Cells(1, 1).Value))
+        isBeheer = (LCase$(Trim$(CStr(lo.ListRows(i).Range.Cells(1, cB).Value))) = "ja")
+        If isBeheer Then nBeheer = nBeheer + 1
+        If Len(naam) > 0 And isBeheer <> toevoegen Then
+            n = n + 1
+            ReDim Preserve idx(1 To n)
+            idx(n) = i
+            lijst = lijst & n & " = " & naam & " (" & CStr(lo.ListRows(i).Range.Cells(1, 3).Value) & ")" & vbCrLf
+        End If
+    Next i
+    If n = 0 Then
+        MsgBox IIf(toevoegen, "Alle gebruikers zijn al applicatiebeheerder.", "Er zijn geen applicatiebeheerders."), vbInformation, titel
+        Exit Sub
+    End If
+    If Not toevoegen And nBeheer <= 1 Then
+        MsgBox "Er is maar " & ChrW(233) & ChrW(233) & "n applicatiebeheerder. Die kan niet worden verwijderd." & vbCrLf & _
+               "Voeg eerst een andere applicatiebeheerder toe.", vbExclamation, titel
+        Exit Sub
+    End If
+    antw = Trim$(InputBox(IIf(toevoegen, "Wie wordt applicatiebeheerder? Typ het nummer.", "Wie is geen applicatiebeheerder meer? Typ het nummer.") & _
+                          vbCrLf & vbCrLf & lijst, titel))
+    If Len(antw) = 0 Then Exit Sub
+    If Not IsNumeric(antw) Then
+        MsgBox "Dat is geen nummer. Er is niets gewijzigd.", vbExclamation, titel
+        Exit Sub
+    End If
+    k = CLng(antw)
+    If k < 1 Or k > n Then
+        MsgBox "Dat nummer staat niet in de lijst. Er is niets gewijzigd.", vbExclamation, titel
+        Exit Sub
+    End If
+    naam = Trim$(CStr(lo.ListRows(idx(k)).Range.Cells(1, 1).Value))
+    If Not toevoegen And StrComp(naam, ik, vbTextCompare) = 0 Then
+        If MsgBox("Je haalt je eigen recht als applicatiebeheerder weg. Daarna kun je dit niet zelf terugzetten." & vbCrLf & _
+                  "Doorgaan?", vbYesNo + vbExclamation + vbDefaultButton2, titel) <> vbYes Then Exit Sub
+    ElseIf MsgBox(naam & IIf(toevoegen, " applicatiebeheerder maken?", " is dan geen applicatiebeheerder meer. Doorgaan?"), _
+                  vbYesNo + vbQuestion + vbDefaultButton2, titel) <> vbYes Then
+        Exit Sub
+    End If
+    wp.Unprotect WACHTWOORD
+    lo.ListRows(idx(k)).Range.Cells(1, cB).Value = IIf(toevoegen, "ja", "nee")
+    BladBeveiligen wp
+    LogRegel IIf(toevoegen, "applicatiebeheerder toegevoegd", "applicatiebeheerder verwijderd"), , , "Beheer", _
+             IIf(toevoegen, "nee", "ja"), IIf(toevoegen, "ja", "nee"), naam
+    DashboardNaarRol
+    MsgBox IIf(toevoegen, naam & " is nu applicatiebeheerder.", naam & " is geen applicatiebeheerder meer."), vbInformation, titel
+    Exit Sub
+Fout:
+    MsgBox "Fout: " & Err.Description, vbCritical, titel
 End Sub
 
 ' Dashboard per rol: financieel adviseur ziet blok 1 (invoerkaart) en blok 3, niet blok 4; financiele administratie
 ' ziet blok 4, niet blok 1 en 3 (zij controleert en past aan via de Verzamellijst). Zonder rechten: alleen blok 2 en 5.
-' Applicatiebeheerder (kolom Beheer = ja in de rollentabel, standaard Michiel en Monique): ziet alles.
+' Applicatiebeheerder (kolom Beheer = ja in de rollentabel, eerste keer: Michiel; daarna via de knoppen): ziet alles.
 ' Draait bij openen (na het kiezen van de gebruiker), bij Wie werkt er en bij het opbouwen van het Dashboard.
 Public Sub DashboardNaarRol()
-    Dim ws As Worksheet, adv As Boolean, fa As Boolean, shp As Object, beveiligd As Boolean
+    Dim ws As Worksheet, adv As Boolean, fa As Boolean, shp As Object, beveiligd As Boolean, nmK As Variant
     On Error Resume Next
     If Not BladBestaatStil("Dashboard") Then Exit Sub
     Set ws = ThisWorkbook.Worksheets("Dashboard")
     If CStr(ws.Range("B" & NM_KOP).Value) <> "2. Financieel adviseur" Then Exit Sub   ' oud Dashboard: eerst DashboardAanmaken
-    BeheerKolomZorgen
+    BeheerKolomZorgen                            ' kolom Beheer in de rollentabel (applicatiebeheerder)
     Set shp = Nothing
     Set shp = ws.Shapes("btnGebruikerVerwijderen")
     If shp Is Nothing Then                                                    ' knop ontbreekt (nog): alsnog plaatsen
@@ -243,6 +357,12 @@ Public Sub DashboardNaarRol()
     Next shp
     ws.Shapes("btnGebruikerVerwijderen").Visible = adv                         ' alleen de financieel adviseur ziet deze knop
     ws.Shapes("uitleg_btnGebruikerVerwijderen").Visible = adv
+    Set shp = Nothing
+    Set shp = ws.Shapes("btnBeheerToevoegen")
+    If shp Is Nothing Then BeheerKnoppenPlaatsen                              ' knoppen ontbreken (nog): alsnog plaatsen
+    For Each nmK In Array("btnBeheerToevoegen", "uitleg_btnBeheerToevoegen", "btnBeheerVerwijderen", "uitleg_btnBeheerVerwijderen")
+        ws.Shapes(CStr(nmK)).Visible = HeeftRecht("Beheer")                   ' alleen de applicatiebeheerder
+    Next nmK
     If beveiligd Then BladBeveiligen ws
 End Sub
 

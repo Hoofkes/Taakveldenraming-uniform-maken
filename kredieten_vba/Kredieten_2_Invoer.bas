@@ -44,6 +44,7 @@ Public Sub DashboardKnoppenPlaatsen()
     KoppenStartEindjaar
     TabbladkiezerPlaatsen
     RaadplegenKnopPlaatsen
+    BeheerKnoppenPlaatsen
     GebruikerKnopPlaatsen
     KnoppenTerugPlaatsen
     KnoppenUitlegPlaatsen
