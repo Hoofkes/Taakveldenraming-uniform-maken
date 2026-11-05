@@ -230,6 +230,38 @@ Private Function KolomBeheerToevoegen(ByVal lo As ListObject) As ListColumn
     Set KolomBeheerToevoegen = lo.ListColumns("Beheer")
 End Function
 
+' Hulp bij problemen met rechten (Alt+F8): toont wat de macro's in de rollentabel lezen voor de huidige gebruiker.
+Public Sub RechtenTonen()
+    Dim lo As ListObject, r As ListRow, naam As String, t As String, c As Long, gevonden As Boolean, recht As Variant
+    On Error GoTo Fout
+    naam = CStr(ThisWorkbook.Names("Par_HuidigeGebruiker").RefersToRange.Value)
+    t = "Huidige gebruiker: [" & naam & "]" & vbCrLf & "Windows-naam: " & Environ("USERNAME") & vbCrLf & vbCrLf
+    Set lo = ThisWorkbook.Worksheets("Parameters").ListObjects("Tbl_Rollen")
+    t = t & "Rollentabel: " & lo.Range.Address(False, False) & ", kolommen: "
+    For c = 1 To lo.ListColumns.Count
+        t = t & "[" & lo.ListColumns(c).Name & "] "
+    Next c
+    t = t & vbCrLf & vbCrLf
+    For Each r In lo.ListRows
+        If StrComp(Trim$(CStr(r.Range.Cells(1, 1).Text)), Trim$(naam), vbTextCompare) = 0 Then
+            gevonden = True
+            t = t & "Regel van " & naam & ":" & vbCrLf
+            For c = 1 To lo.ListColumns.Count
+                t = t & "  " & lo.ListColumns(c).Name & " = [" & CStr(r.Range.Cells(1, c).Text) & "]" & vbCrLf
+            Next c
+        End If
+    Next r
+    If Not gevonden Then t = t & "Deze naam staat NIET in de rollentabel." & vbCrLf
+    t = t & vbCrLf & "Uitkomst rechten:" & vbCrLf
+    For Each recht In Array("Toevoegen", "Wijzigen", "Bevestigen", "Beheer")
+        t = t & "  " & recht & ": " & IIf(HeeftRecht(CStr(recht)), "ja", "nee") & vbCrLf
+    Next recht
+    MsgBox t, vbInformation, "Rechten"
+    Exit Sub
+Fout:
+    MsgBox t & vbCrLf & "Fout " & Err.Number & ": " & Err.Description, vbExclamation, "Rechten"
+End Sub
+
 ' Eenmalig met de hand te starten (Alt+F8): zet de kolom Beheer in de rollentabel en maakt Michiel applicatiebeheerder
 ' als er nog geen applicatiebeheerder is. Meldt precies wat er gebeurt (ook een foutmelding).
 Public Sub ApplicatiebeheerInstellen()
