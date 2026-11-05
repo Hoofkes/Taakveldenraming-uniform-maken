@@ -287,35 +287,53 @@ End Sub
 ' daar staat de controlestatus), alleen zichtbaar voor een applicatiebeheerder (dat regelt DashboardNaarRol).
 Public Sub BeheerKnoppenPlaatsen()
     WerkStart                                    ' beveiliging even uit, daarna vanzelf weer aan
-    Dim ws As Worksheet, b As Object, naam As Variant
-    Set ws = ThisWorkbook.Worksheets(BL_DASH)
-    On Error Resume Next
-    For Each naam In Array("btnBeheerToevoegen", "btnBeheerVerwijderen")
-        ws.Shapes("uitleg_" & CStr(naam)).Delete
-        ws.Shapes(CStr(naam)).Delete
-    Next naam
-    On Error GoTo 0
-    If ws.Rows(3).RowHeight < 22 Then ws.Rows(3).RowHeight = 22
-    Set b = ws.Buttons.Add(ws.Range("G3").Left + 2, ws.Range("G3").Top + 2, 190, 18)
-    b.Name = "btnBeheerToevoegen"
-    b.Caption = "Applicatiebeheerder toevoegen"
-    b.OnAction = "BeheerderToevoegen"
-    b.Placement = xlFreeFloating
-    b.PrintObject = False
-    Set b = ws.Buttons.Add(ws.Range("G3").Left + 202, ws.Range("G3").Top + 2, 190, 18)
-    b.Name = "btnBeheerVerwijderen"
-    b.Caption = "Applicatiebeheerder verwijderen"
-    b.OnAction = "BeheerderVerwijderen"
-    b.Placement = xlFreeFloating
-    b.PrintObject = False
+    Dim ws As Worksheet, b As Object, naam As Variant, blad As Variant, pre As String
+    For Each blad In Array(BL_DASH, BL_ADM)                 ' op beide dashboards; op Dashboard Adm beginnen de namen met btnAdm
+        If BladBestaatStil(CStr(blad)) Then
+            Set ws = ThisWorkbook.Worksheets(CStr(blad))
+            pre = IIf(CStr(blad) = BL_ADM, "btnAdm", "btn")
+            ws.Unprotect WACHTWOORD
+            On Error Resume Next
+            For Each naam In Array(pre & "BeheerToevoegen", pre & "BeheerVerwijderen")
+                ws.Shapes("uitleg_" & CStr(naam)).Delete
+                ws.Shapes(CStr(naam)).Delete
+            Next naam
+            On Error GoTo 0
+            If ws.Rows(3).RowHeight < 22 Then ws.Rows(3).RowHeight = 22
+            Set b = ws.Buttons.Add(ws.Range("G3").Left + 2, ws.Range("G3").Top + 2, 190, 18)
+            b.Name = pre & "BeheerToevoegen"
+            b.Caption = "Applicatiebeheerder toevoegen"
+            b.OnAction = "BeheerderToevoegen"
+            b.Placement = xlFreeFloating
+            b.PrintObject = False
+            Set b = ws.Buttons.Add(ws.Range("G3").Left + 202, ws.Range("G3").Top + 2, 190, 18)
+            b.Name = pre & "BeheerVerwijderen"
+            b.Caption = "Applicatiebeheerder verwijderen"
+            b.OnAction = "BeheerderVerwijderen"
+            b.Placement = xlFreeFloating
+            b.PrintObject = False
+            KnopUitleg ws, pre & "BeheerToevoegen", "Applicatiebeheerder toevoegen (alleen applicatiebeheerder): toont een genummerde lijst met de " & _
+                       "gebruikers uit de rollentabel die nog geen applicatiebeheerder zijn. Typ het nummer. Die persoon krijgt " & _
+                       "dezelfde bevoegdheden als jij: alle blokken zien en applicatiebeheerders toevoegen of verwijderen. " & _
+                       "Zijn eigen rol (financieel adviseur of financi" & ChrW(235) & "le administratie) blijft. Komt in het Logboek."
+            KnopUitleg ws, pre & "BeheerVerwijderen", "Applicatiebeheerder verwijderen (alleen applicatiebeheerder): toont de applicatiebeheerders. " & _
+                       "Typ het nummer. Die persoon blijft gebruiker met zijn eigen rol, maar is geen applicatiebeheerder meer. " & _
+                       "Er moet altijd minstens " & ChrW(233) & ChrW(233) & "n applicatiebeheerder overblijven. Komt in het Logboek."
+            BeheerKnoppenZichtbaar ws, pre
+            BladBeveiligen ws
+        End If
+    Next blad
     GebruikerRegelZetten
-    KnopUitleg ws, "btnBeheerToevoegen", "Applicatiebeheerder toevoegen (alleen applicatiebeheerder): toont een genummerde lijst met de " & _
-               "gebruikers uit de rollentabel die nog geen applicatiebeheerder zijn. Typ het nummer. Die persoon krijgt " & _
-               "dezelfde bevoegdheden als jij: alle blokken zien en applicatiebeheerders toevoegen of verwijderen. " & _
-               "Zijn eigen rol (financieel adviseur of financi" & ChrW(235) & "le administratie) blijft. Komt in het Logboek."
-    KnopUitleg ws, "btnBeheerVerwijderen", "Applicatiebeheerder verwijderen (alleen applicatiebeheerder): toont de applicatiebeheerders. " & _
-               "Typ het nummer. Die persoon blijft gebruiker met zijn eigen rol, maar is geen applicatiebeheerder meer. " & _
-               "Er moet altijd minstens " & ChrW(233) & ChrW(233) & "n applicatiebeheerder overblijven. Komt in het Logboek."
+End Sub
+
+' Knoppen applicatiebeheerder alleen tonen aan een applicatiebeheerder.
+Public Sub BeheerKnoppenZichtbaar(ByVal ws As Worksheet, ByVal pre As String)
+    Dim nmK As Variant, zien As Boolean
+    On Error Resume Next
+    zien = HeeftRecht("Beheer")
+    For Each nmK In Array(pre & "BeheerToevoegen", "uitleg_" & pre & "BeheerToevoegen", pre & "BeheerVerwijderen", "uitleg_" & pre & "BeheerVerwijderen")
+        ws.Shapes(CStr(nmK)).Visible = zien
+    Next nmK
 End Sub
 
 ' C2 op de dashboards: naam (rol, applicatiebeheerder).
@@ -416,7 +434,7 @@ End Sub
 ' Applicatiebeheerder (kolom Beheer = ja in de rollentabel, eerste keer: Michiel; daarna via de knoppen): ziet alles.
 ' Draait bij openen (na het kiezen van de gebruiker), bij Wie werkt er en bij het opbouwen van het Dashboard.
 Public Sub DashboardNaarRol()
-    Dim ws As Worksheet, adv As Boolean, fa As Boolean, shp As Object, beveiligd As Boolean, nmK As Variant
+    Dim ws As Worksheet, adv As Boolean, fa As Boolean, shp As Object, beveiligd As Boolean
     On Error Resume Next
     If Not BladBestaatStil(BL_DASH) Then Exit Sub
     Set ws = ThisWorkbook.Worksheets(BL_DASH)
@@ -450,9 +468,12 @@ Public Sub DashboardNaarRol()
     ElseIf shp.TopLeftCell.Row <> 3 Then
         BeheerKnoppenPlaatsen                                                 ' oude plek (rij 4, door de controlestatus): verplaatsen
     End If
-    For Each nmK In Array("btnBeheerToevoegen", "uitleg_btnBeheerToevoegen", "btnBeheerVerwijderen", "uitleg_btnBeheerVerwijderen")
-        ws.Shapes(CStr(nmK)).Visible = HeeftRecht("Beheer")                   ' alleen de applicatiebeheerder
-    Next nmK
+    BeheerKnoppenZichtbaar ws, "btn"                                         ' alleen de applicatiebeheerder
+    If BladBestaatStil(BL_ADM) Then
+        ThisWorkbook.Worksheets(BL_ADM).Unprotect WACHTWOORD
+        BeheerKnoppenZichtbaar ThisWorkbook.Worksheets(BL_ADM), "btnAdm"
+        BladBeveiligen ThisWorkbook.Worksheets(BL_ADM)
+    End If
     If beveiligd Then BladBeveiligen ws
     beveiligd = False
     DashboardsZichtbaar                                                       ' alleen het eigen dashboard tonen

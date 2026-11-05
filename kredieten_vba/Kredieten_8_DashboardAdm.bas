@@ -156,6 +156,9 @@ Public Sub DashboardAdmOpbouwen()
     ' knoppen bovenaan: tabbladkiezer en krediet raadplegen
     TabbladkiezerPlaatsen BL_ADM
     RaadplegenKnopPlaatsen BL_ADM
+    BeheerKnoppenPlaatsen                        ' knoppen applicatiebeheerder (alleen zichtbaar voor de applicatiebeheerder)
+    Set wa = ThisWorkbook.Worksheets(BL_ADM)
+    wa.Unprotect WACHTWOORD
     wa.Range("A1").Select
     BladBeveiligen wa
     If Not actief Is Nothing Then actief.Activate
