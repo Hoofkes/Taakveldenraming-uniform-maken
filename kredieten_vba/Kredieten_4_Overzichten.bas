@@ -153,7 +153,7 @@ Public Sub KredietoverzichtAlleBudgethouders()
         End If
     Next nm
     mStil = False
-    ThisWorkbook.Worksheets("Dashboard").Activate
+    ThisWorkbook.Worksheets(BL_DASH).Activate
     MsgBox n & " kredietoverzichten opgeslagen in:" & vbCrLf & map & _
            IIf(Len(mislukt) > 0, vbCrLf & vbCrLf & "Niet gelukt (bestand open of map niet bereikbaar):" & vbCrLf & mislukt, ""), _
            IIf(Len(mislukt) > 0, vbExclamation, vbInformation)
@@ -541,7 +541,7 @@ Public Sub BeveiligingAan()
     mHerbeveiligingGepland = False
     Application.EnableEvents = True
     On Error Resume Next
-    For Each naam In Array(BL_VZ, "Logboek", "Vorige upload", "Stand tijdschrijven", BL_MUTREG, BL_UITVRAAG, "Parameters", "Dashboard", "Controle", _
+    For Each naam In Array(BL_VZ, "Logboek", "Vorige upload", "Stand tijdschrijven", BL_MUTREG, BL_UITVRAAG, "Parameters", BL_DASH, BL_ADM, "Controle", _
                            BL_MELD, BL_OVERZICHT, BL_OVERZICHT_NAAM, BL_KENG)
         If BladBestaatStil(CStr(naam)) Then BladBeveiligen ThisWorkbook.Worksheets(CStr(naam))
     Next naam
@@ -557,7 +557,7 @@ Public Sub BeveiligingAan()
     End If
     If mBlijfOpDashboard Then
         mBlijfOpDashboard = False
-        ThisWorkbook.Worksheets("Dashboard").Activate
+        EigenDashboard.Activate
     End If
     ' nooit eindigen op het blad Kengetallen als je (of de macro) daar niet begon
     If Not mActiefVoorMacro Is Nothing Then
@@ -612,7 +612,7 @@ Public Sub BladBeveiligen(ByVal ws As Worksheet)
                 Set lo = ws.ListObjects(CStr(kol(0)))
                 If Not lo Is Nothing Then lo.ListColumns(CStr(kol(1))).DataBodyRange.Locked = False
             Next kol
-        Case "Dashboard"
+        Case BL_DASH
             ws.Cells.Locked = True
             ws.Range("Kaart_Invoer").Locked = False
             For j = 0 To 5
@@ -630,6 +630,9 @@ Public Sub BladBeveiligen(ByVal ws As Worksheet)
                     .Interior.Color = RGB(221, 235, 247)
                 End If
             End With
+        Case BL_ADM
+            ws.Cells.Locked = True
+            ws.Range("G2").Locked = False                         ' tabbladkiezer
         Case BL_VZ
             If Not ws.AutoFilterMode Then
                 laatste = CLng(ThisWorkbook.Names("Par_LaatsteRij").RefersToRange.Value)
@@ -1139,7 +1142,7 @@ Public Sub TabbladenOrdenen()
     scherm = Application.ScreenUpdating
     Application.ScreenUpdating = False                 ' verplaatsen maakt een blad actief: niet laten zien
     pos = 0
-    For Each naam In Array("Dashboard", BL_VZ, BL_OVERZICHT_NAAM, BL_OVERZICHT, BL_UITVRAAG, BL_TIJD, BL_MELD)
+    For Each naam In Array(BL_DASH, BL_ADM, BL_VZ, BL_OVERZICHT_NAAM, BL_OVERZICHT, BL_UITVRAAG, BL_TIJD, BL_MELD)
         If BladBestaatStil(CStr(naam)) Then
             pos = pos + 1
             If ThisWorkbook.Worksheets(CStr(naam)).Index <> pos Then
@@ -1191,13 +1194,13 @@ Public Sub VerzamellijstHernoemen()
 End Sub
 
 Public Sub NaarDashboard()
-    ThisWorkbook.Worksheets("Dashboard").Activate
-    ThisWorkbook.Worksheets("Dashboard").Range("A1").Select
+    NaarEigenDashboard                           ' financieel adviseur of financiele administratie
 End Sub
 
 Public Sub NaarTabblad()
     Dim naam As String
-    naam = Trim$(CStr(ThisWorkbook.Worksheets("Dashboard").Range("G2").Value))
+    If ActiveSheet.Name = BL_ADM Then naam = Trim$(CStr(ActiveSheet.Range("G2").Value)) _
+        Else naam = Trim$(CStr(ThisWorkbook.Worksheets(BL_DASH).Range("G2").Value))
     If Len(naam) = 0 Or Not BladBestaatStil(naam) Then
         MsgBox "Kies eerst in cel G2 een tabblad.", vbExclamation
         Exit Sub
@@ -1212,7 +1215,7 @@ End Sub
 ' Zet de knop "Terug naar dashboard" op een blad (een bestaande knop wordt vervangen).
 Public Sub KnopTerug(ByVal ws As Worksheet, ByVal cel As Range)
     Dim b As Object, beveiligd As Boolean
-    If ws.Name = "Dashboard" Then Exit Sub
+    If ws.Name = BL_DASH Then Exit Sub
     On Error Resume Next
     beveiligd = ws.ProtectContents
     If beveiligd Then ws.Unprotect WACHTWOORD
@@ -1256,7 +1259,7 @@ Public Sub KnoppenTerugPlaatsen()
     WerkStart                                    ' beveiliging even uit, daarna vanzelf weer aan
     Dim ws As Worksheet, c As Long
     For Each ws In ThisWorkbook.Worksheets
-        If ws.Visible = xlSheetVisible And ws.Name <> "Dashboard" Then
+        If ws.Visible = xlSheetVisible And ws.Name <> BL_DASH Then
             Select Case ws.Name
                 Case BL_VZ
                     ws.Range("A1:B1").VerticalAlignment = xlBottom
@@ -1286,22 +1289,26 @@ Public Sub KnoppenTerugPlaatsen()
 End Sub
 
 ' Tabbladkiezer op het Dashboard: F2 tekst, G2 keuzelijst, H2 knop.
-Public Sub TabbladkiezerPlaatsen()
+' Ook voor Dashboard Adm: TabbladkiezerPlaatsen BL_ADM (knop heet daar btnAdmNaarTabblad).
+Public Sub TabbladkiezerPlaatsen(Optional ByVal blad As String = BL_DASH)
     WerkStart                                    ' beveiliging even uit, daarna vanzelf weer aan
-    Dim ws As Worksheet, b As Object
-    Set ws = ThisWorkbook.Worksheets("Dashboard")
+    Dim ws As Worksheet, b As Object, knop As String
+    Set ws = ThisWorkbook.Worksheets(blad)
+    knop = IIf(blad = BL_ADM, "btnAdmNaarTabblad", "btnNaarTabblad")
     ws.Range("F2").Value = "Naar tabblad:"
     ws.Range("F2").HorizontalAlignment = xlRight
     ws.Range("G2").Interior.Color = RGB(255, 255, 204)
     If ws.Columns("G").ColumnWidth < 30 Then ws.Columns("G").ColumnWidth = 30
     On Error Resume Next
-    ws.Buttons("btnNaarTabblad").Delete
+    ws.Buttons(knop).Delete
+    ws.Shapes("uitleg_" & knop).Delete
     On Error GoTo 0
     If ws.Rows(2).RowHeight < 22 Then ws.Rows(2).RowHeight = 22
     Set b = ws.Buttons.Add(ws.Range("H2").Left + 22, ws.Range("H2").Top + 2, 90, 18)   ' ruimte voor het keuzepijltje van G2
-    b.Name = "btnNaarTabblad"
+    b.Name = knop
     b.Caption = "Ga naar tabblad"
     b.OnAction = "NaarTabblad"
+    If blad = BL_ADM Then KnopUitleg ws, knop, "Ga naar tabblad: opent het tabblad dat je in cel G2 hebt gekozen. Er wordt niets gewijzigd."
     TabbladkiezerVullen
 End Sub
 
@@ -1309,7 +1316,7 @@ End Sub
 Public Sub GebruikerKnopPlaatsen()
     WerkStart                                    ' beveiliging even uit, daarna vanzelf weer aan
     Dim ws As Worksheet, b As Object
-    Set ws = ThisWorkbook.Worksheets("Dashboard")
+    Set ws = ThisWorkbook.Worksheets(BL_DASH)
     On Error Resume Next
     ws.Shapes("uitleg_btnGebruikerVerwijderen").Delete
     ws.Shapes("btnGebruikerVerwijderen").Delete
@@ -1325,27 +1332,31 @@ End Sub
 
 ' Keuzelijst in G2 met alle zichtbare tabbladen behalve het Dashboard.
 Private Sub TabbladkiezerVullen()
-    Dim ws As Worksheet, lijst As String, wd As Worksheet, beveiligd As Boolean
+    Dim ws As Worksheet, lijst As String, wd As Worksheet, beveiligd As Boolean, blad As Variant
     On Error Resume Next
-    ' keuzelijst aanpassen lukt niet op een beveiligd blad, ook niet voor macro's: even open
-    Set wd = ThisWorkbook.Worksheets("Dashboard")
-    beveiligd = wd.ProtectContents
-    If beveiligd Then wd.Unprotect WACHTWOORD
     For Each ws In ThisWorkbook.Worksheets
-        If ws.Visible = xlSheetVisible And ws.Name <> "Dashboard" And InStr(ws.Name, ",") = 0 Then
+        If ws.Visible = xlSheetVisible And ws.Name <> BL_DASH And ws.Name <> BL_ADM And InStr(ws.Name, ",") = 0 Then
             lijst = lijst & IIf(Len(lijst) > 0, ",", "") & ws.Name
         End If
     Next ws
     If Len(lijst) > 255 Then lijst = Left$(lijst, InStrRev(Left$(lijst, 255), ",") - 1)
-    With ThisWorkbook.Worksheets("Dashboard").Range("G2").Validation
-        .Delete
-        .Add Type:=xlValidateList, AlertStyle:=xlValidAlertStop, Formula1:=lijst
-    End With
-    ' voorselectie: het eerste tabblad uit de lijst (Verzamellijst) als er nog niets (geldigs) staat
-    With ThisWorkbook.Worksheets("Dashboard").Range("G2")
-        If Len(Trim$(CStr(.Value))) = 0 Or Not BladBestaatStil(CStr(.Value)) Then .Value = Split(lijst, ",")(0)
-    End With
-    If beveiligd Then BladBeveiligen wd
+    For Each blad In Array(BL_DASH, BL_ADM)                ' keuzelijst in G2 op beide dashboards
+        If BladBestaatStil(CStr(blad)) Then
+            ' keuzelijst aanpassen lukt niet op een beveiligd blad, ook niet voor macro's: even open
+            Set wd = ThisWorkbook.Worksheets(CStr(blad))
+            beveiligd = wd.ProtectContents
+            If beveiligd Then wd.Unprotect WACHTWOORD
+            With wd.Range("G2").Validation
+                .Delete
+                .Add Type:=xlValidateList, AlertStyle:=xlValidAlertStop, Formula1:=lijst
+            End With
+            ' voorselectie: het eerste tabblad uit de lijst (Verzamellijst) als er nog niets (geldigs) staat
+            With wd.Range("G2")
+                If Len(Trim$(CStr(.Value))) = 0 Or Not BladBestaatStil(CStr(.Value)) Then .Value = Split(lijst, ",")(0)
+            End With
+            If beveiligd Then BladBeveiligen wd
+        End If
+    Next blad
 End Sub
 
 ' Kredietnummer 7999998 is een tijdelijk nummer voor kredieten die na het begrotingsjaar starten.

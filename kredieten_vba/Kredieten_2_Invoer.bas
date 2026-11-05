@@ -6,7 +6,7 @@ Public Sub DashboardKnoppenPlaatsen()
     Dim ws As Worksheet, b As Object, naam As Variant, i As Long
     Dim namen As Variant, titels As Variant, acties As Variant
     VerzamellijstHernoemen
-    Set ws = ThisWorkbook.Worksheets("Dashboard")
+    Set ws = ThisWorkbook.Worksheets(BL_DASH)
     On Error Resume Next
     For Each naam In Array("btnToevoegen", "btnWijzigen", "btnOpslaan", "btnKaartWissen", "btnLijsten", "btnVerwerken", "btnTijdschrijvers", _
                            "spnAfschrijving", "btnVerwijderen", "btnUitgaven", "btnNaamVervangen", "btnBhVervangen", "btnPlVervangen", "btnTsVervangen")
@@ -40,7 +40,6 @@ Public Sub DashboardKnoppenPlaatsen()
     b.OnAction = "KredietVerwijderen"
     UitdraaiBlokPlaatsen
     ControleblokPlaatsen
-    FinAdmBlokPlaatsen
     KoppenStartEindjaar
     TabbladkiezerPlaatsen
     RaadplegenKnopPlaatsen
@@ -48,6 +47,7 @@ Public Sub DashboardKnoppenPlaatsen()
     GebruikerKnopPlaatsen
     KnoppenTerugPlaatsen
     KnoppenUitlegPlaatsen
+    DashboardAdmOpbouwen                         ' Dashboard Adm (financiele administratie), na blok 4
     TabbladenOrdenen
     DashboardEventInstalleren                    ' melding voor de financiele administratie bij invoer op een lege kaart
     DashboardNaarRol
@@ -58,7 +58,7 @@ End Sub
 ' anders wordt een nieuw krediet toegevoegd.
 Public Sub Verwerken()
     WerkStart                                    ' beveiliging even uit, daarna vanzelf weer aan
-    If Len(CStr(ThisWorkbook.Worksheets("Dashboard").Range("Kaart_Rijnummer").Value)) > 0 Then
+    If Len(CStr(ThisWorkbook.Worksheets(BL_DASH).Range("Kaart_Rijnummer").Value)) > 0 Then
         WijzigingOpslaan
     Else
         KredietToevoegen
@@ -297,7 +297,7 @@ Private Function ControleerKaart(ByRef k As TKaart, ByVal wijzigRij As Long) As 
     Dim i As Long, laatste As Long, nDubbel As Long
     Dim cel As Range
 
-    Set wd = ThisWorkbook.Worksheets("Dashboard")
+    Set wd = ThisWorkbook.Worksheets(BL_DASH)
     Set wv = Vz()
     For i = 1 To aantal
         k.f(i) = wd.Cells(KaartRij(i), KaartKol(i)).Value
@@ -515,7 +515,7 @@ Public Sub KredietWijzigen()
         Exit Sub
     End If
     Set wv = Vz()
-    Set wd = ThisWorkbook.Worksheets("Dashboard")
+    Set wd = ThisWorkbook.Worksheets(BL_DASH)
     If Len(CStr(wd.Range("Kaart_Rijnummer").Value)) > 0 Then
         If MsgBox("Er staat al een regel op de kaart. Vervangen?", vbYesNo + vbQuestion, "Krediet wijzigen") <> vbYes Then Exit Sub
     End If
@@ -590,7 +590,7 @@ End Sub
 
 Public Sub ToonOpKaart(ByVal r As Long)
     Dim wd As Worksheet, wv As Worksheet, h As String, v As Variant
-    Set wd = ThisWorkbook.Worksheets("Dashboard")
+    Set wd = ThisWorkbook.Worksheets(BL_DASH)
     Set wv = Vz()
     KaartWissen
     wd.Range("Kaart_Rijnummer").Value = r
@@ -687,7 +687,7 @@ Public Sub WijzigingOpslaan()
         MsgBox "Alleen financieel adviseurs en de financi" & ChrW(235) & "le administratie mogen kredieten wijzigen.", vbExclamation
         Exit Sub
     End If
-    Set wd = ThisWorkbook.Worksheets("Dashboard")
+    Set wd = ThisWorkbook.Worksheets(BL_DASH)
     Set wv = Vz()
     If Len(CStr(wd.Range("Kaart_Rijnummer").Value)) = 0 Then
         MsgBox "Er is geen regel geladen. Gebruik eerst Krediet wijzigen.", vbExclamation
@@ -912,44 +912,47 @@ End Sub
 
 ' Blok 4 op het Dashboard: Financiele administratie. Alleen knoppen (de regels zelf worden in de Verzamellijst
 ' geopend). Standaard: Volgend krediet controleren. Incidenteel: Bestaand krediet aanpassen.
+' Blok 1 van Dashboard Adm (stond eerst als blok 3 op het Dashboard van de financieel adviseurs).
 Public Sub FinAdmBlokPlaatsen()
     WerkStart                                    ' beveiliging even uit, daarna vanzelf weer aan
-    Dim ws As Worksheet, b As Object, naam As Variant
-    Set ws = ThisWorkbook.Worksheets("Dashboard")
-    ws.Range("A" & FA_KOP & ":H" & (CB_KOP - 1)).Clear
-    ws.Range("B" & FA_KOP).Value = "3. Financi" & ChrW(235) & "le administratie"
-    ws.Range("B" & FA_KOP).Font.Bold = True
-    ws.Range("B" & FA_KOP).Font.Size = 12
-    ' teller te controleren / afgekeurd: rechts naast de knoppen (stond eerst bovenaan in B5)
-    ws.Range("B5").FormatConditions.Delete
-    ws.Range("B5").ClearContents
-    With ws.Range("E" & (FA_KOP + 2))
+    Dim ws As Worksheet, b As Object, naam As Variant, kop As Long
+    If Not BladBestaatStil(BL_ADM) Then Exit Sub
+    Set ws = ThisWorkbook.Worksheets(BL_ADM)
+    kop = ADM_FA_KOP
+    ws.Range("A" & kop & ":H" & (ADM_OV_KOP - 1)).Clear
+    ws.Range("B" & kop).Value = "1. Controle kredieten"
+    ws.Range("B" & kop).Font.Bold = True
+    ws.Range("B" & kop).Font.Size = 12
+    ' oude teller bovenaan het Dashboard FinAdv (B5) opruimen
+    ThisWorkbook.Worksheets(BL_DASH).Range("B5").FormatConditions.Delete
+    ThisWorkbook.Worksheets(BL_DASH).Range("B5").ClearContents
+    With ws.Range("E" & (kop + 2))
         .Formula = "=COUNTIF(" & VL & "$AP:$AP,""" & CtlTeControleren() & """)&"" regels te controleren, ""&COUNTIF(" & VL & "$AP:$AP,""Afgekeurd"")&"" afgekeurd"""
         .Font.Bold = True
         .VerticalAlignment = xlCenter
         .FormatConditions.Delete
     End With
     Dim fc As Object
-    Set fc = VoegCF(ws.Range("E" & (FA_KOP + 2)), "=COUNTIF(" & VL & "$AP:$AP,""Afgekeurd"")>0")
+    Set fc = VoegCF(ws.Range("E" & (kop + 2)), "=COUNTIF(" & VL & "$AP:$AP,""Afgekeurd"")>0")
     If Not fc Is Nothing Then fc.Interior.Color = RGB(255, 150, 150)
-    Set fc = VoegCF(ws.Range("E" & (FA_KOP + 2)), "=COUNTIF(" & VL & "$AP:$AP,""" & CtlTeControleren() & """)>0")
+    Set fc = VoegCF(ws.Range("E" & (kop + 2)), "=COUNTIF(" & VL & "$AP:$AP,""" & CtlTeControleren() & """)>0")
     If Not fc Is Nothing Then fc.Interior.Color = RGB(255, 200, 120)
-    ws.Range("B" & (FA_KOP + 1)).Value = "Standaard: nieuwe kredieten controleren. Incidenteel: een bestaand (al goedgekeurd) krediet aanpassen. " & _
+    ws.Range("B" & (kop + 1)).Value = "Standaard: nieuwe kredieten controleren. Incidenteel: een bestaand (al goedgekeurd) krediet aanpassen. " & _
                                           "Beide in de Verzamellijst; daarna bovenaan op 'Klaar: goedkeuren'."
-    ws.Range("B" & (FA_KOP + 1)).Font.Italic = True
-    ws.Range("B" & (FA_KOP + 1)).Font.Color = RGB(89, 89, 89)
+    ws.Range("B" & (kop + 1)).Font.Italic = True
+    ws.Range("B" & (kop + 1)).Font.Color = RGB(89, 89, 89)
     On Error Resume Next
     For Each naam In Array("btnFaVernieuwen", "btnFaOpenen", "btnFaBevestigen", "btnFaAfkeuren", "btnFaAanpassen", "btnFaVolgende")
         ws.Shapes(CStr(naam)).Delete
         ws.Shapes("uitleg_" & CStr(naam)).Delete
     Next naam
     On Error GoTo 0
-    ws.Rows(FA_KOP + 2).RowHeight = 26
-    Set b = ws.Buttons.Add(ws.Range("B" & (FA_KOP + 2)).Left, ws.Range("B" & (FA_KOP + 2)).Top + 2, 210, 22)
+    ws.Rows(kop + 2).RowHeight = 26
+    Set b = ws.Buttons.Add(ws.Range("B" & (kop + 2)).Left, ws.Range("B" & (kop + 2)).Top + 2, 210, 22)
     b.Name = "btnFaVolgende"
     b.Caption = "Volgend krediet controleren"
     b.OnAction = "FaVolgende"
-    Set b = ws.Buttons.Add(ws.Range("B" & (FA_KOP + 2)).Left + 220, ws.Range("B" & (FA_KOP + 2)).Top + 2, 210, 22)
+    Set b = ws.Buttons.Add(ws.Range("B" & (kop + 2)).Left + 220, ws.Range("B" & (kop + 2)).Top + 2, 210, 22)
     b.Name = "btnFaAanpassen"
     b.Caption = "Bestaand krediet aanpassen"
     b.OnAction = "GoedgekeurdKredietAanpassen"
@@ -1198,7 +1201,7 @@ Public Sub FaHyperlink(ByVal h As Object)
     On Error GoTo klaar
     Set cel = h.Range
     Set wd = cel.Worksheet
-    If wd.Name <> "Dashboard" Or cel.Column <> 1 Or cel.Row <= FA_LIJST Then Exit Sub
+    If wd.Name <> BL_DASH Or cel.Column <> 1 Or cel.Row <= FA_LIJST Then Exit Sub
     WerkStart                                    ' beveiliging even uit, daarna vanzelf weer aan
     If Not FaRecht() Then Exit Sub
     v = Application.Match(cel.Value, Vz().Columns(1), 0)
@@ -1257,9 +1260,9 @@ Public Sub FaRegelSluiten()
 End Sub
 
 Private Sub NaarBlok6()
-    With ThisWorkbook.Worksheets("Dashboard")
+    With ThisWorkbook.Worksheets(IIf(BladBestaatStil(BL_ADM), BL_ADM, BL_DASH))
         .Activate
-        Application.GoTo .Range("A" & FA_KOP), True
+        Application.GoTo .Range("A" & IIf(BladBestaatStil(BL_ADM), ADM_FA_KOP, FA_KOP)), True
     End With
 End Sub
 
@@ -1379,7 +1382,7 @@ Public Sub TijdschrijversKiezen()
     Dim Fout As Boolean, nr As Long
 
     On Error GoTo Fout
-    Set wd = ThisWorkbook.Worksheets("Dashboard")
+    Set wd = ThisWorkbook.Worksheets(BL_DASH)
     Set cel = wd.Cells(KaartRij(14), 3)
     Set lst = ThisWorkbook.Names("Lst_Tijdschrijver").RefersToRange
     For i = 1 To lst.Cells.Count
@@ -1479,7 +1482,7 @@ End Sub
 Public Function LeesBijdragen(ByRef bron() As String, ByRef bed() As Variant, ByRef fouten As String) As Long
     Dim wd As Worksheet, j As Long, k As Long, n As Long, g As Long, p As Long, jj As Long
     Dim v As Variant, tekst As String, standaard As String, jaar As String
-    Set wd = ThisWorkbook.Worksheets("Dashboard")
+    Set wd = ThisWorkbook.Worksheets(BL_DASH)
     For j = 0 To 5
         jaar = CStr(CLng(ThisWorkbook.Names("Par_LopendJaar").RefersToRange.Value) + j)
         For k = 1 To 2
@@ -1613,7 +1616,7 @@ End Function
 Public Sub DashboardEventInstalleren(Optional ByVal stil As Boolean = False)
     Dim cM As Object, i As Long, tekst As String, heeftChange As Boolean, heeftLink As Boolean, anders As String
     On Error GoTo niet
-    Set cM = ThisWorkbook.VBProject.VBComponents(ThisWorkbook.Worksheets("Dashboard").CodeName).CodeModule
+    Set cM = ThisWorkbook.VBProject.VBComponents(ThisWorkbook.Worksheets(BL_DASH).CodeName).CodeModule
     For i = 1 To cM.CountOfLines
         tekst = cM.Lines(i, 1)
         If InStr(1, tekst, "KaartGewijzigd", vbTextCompare) > 0 Then heeftChange = True
@@ -1723,7 +1726,7 @@ Public Sub HercontroleAanbieden()
         MsgBox "Alleen de financieel adviseur biedt een krediet opnieuw aan.", vbExclamation
         Exit Sub
     End If
-    Set wd = ThisWorkbook.Worksheets("Dashboard")
+    Set wd = ThisWorkbook.Worksheets(BL_DASH)
     If Len(CStr(wd.Range("Kaart_Rijnummer").Value)) > 0 Then
         r = CLng(wd.Range("Kaart_Rijnummer").Value)
         If CStr(Vz().Cells(r, 42).Value) <> "Afgekeurd" Then r = 0
@@ -1776,7 +1779,7 @@ End Sub
 Public Sub KaartRijenPassendMaken(Optional ByVal rng As Range)
     Dim wd As Worksheet, k As Range
     On Error Resume Next
-    Set wd = ThisWorkbook.Worksheets("Dashboard")
+    Set wd = ThisWorkbook.Worksheets(BL_DASH)
     If rng Is Nothing Then Set rng = wd.Range("Kaart_Invoer")
     For Each k In rng.Cells
         If k.Column = 3 Then
@@ -1802,7 +1805,7 @@ Public Sub KredietVerwijderen()
         MsgBox "Alleen financieel adviseurs mogen kredieten verwijderen.", vbExclamation
         Exit Sub
     End If
-    Set wd = ThisWorkbook.Worksheets("Dashboard")
+    Set wd = ThisWorkbook.Worksheets(BL_DASH)
     Set wv = Vz()
     laatste = CLng(ThisWorkbook.Names("Par_LaatsteRij").RefersToRange.Value)
     If Len(CStr(wd.Range("Kaart_Rijnummer").Value)) > 0 Then

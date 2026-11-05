@@ -1213,7 +1213,7 @@ Public Sub KredietoverzichtOpNaam()
     lj = CLng(ThisWorkbook.Names("Par_LopendJaar").RefersToRange.Value)
     Set ws = OverzichtMaken("naam", Vz(), lj, kol, naam)
     If ws Is Nothing Then Exit Sub
-    map = MapStambestand("02 Budgetbeheerders en projectleiders")
+    map = OverzichtMap("02 Budgetbeheerders en projectleiders", "FinAdm Kredietoverzicht op naam")
     If Len(map) > 0 Then
         map = SubMap(map, naam)
         If BladOpslaan(ws, map, "Kredietoverzicht " & naam & " " & Format$(Date, "dd-mm-yyyy")) Then
@@ -1292,8 +1292,8 @@ End Function
 Public Sub KredietoverzichtJaarrekening()
     WerkStart                                    ' beveiliging even uit, daarna vanzelf weer aan
     Dim ws As Worksheet, jaar As Long, best As Worksheet, j As Long, map As String
-    If Not HeeftRecht("Toevoegen") Then
-        MsgBox "Dit overzicht wordt gemaakt door de financieel adviseur.", vbExclamation
+    If Not HeeftRecht("Toevoegen") And Not (mFinAdm And HeeftRecht("Bevestigen")) Then
+        MsgBox "Dit overzicht wordt gemaakt door de financieel adviseur of de financi" & ChrW(235) & "le administratie.", vbExclamation
         Exit Sub
     End If
     For Each ws In ThisWorkbook.Worksheets
@@ -1314,7 +1314,7 @@ Public Sub KredietoverzichtJaarrekening()
     End If
     Set ws = OverzichtMaken("jaarrekening", best, jaar, 0, "")
     If ws Is Nothing Then Exit Sub
-    map = MapStambestand("03 kredietoverzichten")
+    map = OverzichtMap("03 kredietoverzichten", "FinAdm Kredietoverzicht jaarrekening")
     If Len(map) > 0 Then
         BladOpslaan ws, map, "31-12-" & jaar & " Kredietoverzicht jaarrekening"
         ws.Activate
@@ -1954,7 +1954,7 @@ Public Sub UitdraaiBlokPlaatsen()
     WerkStart                                    ' beveiliging even uit, daarna vanzelf weer aan
     Dim ws As Worksheet, b As Object, naam As Variant, i As Long, titels As Variant, acties As Variant, namen As Variant, rijOff As Variant, kolOff As Variant
     Dim koppen As Variant, kopRij As Variant
-    Set ws = ThisWorkbook.Worksheets("Dashboard")
+    Set ws = ThisWorkbook.Worksheets(BL_DASH)
     On Error Resume Next
     ws.Range("C" & (NM_KOP + 1) & ":C" & (FA_KOP - 1)).Validation.Delete       ' oude keuzecellen rol en naam
     On Error GoTo 0

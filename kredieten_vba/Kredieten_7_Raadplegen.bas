@@ -9,22 +9,24 @@ Private Const LAATSTE_KOL As Long = 49         ' kolom AW van de verzamellijst
 
 ' Knop bovenaan het Dashboard (rechts naast 'Ga naar tabblad'), voor iedereen zichtbaar. Wordt ook aangeroepen
 ' vanuit DashboardKnoppenPlaatsen; kan los worden gedraaid om alleen deze knop te plaatsen.
-Public Sub RaadplegenKnopPlaatsen()
+' Ook voor Dashboard Adm: RaadplegenKnopPlaatsen BL_ADM (knop heet daar btnAdmRaadplegen).
+Public Sub RaadplegenKnopPlaatsen(Optional ByVal blad As String = BL_DASH)
     WerkStart                                    ' beveiliging even uit, daarna vanzelf weer aan
-    Dim ws As Worksheet, b As Object
-    Set ws = ThisWorkbook.Worksheets("Dashboard")
+    Dim ws As Worksheet, b As Object, knop As String
+    Set ws = ThisWorkbook.Worksheets(blad)
+    knop = IIf(blad = BL_ADM, "btnAdmRaadplegen", "btnRaadplegen")
     On Error Resume Next
-    ws.Shapes("uitleg_btnRaadplegen").Delete
-    ws.Shapes("btnRaadplegen").Delete
+    ws.Shapes("uitleg_" & knop).Delete
+    ws.Shapes(knop).Delete
     On Error GoTo 0
     If ws.Rows(2).RowHeight < 22 Then ws.Rows(2).RowHeight = 22
     Set b = ws.Buttons.Add(ws.Range("H2").Left + 122, ws.Range("H2").Top + 2, 150, 18)
-    b.Name = "btnRaadplegen"
+    b.Name = knop
     b.Caption = "Krediet raadplegen"
     b.OnAction = "KredietRaadplegen"
     b.Placement = xlFreeFloating
     b.PrintObject = False
-    KnopUitleg ws, "btnRaadplegen", "Krediet raadplegen: alleen bekijken, er wordt niets gewijzigd. Je kiest waarop je zoekt: " & _
+    KnopUitleg ws, knop, "Krediet raadplegen: alleen bekijken, er wordt niets gewijzigd. Je kiest waarop je zoekt: " & _
                "1 = volgnummer (kolom A), 2 = kredietnummer (C), 3 = omschrijving (D), 4 = activanummer (X), " & _
                "5 = budgetbeheerder, 6 = projectleider, 7 = tijdschrijver, 8 = taakveld, 9 = status (bijv. L2026 of A), " & _
                "0 = overal zoeken (alle kolommen). Een deel van de tekst is genoeg, behalve bij het volgnummer. " & _

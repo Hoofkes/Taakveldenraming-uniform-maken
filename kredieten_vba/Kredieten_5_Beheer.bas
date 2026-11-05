@@ -221,7 +221,7 @@ End Function
 Public Sub BeheerKnoppenPlaatsen()
     WerkStart                                    ' beveiliging even uit, daarna vanzelf weer aan
     Dim ws As Worksheet, b As Object, naam As Variant
-    Set ws = ThisWorkbook.Worksheets("Dashboard")
+    Set ws = ThisWorkbook.Worksheets(BL_DASH)
     On Error Resume Next
     For Each naam In Array("btnBeheerToevoegen", "btnBeheerVerwijderen")
         ws.Shapes("uitleg_" & CStr(naam)).Delete
@@ -333,8 +333,8 @@ End Sub
 Public Sub DashboardNaarRol()
     Dim ws As Worksheet, adv As Boolean, fa As Boolean, shp As Object, beveiligd As Boolean, nmK As Variant
     On Error Resume Next
-    If Not BladBestaatStil("Dashboard") Then Exit Sub
-    Set ws = ThisWorkbook.Worksheets("Dashboard")
+    If Not BladBestaatStil(BL_DASH) Then Exit Sub
+    Set ws = ThisWorkbook.Worksheets(BL_DASH)
     If CStr(ws.Range("B" & NM_KOP).Value) <> "2. Financieel adviseur" Then Exit Sub   ' oud Dashboard: eerst DashboardAanmaken
     BeheerKolomZorgen                            ' kolom Beheer in de rollentabel (applicatiebeheerder)
     Set shp = Nothing
@@ -351,7 +351,8 @@ Public Sub DashboardNaarRol()
     ws.Rows("7:" & (KAART_KNOP + 1)).Hidden = Not adv                       ' blok 1 invoerkaart en knoppen eronder
     ws.Rows(eerste + 3).Hidden = True                                         ' korte omschrijving blijft altijd verborgen
     ws.Rows(NM_KOP & ":" & (FA_KOP - 1)).Hidden = Not adv                    ' blok 2 financieel adviseur
-    ws.Rows(FA_KOP & ":" & (CB_KOP - 1)).Hidden = Not fa                     ' blok 3 financiele administratie
+    ' blok 3 financiele administratie: staat nu op Dashboard Adm (de oude rijen hier blijven verborgen)
+    ws.Rows(FA_KOP & ":" & (CB_KOP - 1)).Hidden = (Not fa) Or BladBestaatStil(BL_ADM)
     For Each shp In ws.Shapes                                                 ' knoppen op verborgen rijen ook verbergen
         shp.Visible = Not ws.Rows(shp.TopLeftCell.Row).Hidden
     Next shp
@@ -363,6 +364,9 @@ Public Sub DashboardNaarRol()
     For Each nmK In Array("btnBeheerToevoegen", "uitleg_btnBeheerToevoegen", "btnBeheerVerwijderen", "uitleg_btnBeheerVerwijderen")
         ws.Shapes(CStr(nmK)).Visible = HeeftRecht("Beheer")                   ' alleen de applicatiebeheerder
     Next nmK
+    If beveiligd Then BladBeveiligen ws
+    beveiligd = False
+    DashboardsZichtbaar                                                       ' alleen het eigen dashboard tonen
     If beveiligd Then BladBeveiligen ws
 End Sub
 
@@ -457,7 +461,7 @@ End Sub
 Public Sub ControleblokPlaatsen()
     WerkStart                                    ' beveiliging even uit, daarna vanzelf weer aan
     Dim ws As Worksheet, r As Long, k As Long, fc As Object, b As Object, deel As Variant, aantalAf As String
-    Set ws = ThisWorkbook.Worksheets("Dashboard")
+    Set ws = ThisWorkbook.Worksheets(BL_DASH)
     ws.Range("A" & CB_KOP & ":H" & (CB_LAATSTE + 40)).Clear
     ws.Range("B" & CB_KOP).Value = "4. Controles"
     ws.Range("B" & CB_KOP).Font.Bold = True
@@ -625,7 +629,7 @@ Public Sub ControlesVernieuwen()
     Dim waar(0 To 15) As String, aant(0 To 15) As Long, hint As Variant, c As Variant, t As String, st As String, jr As Long
     Dim grp As Object, grpRij As Object, k As Variant, dubbel As Object, sleutel As String, cel As Range, eerste As String
     On Error GoTo Fout
-    Set wd = ThisWorkbook.Worksheets("Dashboard")
+    Set wd = ThisWorkbook.Worksheets(BL_DASH)
     If CStr(wd.Cells(CB_KOP, 2).Value) <> "4. Controles" Then Exit Sub   ' blok 4 nog niet op deze plek (eerst DashboardAanmaken)
     Set wv = Vz()
     laatste = CLng(ThisWorkbook.Names("Par_LaatsteRij").RefersToRange.Value)
@@ -931,7 +935,7 @@ Public Sub JaarovergangUitvoeren()
     laatste = CLng(ThisWorkbook.Names("Par_LaatsteRij").RefersToRange.Value)
 
     ' 1. back-up als harde waarden
-    wv.Copy Before:=ThisWorkbook.Worksheets("Dashboard")
+    wv.Copy Before:=ThisWorkbook.Worksheets(BL_DASH)
     Set wb = ActiveSheet
     wb.Unprotect WACHTWOORD
     wb.Name = nm
@@ -1041,7 +1045,7 @@ Public Sub JaarovergangUitvoeren()
     ThisWorkbook.Names("Uitvraag_Jaar").Delete                                ' de uitvraag van het oude jaar is afgerond
     On Error GoTo Fout
     Application.ScreenUpdating = True
-    ThisWorkbook.Worksheets("Dashboard").Activate
+    NaarEigenDashboard
     MsgBox "Jaarovergang naar " & nieuw & " uitgevoerd." & vbCrLf & vbCrLf & _
            "- de oude bladen 'Laatste kredietoverzicht', 'Laatste overzicht op naam' en 'Uitvraag' zijn weggehaald; " & _
            "maak ze opnieuw (dan met " & nieuw & ")" & vbCrLf & _
@@ -1116,7 +1120,7 @@ End Function
 Public Sub KnoppenUitlegPlaatsen()
     WerkStart                                    ' beveiliging even uit, daarna vanzelf weer aan
     Dim ws As Worksheet
-    Set ws = ThisWorkbook.Worksheets("Dashboard")
+    Set ws = ThisWorkbook.Worksheets(BL_DASH)
     ws.Range("J3:K40").Clear                       ' eerder blok 'Uitleg knoppen' opruimen
     KnopUitleg ws, "btnVerwerken", "Ingevuld? Verwerken!: slaat op wat op de invoerkaart staat. Staat er geen krediet geladen, dan wordt " & _
                "een nieuw krediet onderaan de Verzamellijst toegevoegd met de status 'Te controleren door financi" & ChrW(235) & "le " & _

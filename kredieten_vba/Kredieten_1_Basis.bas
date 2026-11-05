@@ -16,6 +16,11 @@ Option Explicit
 ' Versie 40 (rijhoogte overzichten 13,5; uitvraag verwerken met de hele lijst; krediet wijzigen en verwijderen op rij 35; uitvraag per budgethouder: inlezen, per investering besluiten, verwerken, stand uitvraag, begroting vastgesteld; knop Uitvraag verwerken voorlopig weg; Dashboard: 1 invoerkaart, 2 financieel adviseur, 3 financiele administratie, 4 controles; toelichting maximaal 1000 tekens; datum keuzeopties in F3; budget in het statusjaar verplicht en geel; fout bij DashboardAanmaken opgelost; nieuwste samengestelde krediet bovenaan in de keuzelijst; applicatiebeheerder ziet alle blokken; blokken per rol, knoppen onder de kaart, budgethouder/projectleider/tijdschrijver vervangen, kortere veldnamen; naam samengesteld krediet direct onder C16; afgekeurd: signaal, herstellen, aanbieden voor hercontrole; kleuren geel = verplicht, lichtblauw = mag leeg; compact Dashboard, kengetallen op eigen tabblad, naam vervangen).
 
 Public Const BL_VZ As String = "Verzamellijst"
+Public Const BL_DASH As String = "Dashboard FinAdv"   ' dashboard financieel adviseurs (was 'Dashboard')
+Public Const BL_ADM As String = "Dashboard Adm"       ' dashboard financiele administratie
+Public Const ADM_FA_KOP As Long = 6         ' Dashboard Adm blok 1 Controle kredieten: kopregel (uitleg 7, knoppen 8)
+Public Const ADM_OV_KOP As Long = 10        ' Dashboard Adm blok 2 Kredietoverzichten: kopregel (uitleg 11, knoppen 12)
+Public mFinAdm As Boolean                   ' overzicht gemaakt via Dashboard Adm: opslaan in de mappen FinAdm ...
 Public Const VL As String = "'Verzamellijst'!"
 Public Const eerste As Long = 10         ' eerste kaartrij op het Dashboard (rij 7 kopje, rij 8 leeg, rij 9 kopregel tabel)
 Public Const KAART_KNOP As Long = 35     ' rij onder de invoerkaart: Ingevuld? Verwerken! en Scherm leegmaken
@@ -166,6 +171,7 @@ Fout:
 End Sub
 
 Public Sub Auto_Open()
+    DashboardNaamZorgen                          ' oud blad Dashboard heet nu Dashboard FinAdv
     VerzamellijstHernoemen
     ' beveiliging opnieuw aanzetten (macro's mogen schrijven, gebruikers niet) en oude overzichtbladen opruimen
     BeveiligingAan
@@ -192,11 +198,8 @@ Public Sub Auto_Open()
     ' heeft blok 2 de nieuwe indeling (2a, 2b, 2c)? Zo niet: de knoppen van het Dashboard eenmalig opnieuw plaatsen
     If Not ThisWorkbook.ReadOnly Then DashboardIndelingBijwerken
     JaarovergangSignaleren
-    ' altijd op het Dashboard beginnen
-    On Error Resume Next
-    ThisWorkbook.Worksheets("Dashboard").Activate
-    ThisWorkbook.Worksheets("Dashboard").Range("A1").Select
-    On Error GoTo 0
+    ' altijd op het eigen dashboard beginnen (financieel adviseur of financiele administratie)
+    NaarEigenDashboard
 End Sub
 
 Public Sub WieWerktEr()
@@ -1212,7 +1215,7 @@ Public Sub DashboardAanmaken()
     Dim actief As Object
 
     For Each w In ThisWorkbook.Worksheets
-        If w.Name = "Dashboard" Then
+        If w.Name = BL_DASH Then
             If MsgBox("Het Dashboard bestaat al. Opnieuw opbouwen?" & vbCrLf & _
                       "Wat op de invoerkaart staat, gaat verloren.", vbYesNo + vbQuestion + vbDefaultButton2, "Dashboard") <> vbYes Then Exit Sub
             Application.DisplayAlerts = False
@@ -1260,12 +1263,12 @@ Public Sub DashboardAanmaken()
 
     Set actief = ActiveSheet
     Set ws = ThisWorkbook.Worksheets.Add(Before:=ThisWorkbook.Worksheets(1))
-    ws.Name = "Dashboard"
+    ws.Name = BL_DASH
     ' Namen voor de latere macro's
-    ThisWorkbook.Names.Add Name:="Kaart_Kolommen", RefersTo:="=Dashboard!$A$" & eerste & ":$A$" & (eerste + 23)
-    ThisWorkbook.Names.Add Name:="Kaart_Invoer", RefersTo:="=Dashboard!$C$" & eerste & ":$C$" & (eerste + 23) & _
-                                                           ",Dashboard!$F$" & (eerste + 4) & ":$F$" & (eerste + 21)
-    ThisWorkbook.Names.Add Name:="Kaart_Rijnummer", RefersTo:="=Dashboard!$F$" & (eerste + 1)
+    ThisWorkbook.Names.Add Name:="Kaart_Kolommen", RefersTo:="='" & BL_DASH & "'!$A$" & eerste & ":$A$" & (eerste + 23)
+    ThisWorkbook.Names.Add Name:="Kaart_Invoer", RefersTo:="='" & BL_DASH & "'!$C$" & eerste & ":$C$" & (eerste + 23) & _
+                                                           ",'" & BL_DASH & "'!$F$" & (eerste + 4) & ":$F$" & (eerste + 21)
+    ThisWorkbook.Names.Add Name:="Kaart_Rijnummer", RefersTo:="='" & BL_DASH & "'!$F$" & (eerste + 1)
 
     ws.Tab.Color = RGB(0, 112, 192)
     ws.Cells.Font.Name = "Tahoma"
@@ -1551,7 +1554,7 @@ Public Sub KredietToevoegen()
         MsgBox "Alleen financieel adviseurs mogen kredieten toevoegen.", vbExclamation
         Exit Sub
     End If
-    Set wd = ThisWorkbook.Worksheets("Dashboard")
+    Set wd = ThisWorkbook.Worksheets(BL_DASH)
     Set wv = Vz()
     If Len(CStr(wd.Range("Kaart_Rijnummer").Value)) > 0 Then
         MsgBox "Er is een regel geladen om te wijzigen. Gebruik eerst Scherm leegmaken.", vbExclamation
@@ -1835,7 +1838,7 @@ End Sub
 Public Sub KaartWissen()
     WerkStart                                    ' beveiliging even uit, daarna vanzelf weer aan
     Dim wd As Worksheet
-    Set wd = ThisWorkbook.Worksheets("Dashboard")
+    Set wd = ThisWorkbook.Worksheets(BL_DASH)
     wd.Range("Kaart_Invoer").ClearContents
     HerstelBijdrageLabels wd
     wd.Range("Kaart_Rijnummer").ClearContents
@@ -1847,7 +1850,7 @@ End Sub
 Public Sub BlijfOpDashboard()
     mBlijfOpDashboard = True
     On Error Resume Next
-    ThisWorkbook.Worksheets("Dashboard").Activate
+    ThisWorkbook.Worksheets(BL_DASH).Activate
 End Sub
 
 ' Het volgnummer van de geladen regel wordt vastgelegd, zodat bij opslaan blijkt of de regel nog dezelfde is.
@@ -1871,7 +1874,7 @@ End Function
 ' Maakt alleen de velden per deelkrediet leeg en zet de groep klaar voor het volgende deelkrediet.
 Private Sub VolgendeDeelVoorbereiden(ByVal grp As Long)
     Dim wd As Worksheet, i As Variant, cel As Range, zoek As String, bj As Long, bk As Long
-    Set wd = ThisWorkbook.Worksheets("Dashboard")
+    Set wd = ThisWorkbook.Worksheets(BL_DASH)
     For Each i In Array(2, 3, 4, 17, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30)
         wd.Cells(KaartRij(CLng(i)), KaartKol(CLng(i))).ClearContents
     Next i
