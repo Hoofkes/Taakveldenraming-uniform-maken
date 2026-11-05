@@ -201,8 +201,7 @@ Public Function BeheerKolomZorgen() As Boolean
     If Not lc Is Nothing Then BeheerKolomZorgen = True: Exit Function
     wasBeveiligd = wp.ProtectContents
     wp.Unprotect WACHTWOORD
-    Set lc = lo.ListColumns.Add
-    lc.Name = "Beheer"
+    Set lc = KolomBeheerToevoegen(lo)
     For Each r In lo.ListRows
         nm = LCase$(Trim$(CStr(r.Range.Cells(1, 1).Value)))
         r.Range.Cells(1, lc.Index).Value = IIf(nm Like "michiel*", "ja", "nee")
@@ -214,6 +213,21 @@ Public Function BeheerKolomZorgen() As Boolean
     Exit Function
 klaar:
     MsgBox "De kolom Beheer kon niet aan de rollentabel worden toegevoegd: " & Err.Description, vbExclamation
+End Function
+
+' Voegt kolom Beheer rechts aan de rollentabel toe zonder cellen te verschuiven (ListColumns.Add schuift cellen,
+' dat mag niet als er rechts of onder nog een tabel staat): de tabel wordt een kolom breder gemaakt.
+' Voorwaarde: de kolom rechts naast de tabel is leeg op de rijen van de tabel.
+Private Function KolomBeheerToevoegen(ByVal lo As ListObject) As ListColumn
+    Dim naast As Range
+    Set naast = lo.Range.Offset(0, lo.Range.Columns.Count).Resize(, 1)
+    If Application.WorksheetFunction.CountA(naast) > 0 Then
+        Err.Raise vbObjectError + 1, , "de cellen " & naast.Address(False, False) & " rechts naast de rollentabel zijn niet leeg. " & _
+                                       "Maak ze leeg (of verplaats wat daar staat) en probeer het opnieuw."
+    End If
+    naast.Cells(1, 1).Value = "Beheer"
+    lo.Resize lo.Range.Resize(, lo.Range.Columns.Count + 1)
+    Set KolomBeheerToevoegen = lo.ListColumns("Beheer")
 End Function
 
 ' Eenmalig met de hand te starten (Alt+F8): zet de kolom Beheer in de rollentabel en maakt Michiel applicatiebeheerder
@@ -232,8 +246,7 @@ Public Sub ApplicatiebeheerInstellen()
     On Error GoTo Fout
     If lc Is Nothing Then
         stap = "kolom Beheer toevoegen aan de rollentabel"
-        Set lc = lo.ListColumns.Add
-        lc.Name = "Beheer"
+        Set lc = KolomBeheerToevoegen(lo)
         For Each r In lo.ListRows
             r.Range.Cells(1, lc.Index).Value = "nee"
         Next r
