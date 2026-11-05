@@ -269,6 +269,8 @@ Public Sub ApplicatiebeheerInstellen()
     End If
     stap = "Parameters weer beveiligen"
     BladBeveiligen wp
+    stap = "knoppen applicatiebeheerder plaatsen"
+    BeheerKnoppenPlaatsen
     stap = "dashboard bijwerken"
     DashboardNaarRol
     MsgBox "Klaar. Kolom Beheer staat in de rollentabel (kolom " & Split(lc.Range.Cells(1, 1).Address(True, False), "$")(0) & ")." & vbCrLf & _
@@ -281,8 +283,8 @@ Fout:
     MsgBox "Niet gelukt bij de stap: " & stap & vbCrLf & vbCrLf & "Fout " & Err.Number & ": " & Err.Description, vbExclamation, "Applicatiebeheer"
 End Sub
 
-' Knoppen Applicatiebeheerder toevoegen en verwijderen bovenaan het Dashboard (rij 4), alleen zichtbaar voor een
-' applicatiebeheerder (dat regelt DashboardNaarRol).
+' Knoppen Applicatiebeheerder toevoegen en verwijderen bovenaan het Dashboard (rij 3, vanaf kolom G; niet in rij 4,
+' daar staat de controlestatus), alleen zichtbaar voor een applicatiebeheerder (dat regelt DashboardNaarRol).
 Public Sub BeheerKnoppenPlaatsen()
     WerkStart                                    ' beveiliging even uit, daarna vanzelf weer aan
     Dim ws As Worksheet, b As Object, naam As Variant
@@ -293,19 +295,20 @@ Public Sub BeheerKnoppenPlaatsen()
         ws.Shapes(CStr(naam)).Delete
     Next naam
     On Error GoTo 0
-    If ws.Rows(4).RowHeight < 22 Then ws.Rows(4).RowHeight = 22
-    Set b = ws.Buttons.Add(ws.Range("E4").Left + 2, ws.Range("E4").Top + 2, 190, 18)
+    If ws.Rows(3).RowHeight < 22 Then ws.Rows(3).RowHeight = 22
+    Set b = ws.Buttons.Add(ws.Range("G3").Left + 2, ws.Range("G3").Top + 2, 190, 18)
     b.Name = "btnBeheerToevoegen"
     b.Caption = "Applicatiebeheerder toevoegen"
     b.OnAction = "BeheerderToevoegen"
     b.Placement = xlFreeFloating
     b.PrintObject = False
-    Set b = ws.Buttons.Add(ws.Range("E4").Left + 202, ws.Range("E4").Top + 2, 190, 18)
+    Set b = ws.Buttons.Add(ws.Range("G3").Left + 202, ws.Range("G3").Top + 2, 190, 18)
     b.Name = "btnBeheerVerwijderen"
     b.Caption = "Applicatiebeheerder verwijderen"
     b.OnAction = "BeheerderVerwijderen"
     b.Placement = xlFreeFloating
     b.PrintObject = False
+    GebruikerRegelZetten
     KnopUitleg ws, "btnBeheerToevoegen", "Applicatiebeheerder toevoegen (alleen applicatiebeheerder): toont een genummerde lijst met de " & _
                "gebruikers uit de rollentabel die nog geen applicatiebeheerder zijn. Typ het nummer. Die persoon krijgt " & _
                "dezelfde bevoegdheden als jij: alle blokken zien en applicatiebeheerders toevoegen of verwijderen. " & _
@@ -313,6 +316,23 @@ Public Sub BeheerKnoppenPlaatsen()
     KnopUitleg ws, "btnBeheerVerwijderen", "Applicatiebeheerder verwijderen (alleen applicatiebeheerder): toont de applicatiebeheerders. " & _
                "Typ het nummer. Die persoon blijft gebruiker met zijn eigen rol, maar is geen applicatiebeheerder meer. " & _
                "Er moet altijd minstens " & ChrW(233) & ChrW(233) & "n applicatiebeheerder overblijven. Komt in het Logboek."
+End Sub
+
+' C2 op de dashboards: naam (rol, applicatiebeheerder).
+Public Sub GebruikerRegelZetten()
+    Dim blad As Variant, ws As Worksheet, beveiligd As Boolean
+    On Error Resume Next
+    For Each blad In Array(BL_DASH, BL_ADM)
+        If BladBestaatStil(CStr(blad)) Then
+            Set ws = ThisWorkbook.Worksheets(CStr(blad))
+            beveiligd = ws.ProtectContents
+            If beveiligd Then ws.Unprotect WACHTWOORD
+            ws.Range("C2").Formula = "=Par_HuidigeGebruiker&IF(Par_HuidigeRol="""",""""," & _
+                                     """ (""&Par_HuidigeRol&IF(COUNTIFS(Tbl_Rollen[Naam],Par_HuidigeGebruiker,Tbl_Rollen[Beheer],""ja"")>0," & _
+                                     """, applicatiebeheerder"","""")&"")"")"
+            If beveiligd Then BladBeveiligen ws
+        End If
+    Next blad
 End Sub
 
 Public Sub BeheerderToevoegen()
@@ -425,7 +445,11 @@ Public Sub DashboardNaarRol()
     ws.Shapes("uitleg_btnGebruikerVerwijderen").Visible = adv
     Set shp = Nothing
     Set shp = ws.Shapes("btnBeheerToevoegen")
-    If shp Is Nothing Then BeheerKnoppenPlaatsen                              ' knoppen ontbreken (nog): alsnog plaatsen
+    If shp Is Nothing Then
+        BeheerKnoppenPlaatsen                                                 ' knoppen ontbreken (nog): alsnog plaatsen
+    ElseIf shp.TopLeftCell.Row <> 3 Then
+        BeheerKnoppenPlaatsen                                                 ' oude plek (rij 4, door de controlestatus): verplaatsen
+    End If
     For Each nmK In Array("btnBeheerToevoegen", "uitleg_btnBeheerToevoegen", "btnBeheerVerwijderen", "uitleg_btnBeheerVerwijderen")
         ws.Shapes(CStr(nmK)).Visible = HeeftRecht("Beheer")                   ' alleen de applicatiebeheerder
     Next nmK
