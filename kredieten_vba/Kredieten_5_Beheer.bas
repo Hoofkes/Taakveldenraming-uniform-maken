@@ -470,6 +470,9 @@ Public Sub DashboardNaarRol()
     End If
     BeheerKnoppenZichtbaar ws, "btn"                                         ' alleen de applicatiebeheerder
     If BladBestaatStil(BL_ADM) Then
+        Set shp = Nothing
+        Set shp = ThisWorkbook.Worksheets(BL_ADM).Shapes("btnAdmBeheerToevoegen")
+        If shp Is Nothing Then BeheerKnoppenPlaatsen                          ' ontbreken op Dashboard Adm: alsnog plaatsen
         ThisWorkbook.Worksheets(BL_ADM).Unprotect WACHTWOORD
         BeheerKnoppenZichtbaar ThisWorkbook.Worksheets(BL_ADM), "btnAdm"
         BladBeveiligen ThisWorkbook.Worksheets(BL_ADM)
