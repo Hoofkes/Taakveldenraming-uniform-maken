@@ -225,12 +225,90 @@ Private Function KolomBeheerToevoegen(ByVal lo As ListObject) As ListColumn
         Err.Raise vbObjectError + 1, , "de cellen " & naast.Address(False, False) & " rechts naast de rollentabel zijn niet leeg. " & _
                                        "Maak ze leeg (of verplaats wat daar staat) en probeer het opnieuw."
     End If
+    Dim nKol As Long
+    nKol = lo.Range.Columns.Count
     naast.Cells(1, 1).Value = "Beheer"
-    lo.Resize lo.Range.Resize(, lo.Range.Columns.Count + 1)
+    If lo.Range.Columns.Count = nKol Then lo.Resize lo.Range.Resize(, nKol + 1)   ' Excel kan de tabel al zelf hebben uitgebreid
     lo.HeaderRowRange.Font.Color = RGB(0, 0, 0)
     lo.HeaderRowRange.Font.Bold = True
     Set KolomBeheerToevoegen = lo.ListColumns("Beheer")
 End Function
+
+' Herstelt de rollentabel als die door elkaar is geraakt (koppen 'Kolom1, Kolom2 ...', de kopregel tussen de namen,
+' de lijst Lst_Soort uit kolom I in de tabel). Bewaart alle personen met hun rechten, zet de tabel terug op
+' A14:G (Naam, Windows-naam, Rol, Toevoegen, Wijzigen, Bevestigen, Beheer) en ververst daarna de keuzelijsten.
+' Eenmalig met de hand te starten (Alt+F8).
+Public Sub RollentabelHerstellen()
+    WerkStart                                    ' beveiliging even uit, daarna vanzelf weer aan
+    Dim wp As Worksheet, lo As ListObject, kop As Variant, eerste As Long, laatste As Long, r As Long, c As Long, n As Long
+    Dim d() As Variant, nm As String, nJa As Long, lijst As String, stap As String
+    On Error GoTo Fout
+    stap = "rollentabel zoeken"
+    Set wp = ThisWorkbook.Worksheets("Parameters")
+    Set lo = wp.ListObjects("Tbl_Rollen")
+    wp.Unprotect WACHTWOORD
+    kop = Array("Naam", "Windows-naam", "Rol", "Toevoegen", "Wijzigen", "Bevestigen", "Beheer")
+    eerste = lo.Range.Row
+    laatste = eerste + lo.Range.Rows.Count - 1
+    If lo.Range.Column <> 1 Then Err.Raise vbObjectError + 2, , "de rollentabel begint niet in kolom A"
+
+    stap = "personen verzamelen"
+    ReDim d(1 To laatste - eerste + 1, 1 To 7)
+    For r = eerste To laatste
+        nm = Trim$(CStr(wp.Cells(r, 1).Value))
+        If Len(nm) > 0 And LCase$(nm) <> "naam" And Not (nm Like "Kolom#*") Then
+            n = n + 1
+            For c = 1 To 7
+                d(n, c) = wp.Cells(r, c).Value
+            Next c
+            If LCase$(Trim$(CStr(d(n, 7)))) <> "ja" Then d(n, 7) = "nee" Else nJa = nJa + 1
+            lijst = lijst & "- " & nm & " (" & d(n, 3) & IIf(d(n, 7) = "ja", ", applicatiebeheerder", "") & ")" & vbCrLf
+        End If
+    Next r
+    If n = 0 Then Err.Raise vbObjectError + 3, , "er zijn geen personen in de rollentabel gevonden"
+    If MsgBox("Deze " & n & " personen worden in de rollentabel teruggezet:" & vbCrLf & vbCrLf & lijst & vbCrLf & _
+              "Doorgaan?", vbYesNo + vbQuestion, "Rollentabel herstellen") <> vbYes Then Exit Sub
+
+    stap = "tabel terugzetten op A" & eerste & ":G" & (eerste + n)
+    lo.Resize wp.Range(wp.Cells(eerste, 1), wp.Cells(eerste + n, 7))
+    wp.Range(wp.Cells(eerste + 1, 1), wp.Cells(Application.Max(laatste, eerste + n), 7)).ClearContents
+    wp.Range(wp.Cells(eerste + n + 1, 1), wp.Cells(Application.Max(laatste, eerste + n) + 1, 7)).Interior.Pattern = xlNone
+    wp.Range(wp.Cells(eerste, 8), wp.Cells(laatste, 9)).ClearContents          ' kolom H (buffer) en I (Lst_Soort, wordt opnieuw gevuld)
+    stap = "koppen en personen schrijven"
+    For c = 1 To 7
+        wp.Cells(eerste, c).Value = kop(c - 1)
+    Next c
+    For r = 1 To n
+        For c = 1 To 7
+            wp.Cells(eerste + r, c).Value = d(r, c)
+        Next c
+    Next r
+    If nJa = 0 Then
+        For r = 1 To n
+            If LCase$(Trim$(CStr(d(r, 1)))) Like "michiel*" Then wp.Cells(eerste + r, 7).Value = "ja"
+        Next r
+    End If
+    With lo.HeaderRowRange
+        .Font.Color = RGB(0, 0, 0)
+        .Font.Bold = True
+    End With
+    lo.ListColumns("Beheer").DataBodyRange.Interior.Color = RGB(217, 217, 217)
+    LogRegel "rollentabel hersteld", , , "Tbl_Rollen", "", lo.Range.Address(False, False), n & " personen teruggezet"
+
+    stap = "keuzelijsten verversen"
+    KeuzelijstenVerversen True
+    stap = "dashboards bijwerken"
+    GebruikerRegelZetten
+    DashboardNaarRol
+    BladBeveiligen wp
+    MsgBox "De rollentabel is hersteld (" & lo.Range.Address(False, False) & ", " & n & " personen)." & vbCrLf & _
+           "Rechten van de huidige gebruiker: toevoegen " & IIf(HeeftRecht("Toevoegen"), "ja", "nee") & _
+           ", wijzigen " & IIf(HeeftRecht("Wijzigen"), "ja", "nee") & ", applicatiebeheer " & IIf(HeeftRecht("Beheer"), "ja", "nee") & ".", _
+           vbInformation, "Rollentabel herstellen"
+    Exit Sub
+Fout:
+    MsgBox "Niet gelukt bij de stap: " & stap & vbCrLf & vbCrLf & "Fout " & Err.Number & ": " & Err.Description, vbExclamation, "Rollentabel herstellen"
+End Sub
 
 ' Hulp bij problemen met rechten (Alt+F8): toont wat de macro's in de rollentabel lezen voor de huidige gebruiker.
 Public Sub RechtenTonen()

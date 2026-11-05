@@ -222,7 +222,7 @@ End Sub
 Public Sub KleurParameters()
     Dim wsP As Worksheet
     Set wsP = ThisWorkbook.Worksheets("Parameters")
-    KleurKolommen wsP, "Tbl_Rollen", Array("Naam", "Windows-naam", "Rol", "Toevoegen", "Wijzigen", "Bevestigen"), Empty
+    KleurKolommen wsP, "Tbl_Rollen", Array("Naam", "Windows-naam", "Rol", "Toevoegen", "Wijzigen", "Bevestigen"), Array("Beheer")
     KleurKolommen wsP, "Tbl_Programma", Array("Code", "Omschrijving"), Array("Weergave")
     KleurKolommen wsP, "Tbl_Taakveld", Array("Taakveld", "Omschrijving"), Array("Code", "Weergave")
     KleurKolommen wsP, "Tbl_Balanscode", Array("Code", "Omschrijving"), Array("Weergave")
@@ -237,6 +237,7 @@ Private Sub KleurKolommen(ByVal ws As Worksheet, ByVal tabel As String, ByVal in
     Set lo = ws.ListObjects(tabel)
     On Error GoTo 0
     If lo Is Nothing Then Exit Sub
+    On Error Resume Next                         ' een kolom die (nog) ontbreekt, overslaan
     For Each c In invoer
         lo.ListColumns(CStr(c)).DataBodyRange.Interior.Color = RGB(255, 255, 204)
     Next c
