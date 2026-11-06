@@ -1920,14 +1920,15 @@ Public Sub UitdraaiBlokPlaatsen()
     ' rij 3 tijdschrijvers, rij 4 import en export
     rijen = Array(AB_KOP + 1, AB_KOP + 3, AB_KOP + 3, AB_KOP + 2, AB_KOP + 4, AB_KOP + 4, AB_KOP + 1, _
                   KR_KOP + 1, KR_KOP + 1, KR_KOP + 1, KR_KOP + 2, KR_KOP + 2, KR_KOP + 3, KR_KOP + 3, _
-                  NM_KOP + 1, NM_KOP + 1, NM_KOP + 1, NM_KOP + 2, _
+                  NM_KOP + 1, NM_KOP + 1, NM_KOP + 2, NM_KOP + 2, _
                   NM_KOP + 4, NM_KOP + 4, NM_KOP + 4)
     kolOff = Array(0, 0, 1, 2, 0, 1, 2, _
                    0, 1, 2, 1, 2, 0, 1, _
-                   0, 1, 2, 0, _
+                   0, 1, 0, 2, _
                    0, 1, 2)
     For i = 0 To UBound(namen)
-        Set b = ws.Buttons.Add(ws.Range("B1").Left + kolOff(i) * KNOP_STAP, ws.Range("B" & rijen(i)).Top + 2, KNOP_B, 22)
+        Set b = ws.Buttons.Add(ws.Range("B1").Left + kolOff(i) * KNOP_STAP, ws.Range("B" & rijen(i)).Top + 2, _
+                               IIf(namen(i) = "btnOverzichtJaarrekening", KNOP_STAP + KNOP_B, KNOP_B), 22)   ' lange tekst: dubbele breedte
         b.Name = namen(i)
         b.Caption = titels(i)
         b.OnAction = acties(i)
