@@ -13,7 +13,7 @@ Option Explicit
 
 Private Function Reeksen() As Variant
     ' reeks, balanscode(s), beginstand (eerstvolgende vrije nummer volgens de lijst van de financiele administratie;
-    ' 0 = komt nog niet voor in de Verzamellijst, eerste nummer zelf invullen)
+    ' 0 = komt nog niet voor in de Verzamellijst, eerste nummer Invullen)
     Reeksen = Array(Array("7201", "A121EN", 7201026), Array("7202", "A122EN", 0), Array("7203", "A123EN", 7203115), _
                     Array("7204", "A124EN / A124ENH", 7204188), Array("7205", "A125EN", 7205060), Array("7206", "A126EN", 7206078), _
                     Array("7207", "A129EN", 7207038), Array("7304", "A124MN1", 7304180), Array("7305", "A125MN", 0), _
@@ -142,6 +142,41 @@ Public Sub KredietnummersBijwerken()
         End If
         If nr <> oud Then Bewaar CStr(x(0)), nr
     Next x
+    TabelNummersVullen
+End Sub
+
+' Wat in de tabel op Dashboard Adm staat: het eerstvolgende vrije nummer, of 'Invullen' als er nog geen nummer is.
+Private Function NummerTekst(ByVal reeks As String) As Variant
+    If Opgeslagen(reeks) > 0 Then NummerTekst = Opgeslagen(reeks) Else NummerTekst = "Invullen"
+End Function
+
+' Zet de nummers in de tabel van blok 3 op Dashboard Adm (geen formules: die gaven soms #NAAM?).
+Private Sub TabelNummersVullen()
+    Dim ws As Worksheet, r As Long, rk As String, beveiligd As Boolean
+    On Error Resume Next
+    If Not BladBestaatStil(BL_ADM) Then Exit Sub
+    Set ws = ThisWorkbook.Worksheets(BL_ADM)
+    beveiligd = ws.ProtectContents
+    If beveiligd Then ws.Unprotect WACHTWOORD
+    For r = ADM_NR_KOP + 3 To ADM_NR_KOP + 22
+        rk = Trim$(CStr(ws.Cells(r, 4).Value))
+        If Len(rk) = 4 And IsNumeric(rk) Then
+            ws.Cells(r, 5).Value = NummerTekst(rk)
+            ws.Cells(r, 5).Font.Color = IIf(ws.Cells(r, 5).Value = "Invullen", RGB(192, 0, 0), RGB(0, 0, 0))
+        End If
+    Next r
+    If beveiligd Then BladBeveiligen ws
+End Sub
+
+' Nieuwe regel in de Verzamellijst: opmaak (uitlijning, lettertype, randen, notatie) exact gelijk aan voorbeeldregel 272.
+Public Sub RegelOpmaakAlsVoorbeeld(ByVal wv As Worksheet, ByVal r As Long)
+    Const VOORBEELD As Long = 272
+    On Error Resume Next
+    If r = VOORBEELD Then Exit Sub
+    wv.Range("A" & VOORBEELD & ":AW" & VOORBEELD).Copy
+    wv.Range("A" & r & ":AW" & r).PasteSpecial Paste:=xlPasteFormats
+    Application.CutCopyMode = False
+    wv.Rows(r).RowHeight = wv.Rows(VOORBEELD).RowHeight
 End Sub
 
 ' Hoogste nummer van een reeks in de Verzamellijst (alleen nummers van 7 cijfers met een einde onder 500), anders 0.
@@ -162,7 +197,7 @@ Public Function VolgendKredietnummer(ByVal balanscode As String) As Variant
     If Len(reeks) = 0 Then Exit Function
     Set d = NummersInLijst()
     nr = Opgeslagen(reeks)
-    If nr = 0 Then Exit Function                                  ' eerste nummer van deze reeks: zelf invullen
+    If nr = 0 Then Exit Function                                  ' eerste nummer van deze reeks: Invullen
     Do While d.Exists(Format$(nr, "0"))
         nr = nr + 1
     Loop
@@ -238,7 +273,8 @@ Public Sub KredietnummersBlokPlaatsen()
         ws.Cells(r, 3).Value = oms
         ws.Cells(r, 4).NumberFormat = "@"
         ws.Cells(r, 4).Value = x(0)
-        ws.Cells(r, 5).Formula = "=IFERROR(KrNr_" & x(0) & ",""zelf invullen"")"
+        ws.Cells(r, 5).Value = NummerTekst(CStr(x(0)))
+        If ws.Cells(r, 5).Value = "Invullen" Then ws.Cells(r, 5).Font.Color = RGB(192, 0, 0)
         ws.Cells(r, 5).NumberFormat = "0"
         ws.Cells(r, 5).HorizontalAlignment = xlLeft
         ws.Cells(r, 5).Font.Bold = True
@@ -275,7 +311,7 @@ Public Sub KredietnummerAanpassen()
         n = n + 1
         ReDim Preserve rs(1 To n)
         rs(n) = x(0)
-        lijst = lijst & n & " = " & x(1) & " (" & x(0) & "): nu " & IIf(Opgeslagen(CStr(x(0))) > 0, Format$(Opgeslagen(CStr(x(0))), "0"), "zelf invullen") & vbCrLf
+        lijst = lijst & n & " = " & x(1) & " (" & x(0) & "): nu " & IIf(Opgeslagen(CStr(x(0))) > 0, Format$(Opgeslagen(CStr(x(0))), "0"), "Invullen") & vbCrLf
     Next x
     antw = Trim$(InputBox("Welke reeks? Typ het nummer." & vbCrLf & vbCrLf & lijst, "Kredietnummer aanpassen"))
     If Len(antw) = 0 Then Exit Sub

@@ -1797,6 +1797,9 @@ Public Sub KredietToevoegen()
         MsgBox "Verschil bij de nameting. De nieuwe regel is weer gewist. Er is niets toegevoegd.", vbCritical
         Exit Sub
     End If
+    For kk = 0 To nB                             ' opmaak exact gelijk aan voorbeeldregel 272 (module 9)
+        RegelOpmaakAlsVoorbeeld wv, r + kk
+    Next kk
 
     ' --- controle sleutel samengesteld krediet
     waarsch = ""
