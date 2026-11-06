@@ -175,6 +175,8 @@ Public Sub DashboardAdmOpbouwen()
     ' knoppen bovenaan: tabbladkiezer en krediet raadplegen
     TabbladkiezerPlaatsen BL_ADM
     RaadplegenKnopPlaatsen BL_ADM
+    AppLogoPlaatsen wa, wa.Range("I1").Left + 10, 80     ' logo rechtsboven
+    wa.Unprotect WACHTWOORD
     Set wa = ThisWorkbook.Worksheets(BL_ADM)
     wa.Unprotect WACHTWOORD
     wa.Range("A1").Select
@@ -314,4 +316,80 @@ Public Sub DashboardNieuweIndeling()
            "Rij " & KR_KOP & ": " & CStr(wd.Range("B" & KR_KOP).Value) & vbCrLf & _
            "Rij " & NM_KOP & ": " & CStr(wd.Range("B" & NM_KOP).Value) & vbCrLf & _
            "Rij " & (eerste - 3) & ": " & CStr(wd.Range("B" & (eerste - 3)).Value), vbInformation, BL_DASH
+End Sub
+
+' ======================================================================
+' Logo HoofDidThis (doorzichtige achtergrond)
+' ======================================================================
+' Het logo staat eenmalig in de werkmap, op het onzichtbare blad 'Afbeeldingen' (vorm 'AppLogo'), zodat het geen
+' bestand in een map nodig heeft. Inlezen: macro AppLogoInlezen (Alt+F8) en het bestand HoofDidThis_logo.png kiezen.
+' Daarna komt het rechtsboven op Dashboard FinAdv, Dashboard Adm en het blad Krediet raadplegen.
+Private Const BL_AFB As String = "Afbeeldingen"
+
+Public Sub AppLogoInlezen()
+    Dim f As Variant, wa As Worksheet, shp As Object
+    f = Application.GetOpenFilename("Afbeelding (*.png),*.png", , "Kies het logo (HoofDidThis_logo.png)")
+    If VarType(f) = vbBoolean Then Exit Sub
+    On Error GoTo Fout
+    If Not BladBestaatStil(BL_AFB) Then
+        Set wa = ThisWorkbook.Worksheets.Add(After:=ThisWorkbook.Worksheets(ThisWorkbook.Worksheets.Count))
+        wa.Name = BL_AFB
+    Else
+        Set wa = ThisWorkbook.Worksheets(BL_AFB)
+        wa.Visible = xlSheetVisible
+        On Error Resume Next
+        wa.Shapes("AppLogo").Delete
+        On Error GoTo Fout
+    End If
+    Set shp = wa.Shapes.AddPicture(CStr(f), msoFalse, msoTrue, 10, 10, -1, -1)   ' ingesloten, niet gekoppeld
+    shp.Name = "AppLogo"
+    wa.Visible = xlSheetVeryHidden
+    AppLogoOveral
+    LogRegel "logo", , , "AppLogo", "", CStr(f), "logo ingelezen"
+    MsgBox "Het logo staat nu in de werkmap en op de dashboards.", vbInformation, "Logo"
+    Exit Sub
+Fout:
+    MsgBox "Het logo kon niet worden ingelezen: " & Err.Description, vbExclamation, "Logo"
+End Sub
+
+' Logo op beide dashboards zetten (na het opnieuw plaatsen van de knoppen).
+Public Sub AppLogoOveral()
+    If BladBestaatStil(BL_DASH) Then AppLogoPlaatsen ThisWorkbook.Worksheets(BL_DASH), ThisWorkbook.Worksheets(BL_DASH).Range("I1").Left + 10, 80
+    If BladBestaatStil(BL_ADM) Then AppLogoPlaatsen ThisWorkbook.Worksheets(BL_ADM), ThisWorkbook.Worksheets(BL_ADM).Range("I1").Left + 10, 80
+End Sub
+
+' Zet een kopie van het logo op een blad (links = positie in punten, hoogte in punten). Geen logo ingelezen: niets.
+Public Sub AppLogoPlaatsen(ByVal ws As Worksheet, ByVal links As Double, ByVal hoogte As Double)
+    Dim src As Object, shp As Object, actief As Object, scherm As Boolean, beveiligd As Boolean, zicht As Long
+    On Error GoTo klaar
+    If Not BladBestaatStil(BL_AFB) Then Exit Sub
+    Set src = ThisWorkbook.Worksheets(BL_AFB).Shapes("AppLogo")
+    Set actief = ActiveSheet
+    scherm = Application.ScreenUpdating
+    Application.ScreenUpdating = False
+    beveiligd = ws.ProtectContents
+    If beveiligd Then ws.Unprotect WACHTWOORD
+    On Error Resume Next
+    ws.Shapes("AppLogo").Delete
+    On Error GoTo klaar
+    zicht = ws.Visible
+    ws.Visible = xlSheetVisible
+    src.Copy
+    ws.Activate
+    ws.Paste
+    Set shp = ws.Shapes(ws.Shapes.Count)
+    shp.Name = "AppLogo"
+    shp.LockAspectRatio = msoTrue
+    shp.Height = hoogte
+    shp.Top = 3
+    shp.Left = links
+    shp.Placement = xlFreeFloating               ' blijft bovenaan staan (rij 1 tot en met 4 gaan nooit dicht)
+    shp.OnAction = ""
+    Application.CutCopyMode = False
+    If Not actief Is Nothing Then actief.Activate
+    ws.Visible = zicht
+    If beveiligd Then BladBeveiligen ws
+klaar:
+    Application.CutCopyMode = False
+    Application.ScreenUpdating = scherm
 End Sub

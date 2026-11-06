@@ -727,6 +727,11 @@ Deze drie onderdelen staan in de werkmap `KREDIETEN - NIEUW.xlsm` (gecontroleerd
 - Kaart open/dicht: verborgen naam `Par_KaartOpen`, `KaartTonen`, `KredietInvoeren` (module 8). Bij openen van de werkmap is de kaart dicht.
 - Gebruiker verwijderen en de nieuwe knop Gebruiker toevoegen (`GebruikerToevoegen`, module 5) zijn alleen voor de applicatiebeheerder.
 
+### 14.10 Logo HoofDidThis (versie 58)
+- Bestand `kredieten_vba/HoofDidThis_logo.png` (doorzichtige achtergrond, witte letters donkerblauw gemaakt zodat ze op wit leesbaar zijn).
+- Eenmalig inlezen met `AppLogoInlezen` (module 8): het logo komt ingesloten op het onzichtbare blad "Afbeeldingen" (vorm `AppLogo`).
+- Geplaatst rechtsboven op Dashboard FinAdv, Dashboard Adm en het blad Krediet raadplegen (`AppLogoPlaatsen`, `AppLogoOveral`). De kredietoverzichten houden hun eigen logo (bestand logo*.png in de map van het stambestand).
+
 ---
 
 ## 15. Modules en bestanden

@@ -52,6 +52,7 @@ Public Sub DashboardKnoppenPlaatsen()
     KnoppenTerugPlaatsen
     KnoppenUitlegPlaatsen
     DashboardAdmOpbouwen                         ' Dashboard Adm (financiele administratie), na blok 4
+    AppLogoOveral                                ' logo rechtsboven op beide dashboards
     TabbladenOrdenen
     DashboardEventInstalleren                    ' melding voor de financiele administratie bij invoer op een lege kaart
     DashboardNaarRol
