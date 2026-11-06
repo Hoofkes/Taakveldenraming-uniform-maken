@@ -344,6 +344,37 @@ Fout:
     MsgBox t & vbCrLf & "Fout " & Err.Number & ": " & Err.Description, vbExclamation, "Rechten"
 End Sub
 
+' Knop Overzicht gebruikers (blok 1 Applicatiebeheer): alle gebruikers uit de rollentabel, per rol.
+Public Sub GebruikersOverzicht()
+    Dim lo As ListObject, r As ListRow, rollen As Object, rol As Variant, t As String, regel As String, cB As Long, n As Long
+    On Error GoTo Fout
+    Set lo = ThisWorkbook.Worksheets("Parameters").ListObjects("Tbl_Rollen")
+    Set rollen = CreateObject("Scripting.Dictionary")
+    On Error Resume Next
+    cB = lo.ListColumns("Beheer").Index
+    On Error GoTo Fout
+    For Each r In lo.ListRows
+        If Len(Trim$(CStr(r.Range.Cells(1, 1).Value))) > 0 Then
+            rol = Trim$(CStr(r.Range.Cells(1, 3).Value))
+            If Len(rol) = 0 Then rol = "(geen rol)"
+            regel = "   - " & Trim$(CStr(r.Range.Cells(1, 1).Value)) & _
+                    IIf(Len(Trim$(CStr(r.Range.Cells(1, 2).Value))) > 0, " (" & Trim$(CStr(r.Range.Cells(1, 2).Value)) & ")", " (geen Windows-naam)")
+            If cB > 0 Then
+                If LCase$(Trim$(CStr(r.Range.Cells(1, cB).Value))) = "ja" Then regel = regel & " - applicatiebeheerder"
+            End If
+            rollen(rol) = rollen(rol) & regel & vbCrLf
+            n = n + 1
+        End If
+    Next r
+    For Each rol In rollen.Keys
+        t = t & UCase$(Left$(rol, 1)) & Mid$(rol, 2) & ":" & vbCrLf & rollen(rol) & vbCrLf
+    Next rol
+    MsgBox n & " gebruikers (naam en Windows-naam):" & vbCrLf & vbCrLf & t, vbInformation, "Overzicht gebruikers"
+    Exit Sub
+Fout:
+    MsgBox "Het overzicht kon niet worden gemaakt: " & Err.Description, vbExclamation
+End Sub
+
 ' Knop Gebruiker toevoegen (blok 1 Applicatiebeheer): een nieuwe medewerker in de rollentabel zetten.
 Public Sub GebruikerToevoegen()
     WerkStart                                    ' beveiliging even uit, daarna vanzelf weer aan
@@ -1390,6 +1421,8 @@ Public Sub KnoppenUitlegPlaatsen()
     KnopUitleg ws, "btnKaartWissen", "Scherm leegmaken: maakt de hele invoerkaart leeg, ook de bijdragen van derden, en vergeet een " & _
                "krediet dat je had geladen. Er wordt niets opgeslagen en er verandert niets in de Verzamellijst. Er " & _
                "komt geen vraag vooraf."
+    KnopUitleg ws, "btnGebruikersOverzicht", "Overzicht gebruikers (alleen applicatiebeheerder): toont alle gebruikers uit de rollentabel, " & _
+               "per rol, met hun Windows-naam en of ze applicatiebeheerder zijn. Er wordt niets gewijzigd."
     KnopUitleg ws, "btnKaartSluiten", "Terug naar het dashboard: de invoerkaart gaat dicht en je ziet weer alle onderdelen. Wat op de kaart staat, " & _
                "blijft bewaard tot je op Scherm leegmaken klikt of een ander krediet opent."
     KnopUitleg ws, "btnKaartOpenen", "Krediet invoeren: de invoerkaart komt tevoorschijn. Vul de velden in en klik onder de kaart op " & _

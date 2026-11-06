@@ -715,7 +715,7 @@ Deze drie onderdelen staan in de werkmap `KREDIETEN - NIEUW.xlsm` (gecontroleerd
 ### 14.9 Indeling Dashboard FinAdv (versie 57)
 | Blok | Rijen | Knoppen | Zichtbaar voor |
 | --- | --- | --- | --- |
-| 1. Applicatiebeheer | 6-10 | Gebruiker toevoegen · Gebruiker verwijderen · Applicatiebeheerder toevoegen · Applicatiebeheerder verwijderen / Tijdschrijver vervangen · Overzicht tijdschrijven · Jaarovergang uitvoeren / Import werkelijke uitgaven · Export naar financieel pakket | applicatiebeheerder |
+| 1. Applicatiebeheer | 6-10 | Gebruiker toevoegen · Gebruiker verwijderen · Applicatiebeheerder toevoegen · Applicatiebeheerder verwijderen / Tijdschrijver vervangen · Overzicht tijdschrijven · Jaarovergang uitvoeren / Import werkelijke uitgaven · Export naar financieel pakket · Overzicht gebruikers (per rol) | applicatiebeheerder |
 | 2. Kredieten verwerken en raadplegen | 11-17 | Krediet invoeren · Krediet wijzigen · Krediet verwijderen / Krediet raadplegen · Afgekeurd krediet herstellen · Aanbieden voor hercontrole / Budgethouder vervangen · Projectleider vervangen | financieel adviseur |
 | Invoerkaart | 18-48 | Ingevuld? Verwerken! · Scherm leegmaken · Terug naar het dashboard | alleen na Krediet invoeren of Krediet wijzigen; dan zijn blok 1-5 verborgen (alleen de kaart); gaat dicht na opslaan, verwijderen of Terug naar het dashboard |
 | 3. Kredietoverzichten | 49-50 | Kredietoverzicht naar rol · Kredietoverzicht raad · Kredietoverzicht bij jaarafsluiting · Overzichten alle budgethouders | financieel adviseur |

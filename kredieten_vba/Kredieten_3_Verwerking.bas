@@ -1997,23 +1997,23 @@ Public Sub UitdraaiBlokPlaatsen()
         ws.Rows(CLng(r)).RowHeight = 12
     Next r
     ' (rij, kolom) per knop; kolom 0 = eerste knop van links
-    namen = Array("btnGebruikerToevoegen", "btnTsVervangen", "btnTijdschrijven", "btnJaarovergang", "btnUitgaven", "btnExport", _
+    namen = Array("btnGebruikerToevoegen", "btnTsVervangen", "btnTijdschrijven", "btnJaarovergang", "btnUitgaven", "btnExport", "btnGebruikersOverzicht", _
                   "btnKaartOpenen", "btnWijzigen", "btnVerwijderen", "btnAfgekeurd", "btnHercontrole", "btnBhVervangen", "btnPlVervangen", _
                   "btnOverzichtNaam", "btnOverzichtRaad", "btnOverzichtJaarrekening", "btnAlleBudgethouders", _
                   "btnUitvraag", "btnUvOphalen", "btnUvVerwerkAlle")
-    titels = Array("Gebruiker toevoegen", "Tijdschrijver vervangen", "Overzicht tijdschrijven", "Jaarovergang uitvoeren", "Import werkelijke uitgaven", "Export naar financieel pakket", _
+    titels = Array("Gebruiker toevoegen", "Tijdschrijver vervangen", "Overzicht tijdschrijven", "Jaarovergang uitvoeren", "Import werkelijke uitgaven", "Export naar financieel pakket", "Overzicht gebruikers", _
                    "Krediet invoeren", "Krediet wijzigen", "Krediet verwijderen", "Afgekeurd krediet herstellen", "Aanbieden voor hercontrole", "Budgethouder vervangen", "Projectleider vervangen", _
                    "Kredietoverzicht naar rol", "Kredietoverzicht raad", "Kredietoverzicht bij jaarafsluiting", "Overzichten alle budgethouders", _
                    "1. Uitvraag versturen", "2. Aanleveringen ophalen", "3. Aanleveringen verwerken")
-    acties = Array("GebruikerToevoegen", "TijdschrijverVervangen", "OverzichtTijdschrijven", "JaarovergangUitvoeren", "UitgavenBijwerken", "ExportNaarFinancieelPakket", _
+    acties = Array("GebruikerToevoegen", "TijdschrijverVervangen", "OverzichtTijdschrijven", "JaarovergangUitvoeren", "UitgavenBijwerken", "ExportNaarFinancieelPakket", "GebruikersOverzicht", _
                    "KredietInvoeren", "KredietWijzigen", "KredietVerwijderen", "AfgekeurdHerstellen", "HercontroleAanbieden", "BudgethouderVervangen", "ProjectleiderVervangen", _
                    "KredietoverzichtOpNaam", "KredietoverzichtMaken", "KredietoverzichtJaarrekening", "KredietoverzichtAlleBudgethouders", _
                    "UitvraagBegroting", "UitvraagOphalen", "UitvraagVerwerken")
-    rijen = Array(AB_KOP + 1, AB_KOP + 2, AB_KOP + 2, AB_KOP + 2, AB_KOP + 3, AB_KOP + 3, _
+    rijen = Array(AB_KOP + 1, AB_KOP + 2, AB_KOP + 2, AB_KOP + 2, AB_KOP + 3, AB_KOP + 3, AB_KOP + 3, _
                   KR_KOP + 1, KR_KOP + 1, KR_KOP + 1, KR_KOP + 2, KR_KOP + 2, KR_KOP + 3, KR_KOP + 3, _
                   NM_KOP + 1, NM_KOP + 1, NM_KOP + 1, NM_KOP + 1, _
                   NM_KOP + 4, NM_KOP + 4, NM_KOP + 4)
-    kolOff = Array(0, 0, 1, 2, 0, 1, _
+    kolOff = Array(0, 0, 1, 2, 0, 1, 2, _
                    0, 1, 2, 1, 2, 0, 1, _
                    0, 1, 2, 3, _
                    0, 1, 2)
