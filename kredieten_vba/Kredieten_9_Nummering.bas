@@ -7,13 +7,62 @@ Option Explicit
 ' Het eerstvolgende vrije nummer per reeks wordt bewaard in een verborgen naam (KrNr_7201 enzovoort). De beginstand
 ' komt uit de lijst van de financiele administratie (november 2026); daarna houdt de macro de nummers zelf bij.
 ' Een nummer dat al in de Verzamellijst staat, wordt altijd overgeslagen.
+' Balanscodes die nog niet in de Verzamellijst voorkomen (A122EN, A125MN, A126MN, A129MN en nieuwe codes in de
+' balanscodetabel) hebben geen beginstand: de financiele administratie vult daar de eerste keer zelf een nummer in
+' (in kolom C van de Verzamellijst of met de knop Kredietnummer aanpassen). Daarna werkt het net als bij de andere.
 
 Private Function Reeksen() As Variant
-    ' reeks, balanscode(s), beginstand (eerstvolgende vrije nummer volgens de lijst van de financiele administratie)
-    Reeksen = Array(Array("7201", "A121EN", 7201026), Array("7202", "A122EN", 7202002), Array("7203", "A123EN", 7203115), _
+    ' reeks, balanscode(s), beginstand (eerstvolgende vrije nummer volgens de lijst van de financiele administratie;
+    ' 0 = komt nog niet voor in de Verzamellijst, eerste nummer zelf invullen)
+    Reeksen = Array(Array("7201", "A121EN", 7201026), Array("7202", "A122EN", 0), Array("7203", "A123EN", 7203115), _
                     Array("7204", "A124EN / A124ENH", 7204188), Array("7205", "A125EN", 7205060), Array("7206", "A126EN", 7206078), _
-                    Array("7207", "A129EN", 7207038), Array("7304", "A124MN1", 7304180), Array("7305", "A125MN", 7305002), _
-                    Array("7306", "A126MN", 7306003), Array("7307", "A129MN", 7307002))
+                    Array("7207", "A129EN", 7207038), Array("7304", "A124MN1", 7304180), Array("7305", "A125MN", 0), _
+                    Array("7306", "A126MN", 0), Array("7307", "A129MN", 0))
+End Function
+
+' De vaste reeksen plus de balanscodes uit de balanscodetabel (Parameters) die nog geen reeks in de lijst hebben.
+Private Function AlleReeksen() As Variant
+    Dim c As New Collection, x As Variant, lo As ListObject, cel As Range, bc As String, rk As String, i As Long, gevonden As Boolean
+    Dim uit() As Variant
+    For Each x In Reeksen()
+        c.Add Array(CStr(x(0)), CStr(x(1)), x(2))
+    Next x
+    On Error Resume Next
+    Set lo = ThisWorkbook.Worksheets("Parameters").ListObjects("Tbl_Balanscode")
+    On Error GoTo 0
+    If Not lo Is Nothing Then
+        For Each cel In lo.ListColumns(1).DataBodyRange.Cells
+            bc = UCase$(Trim$(CStr(cel.Value)))
+            rk = NummerReeks(bc)
+            If Len(rk) > 0 Then
+                gevonden = False
+                For i = 1 To c.Count
+                    If c(i)(0) = rk Then
+                        gevonden = True
+                        If InStr(" / " & c(i)(1) & " / ", " / " & bc & " / ") = 0 Then
+                            x = c(i): x(1) = x(1) & " / " & bc
+                            c.Remove i
+                            If i > c.Count Then c.Add x Else c.Add x, Before:=i
+                        End If
+                        Exit For
+                    End If
+                Next i
+                If Not gevonden Then c.Add Array(rk, bc, 0)
+            End If
+        Next cel
+    End If
+    ReDim uit(0 To c.Count - 1)
+    For i = 1 To c.Count
+        uit(i - 1) = c(i)
+    Next i
+    AlleReeksen = uit
+End Function
+
+Private Function Beginstand(ByVal reeks As String) As Double
+    Dim x As Variant
+    For Each x In Reeksen()
+        If x(0) = reeks Then Beginstand = x(2)
+    Next x
 End Function
 
 ' Naam van een balanscode die niet in de balanscodetabel (Parameters) staat.
@@ -34,29 +83,17 @@ Public Function NummerReeks(ByVal balanscode As String) As String
     If cijfer = "9" Then cijfer = "7"
     If cijfer < "1" Or cijfer > "7" Then Exit Function
     NummerReeks = IIf(Mid$(bc, 5, 2) = "EN", "72", "73") & "0" & cijfer
-    If Not BestaatReeks(NummerReeks) Then NummerReeks = ""
 End Function
 
-Private Function BestaatReeks(ByVal reeks As String) As Boolean
-    Dim x As Variant
-    For Each x In Reeksen()
-        If x(0) = reeks Then BestaatReeks = True: Exit Function
-    Next x
-End Function
-
-' Bewaard eerstvolgende nummer van een reeks (zet de beginstand als die er nog niet is).
+' Bewaard eerstvolgende nummer van een reeks (zet de beginstand als die er nog niet is). 0 = nog geen nummer:
+' de financiele administratie vult het eerste nummer zelf in.
 Private Function Opgeslagen(ByVal reeks As String) As Double
-    Dim x As Variant
     On Error Resume Next
     Opgeslagen = CDbl(Evaluate(ThisWorkbook.Names("KrNr_" & reeks).RefersTo))
     On Error GoTo 0
     If Opgeslagen > 0 Then Exit Function
-    For Each x In Reeksen()
-        If x(0) = reeks Then
-            Opgeslagen = x(2)
-            Bewaar reeks, Opgeslagen
-        End If
-    Next x
+    Opgeslagen = Beginstand(reeks)
+    If Opgeslagen > 0 Then Bewaar reeks, Opgeslagen
 End Function
 
 Private Sub Bewaar(ByVal reeks As String, ByVal nr As Double)
@@ -79,18 +116,43 @@ End Function
 ' Zet per reeks het bewaarde nummer voorbij nummers die al in de Verzamellijst staan (bijvoorbeeld door de
 ' financiele administratie met de hand ingevuld). Draait bij openen, na toevoegen en bij Controles vernieuwen.
 Public Sub KredietnummersBijwerken()
-    Dim x As Variant, d As Object, nr As Double, oud As Double
+    Dim x As Variant, d As Object, nr As Double, oud As Double, hoogste As Double, rk As Variant
     On Error Resume Next
     Set d = NummersInLijst()
-    For Each x In Reeksen()
+    ' eenmalig (versie 2): beginstanden van reeksen die nog niet in de Verzamellijst voorkomen, weer weghalen
+    If Len(ThisWorkbook.Names("KrNr_Versie").Name) = 0 Then
+        For Each rk In Array("7202", "7305", "7306", "7307")
+            hoogste = HoogsteInLijst(d, CStr(rk))
+            If hoogste = 0 Then ThisWorkbook.Names("KrNr_" & rk).Delete
+        Next rk
+        ThisWorkbook.Names.Add Name:="KrNr_Versie", RefersTo:="=2", Visible:=False
+    End If
+    For Each x In AlleReeksen()
         oud = Opgeslagen(CStr(x(0)))
         nr = oud
-        Do While d.Exists(Format$(nr, "0"))
-            nr = nr + 1
-        Loop
+        If nr = 0 Then
+            ' nog geen nummer: heeft de financiele administratie het eerste nummer in kolom C ingevuld?
+            hoogste = HoogsteInLijst(d, CStr(x(0)))
+            If hoogste > 0 Then nr = hoogste + 1
+        End If
+        If nr > 0 Then
+            Do While d.Exists(Format$(nr, "0"))
+                nr = nr + 1
+            Loop
+        End If
         If nr <> oud Then Bewaar CStr(x(0)), nr
     Next x
 End Sub
+
+' Hoogste nummer van een reeks in de Verzamellijst (alleen nummers van 7 cijfers met een einde onder 500), anders 0.
+Private Function HoogsteInLijst(ByVal d As Object, ByVal reeks As String) As Double
+    Dim k As Variant
+    For Each k In d.Keys
+        If Len(k) = 7 And Left$(k, 4) = reeks And IsNumeric(k) Then
+            If CLng(Right$(k, 3)) < 500 And CDbl(k) > HoogsteInLijst Then HoogsteInLijst = CDbl(k)
+        End If
+    Next k
+End Function
 
 ' Eerstvolgende vrije kredietnummer voor een balanscode (leeg als de balanscode geen reeks heeft).
 Public Function VolgendKredietnummer(ByVal balanscode As String) As Variant
@@ -100,6 +162,7 @@ Public Function VolgendKredietnummer(ByVal balanscode As String) As Variant
     If Len(reeks) = 0 Then Exit Function
     Set d = NummersInLijst()
     nr = Opgeslagen(reeks)
+    If nr = 0 Then Exit Function                                  ' eerste nummer van deze reeks: zelf invullen
     Do While d.Exists(Format$(nr, "0"))
         nr = nr + 1
     Loop
@@ -113,7 +176,7 @@ Public Sub KredietnummerGebruikt(ByVal balanscode As String, ByVal nr As Variant
     reeks = NummerReeks(balanscode)
     If Len(reeks) = 0 Or Not IsNumeric(nr) Or Len(CStr(nr)) = 0 Then Exit Sub
     If Left$(Format$(CDbl(nr), "0"), 4) <> reeks Then Exit Sub
-    If CDbl(nr) >= Opgeslagen(reeks) Then
+    If CDbl(nr) >= Opgeslagen(reeks) Or Opgeslagen(reeks) = 0 Then
         Bewaar reeks, CDbl(nr) + 1
         LogRegel "kredietnummer gebruikt", , nr, "Reeks " & reeks, Format$(CDbl(nr), "0"), Format$(CDbl(nr) + 1, "0"), "eerstvolgende vrije nummer"
     End If
@@ -132,8 +195,8 @@ Public Sub KaartKredietnummerVoorstellen(ByVal wd As Worksheet)
     If Len(CStr(voorstel)) = 0 Then Exit Sub
     huidig = Trim$(CStr(celNr.Value))
     If Len(huidig) > 0 Then
-        For Each x In Reeksen()                                                  ' staat er een eerder voorstel (andere rubriek)?
-            If huidig = Format$(Opgeslagen(CStr(x(0))), "0") Then wasVoorstel = True
+        For Each x In AlleReeksen()                                              ' staat er een eerder voorstel (andere rubriek)?
+            If Opgeslagen(CStr(x(0))) > 0 And huidig = Format$(Opgeslagen(CStr(x(0))), "0") Then wasVoorstel = True
         Next x
         If huidig = "7999998" Then wasVoorstel = False
         If Not wasVoorstel Then Exit Sub                                         ' zelf ingevuld nummer: laten staan
@@ -151,11 +214,12 @@ Public Sub KredietnummersBlokPlaatsen()
     KredietnummersBijwerken
     Set ws = ThisWorkbook.Worksheets(BL_ADM)
     ws.Unprotect WACHTWOORD
-    ws.Range("A" & ADM_NR_KOP & ":H" & (ADM_NR_KOP + 16)).Clear
+    ws.Range("A" & ADM_NR_KOP & ":H" & (ADM_NR_KOP + 22)).Clear
     ws.Range("B" & ADM_NR_KOP).Value = "3. Eerstvolgende vrije kredietnummers"
     ws.Range("B" & ADM_NR_KOP).Font.Bold = True
     ws.Range("B" & ADM_NR_KOP).Font.Size = 12
-    ws.Range("B" & (ADM_NR_KOP + 1)).Value = "Wordt vanzelf bijgehouden. Bij een nieuw krediet vult de invoerkaart dit nummer in na het kiezen van de balanscode."
+    ws.Range("B" & (ADM_NR_KOP + 1)).Value = "Wordt vanzelf bijgehouden; de invoerkaart vult dit nummer in na het kiezen van de balanscode. " & _
+                                             "'Zelf invullen': de eerste keer zelf een nummer geven (kolom C of knop hiernaast)."
     ws.Range("B" & (ADM_NR_KOP + 1)).Font.Italic = True
     ws.Range("B" & (ADM_NR_KOP + 1)).Font.Color = RGB(89, 89, 89)
     ws.Range("B" & (ADM_NR_KOP + 2) & ":E" & (ADM_NR_KOP + 2)).Value = Array("Balanscode", "Omschrijving", "Reeks", "Eerstvolgende vrije nummer")
@@ -164,7 +228,7 @@ Public Sub KredietnummersBlokPlaatsen()
         .Interior.Color = RGB(221, 235, 247)
     End With
     r = ADM_NR_KOP + 3
-    For Each x In Reeksen()
+    For Each x In AlleReeksen()
         oms = ""
         On Error Resume Next
         oms = CStr(CodeNaarWeergave("Tbl_Balanscode", Split(CStr(x(1)), " / ")(0)))
@@ -174,7 +238,7 @@ Public Sub KredietnummersBlokPlaatsen()
         ws.Cells(r, 3).Value = oms
         ws.Cells(r, 4).NumberFormat = "@"
         ws.Cells(r, 4).Value = x(0)
-        ws.Cells(r, 5).Formula = "=KrNr_" & x(0)
+        ws.Cells(r, 5).Formula = "=IFERROR(KrNr_" & x(0) & ",""zelf invullen"")"
         ws.Cells(r, 5).NumberFormat = "0"
         ws.Cells(r, 5).HorizontalAlignment = xlLeft
         ws.Cells(r, 5).Font.Bold = True
@@ -207,11 +271,11 @@ Public Sub KredietnummerAanpassen()
         MsgBox "Dit doet de financi" & ChrW(235) & "le administratie.", vbExclamation
         Exit Sub
     End If
-    For Each x In Reeksen()
+    For Each x In AlleReeksen()
         n = n + 1
         ReDim Preserve rs(1 To n)
         rs(n) = x(0)
-        lijst = lijst & n & " = " & x(1) & " (" & x(0) & "): nu " & Format$(Opgeslagen(CStr(x(0))), "0") & vbCrLf
+        lijst = lijst & n & " = " & x(1) & " (" & x(0) & "): nu " & IIf(Opgeslagen(CStr(x(0))) > 0, Format$(Opgeslagen(CStr(x(0))), "0"), "zelf invullen") & vbCrLf
     Next x
     antw = Trim$(InputBox("Welke reeks? Typ het nummer." & vbCrLf & vbCrLf & lijst, "Kredietnummer aanpassen"))
     If Len(antw) = 0 Then Exit Sub
@@ -220,7 +284,8 @@ Public Sub KredietnummerAanpassen()
     If k < 1 Or k > n Then MsgBox "Dat nummer staat niet in de lijst.", vbExclamation: Exit Sub
     reeks = rs(k)
     oud = Opgeslagen(reeks)
-    antw = Trim$(InputBox("Eerstvolgende vrije nummer voor reeks " & reeks & " (nu " & Format$(oud, "0") & "):", "Kredietnummer aanpassen", Format$(oud, "0")))
+    antw = Trim$(InputBox("Eerstvolgende vrije nummer voor reeks " & reeks & IIf(oud > 0, " (nu " & Format$(oud, "0") & ")", " (eerste nummer)") & ":", _
+                          "Kredietnummer aanpassen", IIf(oud > 0, Format$(oud, "0"), reeks & "001")))
     If Len(antw) = 0 Then Exit Sub
     If Not IsNumeric(antw) Or Left$(antw, 4) <> reeks Or Len(antw) <> 7 Then
         MsgBox "Typ een nummer van 7 cijfers dat begint met " & reeks & ". Er is niets veranderd.", vbExclamation

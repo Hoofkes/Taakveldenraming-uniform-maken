@@ -170,7 +170,7 @@ Public Sub DashboardAdmOpbouwen()
 
     stap = "rijen verbergen"
     ' lege rijen tussen blok 2 en de controles verbergen
-    wa.Rows((ADM_NR_KOP + 16) & ":" & (CB_KOP - 2)).Hidden = True
+    wa.Rows((ADM_NR_KOP + 23) & ":" & (CB_KOP - 2)).Hidden = True
     stap = "tabbladkiezer en Krediet raadplegen"
     ' knoppen bovenaan: tabbladkiezer en krediet raadplegen
     TabbladkiezerPlaatsen BL_ADM
