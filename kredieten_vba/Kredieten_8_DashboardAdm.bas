@@ -354,11 +354,18 @@ End Sub
 
 ' Logo op beide dashboards zetten (na het opnieuw plaatsen van de knoppen).
 Public Sub AppLogoOveral()
-    Dim w As Worksheet
+    Dim w As Worksheet, shp As Object, beveiligd As Boolean
     On Error Resume Next
     For Each w In ThisWorkbook.Worksheets                ' eerst losse kopieen op andere bladen opruimen
         If w.Name <> BL_AFB And w.Name <> BL_DASH And w.Name <> BL_ADM And w.Name <> BL_RAADPLEGEN Then
-            If Not w.Shapes("AppLogo") Is Nothing Then w.Unprotect WACHTWOORD: w.Shapes("AppLogo").Delete
+            Set shp = Nothing
+            Set shp = w.Shapes("AppLogo")
+            If Not shp Is Nothing Then
+                beveiligd = w.ProtectContents
+                If beveiligd Then w.Unprotect WACHTWOORD
+                shp.Delete
+                If beveiligd Then BladBeveiligen w
+            End If
         End If
     Next w
     On Error GoTo 0
