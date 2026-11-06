@@ -147,7 +147,7 @@ Public Sub DashboardAdmOpbouwen()
     b.Name = "btnAdmOverzichtNaam"
     b.Caption = "Kredietoverzicht naar rol"
     b.OnAction = "AdmKredietoverzichtOpNaam"
-    Set b = wa.Buttons.Add(wa.Range("B" & (ADM_OV_KOP + 2)).Left + KNOP_STAP, wa.Range("B" & (ADM_OV_KOP + 2)).Top + 2, KNOP_B, 22)
+    Set b = wa.Buttons.Add(wa.Range("B" & (ADM_OV_KOP + 2)).Left + KNOP_STAP, wa.Range("B" & (ADM_OV_KOP + 2)).Top + 2, KNOP_STAP + KNOP_B, 22)   ' lange tekst
     b.Name = "btnAdmJaarrekening"
     b.Caption = "Kredietoverzicht bij jaarafsluiting"
     b.OnAction = "AdmKredietoverzichtJaarrekening"
@@ -188,6 +188,7 @@ Public Sub DashboardAdmOpbouwen()
     TabbladkiezerWeg wa
     RaadplegenKnopPlaatsen BL_ADM
     AppLogoPlaatsen wa, wa.Range("E1").Left + wa.Range("E1").Width, 44, 3, True   ' logo rechtsboven, binnen kolom E
+    KnoppenLettergrootte wa
     wa.Unprotect WACHTWOORD
     Set wa = ThisWorkbook.Worksheets(BL_ADM)
     wa.Unprotect WACHTWOORD
@@ -295,7 +296,7 @@ Public Sub KaartSluitenKnopPlaatsen()
     On Error GoTo 0
     verborgen = ws.Rows(KAART_KNOP).Hidden
     ws.Rows(KAART_KNOP).Hidden = False                       ' op een zichtbare rij plaatsen, anders komt de knop verkeerd
-    Set b = ws.Buttons.Add(ws.Range("B" & KAART_KNOP).Left + 430, ws.Range("B" & KAART_KNOP).Top + 8, 180, 22)
+    Set b = ws.Buttons.Add(ws.Range("B" & KAART_KNOP).Left + 430, ws.Range("B" & KAART_KNOP).Top + 8, 210, 22)
     b.Name = "btnKaartSluiten"
     b.Caption = "Terug naar het dashboard"
     b.OnAction = "KaartSluiten"
@@ -544,4 +545,13 @@ Public Sub AchtergrondWeghalen()
         ThisWorkbook.Worksheets(CStr(blad)).SetBackgroundPicture ""
         BladBeveiligen ThisWorkbook.Worksheets(CStr(blad))
     Next blad
+End Sub
+
+' Tekst op alle knoppen van een dashboard een maat kleiner (9), zodat ook lange teksten helemaal te lezen zijn.
+Public Sub KnoppenLettergrootte(ByVal ws As Worksheet)
+    Dim b As Object
+    On Error Resume Next
+    For Each b In ws.Buttons
+        If b.Caption <> "?" Then b.Font.Size = 9
+    Next b
 End Sub

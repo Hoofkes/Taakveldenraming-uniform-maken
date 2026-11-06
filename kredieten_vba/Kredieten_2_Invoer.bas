@@ -23,7 +23,7 @@ Public Sub DashboardKnoppenPlaatsen()
     Loop
     ws.Rows(eerste - 4).RowHeight = 6                 ' smalle rij boven de invoerkaart
     ' knop naast het veld Tijdschrijvers
-    Set b = ws.Buttons.Add(ws.Range("B" & KaartRij(14)).Left + ws.Range("B" & KaartRij(14)).Width - 112, ws.Range("B" & KaartRij(14)).Top + 1, 110, 16)
+    Set b = ws.Buttons.Add(ws.Range("B" & KaartRij(14)).Left + ws.Range("B" & KaartRij(14)).Width - 152, ws.Range("B" & KaartRij(14)).Top + 1, 150, 16)
     b.Name = "btnTijdschrijvers"
     b.Caption = "Tijdschrijvers kiezen"
     b.OnAction = "TijdschrijversKiezen"
@@ -55,6 +55,7 @@ Public Sub DashboardKnoppenPlaatsen()
     AppLogoOveral                                ' logo rechtsboven op beide dashboards
     TabbladenOrdenen
     DashboardEventInstalleren                    ' melding voor de financiele administratie bij invoer op een lege kaart
+    KnoppenLettergrootte ws                      ' tekst op de knoppen een maat kleiner: alles leesbaar
     DashboardNaarRol
     ws.Activate
 End Sub
