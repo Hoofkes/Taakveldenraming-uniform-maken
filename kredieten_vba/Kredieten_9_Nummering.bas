@@ -172,6 +172,7 @@ Public Sub KredietnummersBlokPlaatsen()
         r = r + 1
     Next x
     ws.Range("B" & (ADM_NR_KOP + 3) & ":E" & (r - 1)).Borders(xlInsideHorizontal).Color = RGB(217, 217, 217)
+    If ws.Columns(4).ColumnWidth < 9 Then ws.Columns(4).ColumnWidth = 9        ' kolom Reeks: tekst moet passen
     ws.Range("C" & (ADM_NR_KOP + 3) & ":C" & (r - 1)).Font.Color = RGB(89, 89, 89)
     On Error Resume Next
     ws.Shapes("uitleg_btnAdmNummerAanpassen").Delete
