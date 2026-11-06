@@ -114,7 +114,7 @@ Public Sub DashboardAdmOpbouwen()
             End If
         Next c
     Next r
-    wa.Range("B" & CB_KOP).Value = "3. Controles"
+    wa.Range("B" & CB_KOP).Value = "4. Controles"
 
     stap = "blok 1 Controle kredieten"
     ' 1. Controle door de financiele administratie (de knoppen die eerst in blok 3 van het Dashboard stonden)
@@ -154,18 +154,23 @@ Public Sub DashboardAdmOpbouwen()
                "bij de jaarovergang is gemaakt. Het wordt als los bestand bewaard in de map 'FinAdm Kredietoverzicht jaarrekening'. " & _
                "Bestaat er nog geen back-up, dan kun je een proef zien op basis van de huidige lijst (wordt niet bewaard)."
 
+    stap = "blok 3 Eerstvolgende vrije kredietnummers"
+    KredietnummersBlokPlaatsen
+    Set wa = ThisWorkbook.Worksheets(BL_ADM)
+    wa.Unprotect WACHTWOORD
+
     stap = "knop Controles vernieuwen"
     ' knop Controles vernieuwen bij blok 3
     Set b = wa.Buttons.Add(wa.Range("E" & (CB_KOP + 1)).Left + 2, wa.Range("E" & (CB_KOP + 1)).Top + 3, 170, 18)
     b.Name = "btnAdmControles"
     b.Caption = "Controles vernieuwen"
     b.OnAction = "ControlesVernieuwen"
-    KnopUitleg wa, "btnAdmControles", "Controles vernieuwen: rekent de controles opnieuw uit. Het zijn dezelfde controles als op het " & _
+    KnopUitleg wa, "btnAdmControles", "Controles vernieuwen: rekent de controles opnieuw uit (en werkt de vrije kredietnummers bij). Het zijn dezelfde controles als op het " & _
                "Dashboard van de financieel adviseurs. Er wordt niets gewijzigd in de kredieten."
 
     stap = "rijen verbergen"
     ' lege rijen tussen blok 2 en de controles verbergen
-    wa.Rows((ADM_OV_KOP + 4) & ":" & (CB_KOP - 2)).Hidden = True
+    wa.Rows((ADM_NR_KOP + 16) & ":" & (CB_KOP - 2)).Hidden = True
     stap = "tabbladkiezer en Krediet raadplegen"
     ' knoppen bovenaan: tabbladkiezer en krediet raadplegen
     TabbladkiezerPlaatsen BL_ADM

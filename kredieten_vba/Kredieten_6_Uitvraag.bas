@@ -81,6 +81,7 @@ Public Function DashboardIndelingKlopt() As Boolean
     If CStr(ws.Cells(CB_LAATSTE + 1, 2).Value) Like "Werkelijke uitgaven hoger*" Then Exit Function     ' oude extra controleregel opruimen
     If Not BladBestaatStil(BL_ADM) Then Exit Function                                                  ' tweede dashboard ontbreekt nog
     If CStr(ThisWorkbook.Worksheets(BL_ADM).Range("B" & ADM_OV_KOP).Value) <> "2. Kredietoverzichten" Then Exit Function
+    If Not CStr(ThisWorkbook.Worksheets(BL_ADM).Range("B" & ADM_NR_KOP).Value) Like "3. Eerstvolgende*" Then Exit Function
     DashboardIndelingKlopt = True
 End Function
 

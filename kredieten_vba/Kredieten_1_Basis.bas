@@ -20,6 +20,7 @@ Public Const BL_DASH As String = "Dashboard FinAdv"   ' dashboard financieel adv
 Public Const BL_ADM As String = "Dashboard Adm"       ' dashboard financiele administratie
 Public Const ADM_FA_KOP As Long = 6         ' Dashboard Adm blok 1 Controle kredieten: kopregel (uitleg 7, knoppen 8)
 Public Const ADM_OV_KOP As Long = 10        ' Dashboard Adm blok 2 Kredietoverzichten: kopregel (uitleg 11, knoppen 12)
+Public Const ADM_NR_KOP As Long = 14        ' Dashboard Adm blok 3 Eerstvolgende vrije kredietnummers: kopregel (tabel tot en met rij 27)
 Public mFinAdm As Boolean                   ' overzicht gemaakt via Dashboard Adm: opslaan in de mappen FinAdm ...
 Public Const VL As String = "'Verzamellijst'!"
 Public Const eerste As Long = 10         ' eerste kaartrij op het Dashboard (rij 7 kopje, rij 8 leeg, rij 9 kopregel tabel)
@@ -191,6 +192,7 @@ Public Sub Auto_Open()
     ' keuzeopties verversen bij het openen (niet als het bestand alleen-lezen is geopend)
     On Error Resume Next
     If Not ThisWorkbook.ReadOnly Then KeuzelijstenVerversen True
+    If Not ThisWorkbook.ReadOnly Then KredietnummersBijwerken
     On Error GoTo 0
     If TabelBestaat() Then WieWerktEr
     AfgekeurdSignaal                             ' financieel adviseur: melding als er afgekeurde kredieten zijn
@@ -1673,6 +1675,12 @@ Public Sub KredietToevoegen()
         Exit Sub
     End If
 
+    ' --- kredietnummer leeg: eerstvolgende vrije nummer van de balansrubriek (module 9)
+    If Leeg(f(2)) Then
+        kn = VolgendKredietnummer(bc)
+        If Len(CStr(kn)) > 0 Then f(2) = kn
+    End If
+
     ' --- waarschuwingen
     If Not Leeg(f(2)) Then
         If Application.WorksheetFunction.CountIf(wv.Range("C2:C" & laatste), CDbl(f(2))) > 0 Then
@@ -1802,6 +1810,7 @@ Public Sub KredietToevoegen()
     Next kk
     If nB > 0 Then bijtxt = " en " & nB & " bijdrage(n) van derden"
     klaar = True                                 ' het krediet is gelukt; fouten hierna draaien het niet meer terug
+    KredietnummerGebruikt bc, f(2)               ' eerstvolgende vrije nummer van deze balansrubriek schuift door
     KeuzelijstenVerversen True
     Application.ScreenUpdating = True
 

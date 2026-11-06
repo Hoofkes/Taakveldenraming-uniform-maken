@@ -693,6 +693,15 @@ Deze drie onderdelen staan in de werkmap `KREDIETEN - NIEUW.xlsm` (gecontroleerd
 - Knopnamen op Dashboard Adm beginnen met `btnAdm` (uitlegteksten worden per knopnaam in de werkmap bewaard, dus namen moeten uniek zijn).
 - Opbouwen: `DashboardAdmOpbouwen` (aangeroepen door `DashboardKnoppenPlaatsen`; bij het openen vanzelf als Dashboard Adm ontbreekt, via `DashboardIndelingKlopt`).
 
+### 14.6 Kredietnummers per balansrubriek (versie 54)
+- Elke balansrubriek heeft een eigen nummerreeks: 72 = economisch nut, 73 = maatschappelijk nut, dan 0 en het cijfer van de rubriek (A129 = 7). A124EN en A124ENH delen reeks 7204. Reeksen: 7201 A121EN, 7202 A122EN, 7203 A123EN, 7204 A124EN/A124ENH, 7205 A125EN, 7206 A126EN, 7207 A129EN, 7304 A124MN1, 7305 A125MN, 7306 A126MN, 7307 A129MN. Blokken zonder A-code in de lijst van de financiële administratie (bijvoorbeeld 72015xx, 7301, 7302, 7303) doen niet mee.
+- **Beginstand** (eerstvolgende vrije nummer, uit de lijst van de financiële administratie van 06-11-2026): 7201026, 7202002, 7203115, 7204188, 7205060, 7206078, 7207038, 7304180, 7305002, 7306003, 7307002. Daarna is die lijst niet meer nodig: de macro houdt de nummers bij in verborgen namen `KrNr_<reeks>`.
+- **Invoerkaart:** na het kiezen van de balanscode vult de kaart het eerstvolgende vrije nummer in (alleen bij een nieuw krediet en als het veld leeg is of nog een eerder voorstel bevat; een zelf getypt nummer blijft staan). **Krediet toevoegen:** is het kredietnummer leeg, dan komt het eerstvolgende vrije nummer in kolom C. Na het toevoegen schuift het nummer van die reeks door.
+- Een nummer dat al in kolom C van de Verzamellijst staat, wordt altijd overgeslagen (`KredietnummersBijwerken`: bij openen, na toevoegen en bij Controles vernieuwen).
+- **Dashboard Adm, blok 3** "Eerstvolgende vrije kredietnummers" (rij 14-27): tabel per reeks en knop **Kredietnummer aanpassen** (met de hand corrigeren, in het Logboek). Controles zijn nu blok 4.
+- Het tijdelijke nummer 7999998 wordt niet automatisch gegeven (de oude afspraak en het alarm blijven bestaan).
+- Code: module 9 `Kredieten_9_Nummering`; aanroepen in `KredietToevoegen` en `Auto_Open` (module 1), `KaartGewijzigd` (module 2), `ControlesVernieuwen` (module 5), `DashboardAdmOpbouwen` (module 8), `DashboardIndelingKlopt` (module 6).
+
 ---
 
 ## 15. Modules en bestanden
@@ -708,6 +717,7 @@ Code op branch `claude/nice-gates-5n069p`, map `kredieten_vba/`. Bron is steeds 
 | `Kredieten_5_Beheer` | Mutatieregister, opbrengsten activa, controles en kengetallen (blok 4), naam vervangen, jaarovergang (met wachtwoord), knopuitleg, pdf en mail, stap 8, export financieel pakket. |
 | `Kredieten_6_Uitvraag` | Uitvraag kadernota/begroting: versturen, ophalen, verwerken (blad Uitvraag). |
 | `Kredieten_7_Raadplegen` | Krediet raadplegen (§ 14.3). |
+| `Kredieten_9_Nummering` | Kredietnummers per balansrubriek (§ 14.6). |
 | `Kredieten_8_DashboardAdm` | Dashboard Adm, zichtbaarheid van de dashboards, overzichten met FinAdm-mappen (§ 14.5). |
 
 Oude bestanden op andere branches (`Kredieten/` op `claude/admiring-hypatia-3ulxex`, `investeringskredieten/` op `claude/affectionate-hawking-97huq5`) **niet meer gebruiken**.

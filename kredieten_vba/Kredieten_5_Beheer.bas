@@ -853,6 +853,7 @@ Klaar:
 End Sub
 
 Public Sub ControlesVernieuwen()
+    KredietnummersBijwerken                      ' eerstvolgende vrije kredietnummers (Dashboard Adm, blok 3)
     WerkStart                                    ' beveiliging even uit, daarna vanzelf weer aan
     Dim wd As Worksheet, wv As Worksheet, laatste As Long, maxRij As Long, lj As Long, v As Variant, r As Long, i As Long
     Dim waar(0 To 15) As String, aant(0 To 15) As Long, hint As Variant, c As Variant, t As String, st As String, jr As Long

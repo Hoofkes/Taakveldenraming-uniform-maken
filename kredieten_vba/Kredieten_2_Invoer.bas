@@ -1763,7 +1763,11 @@ Public Sub KaartGewijzigd(ByVal Target As Range)
     KaartRijenPassendMaken Intersect(Target, wd.Range("Kaart_Invoer"))
     If Not Intersect(Target, wd.Cells(KaartRij(8), KaartKol(8))) Is Nothing Then BladBeveiligen wd     ' naamveld vergrendelen of vrijgeven
     If Len(CStr(wd.Range("Kaart_Rijnummer").Value)) > 0 Then Exit Sub        ' wijzigen van een bestaand krediet: mag
-    If HeeftRecht("Toevoegen") Then Exit Sub
+    If HeeftRecht("Toevoegen") Then
+        ' balanscode gekozen bij een nieuw krediet: eerstvolgende vrije kredietnummer invullen (module 9)
+        If Not Intersect(Target, wd.Cells(KaartRij(17), KaartKol(17))) Is Nothing Then KaartKredietnummerVoorstellen wd
+        Exit Sub
+    End If
     Application.EnableEvents = False
     Application.Undo
     Application.EnableEvents = True
