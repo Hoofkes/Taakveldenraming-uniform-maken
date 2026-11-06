@@ -267,3 +267,18 @@ Public Sub KredietInvoeren()
     Application.GoTo wd.Range("A" & (eerste - 3)), True
     wd.Cells(eerste, 3).Select
 End Sub
+
+' Met de hand te starten (Alt+F8) als de nieuwe indeling na het openen niet vanzelf is gemaakt.
+Public Sub DashboardNieuweIndeling()
+    Dim wd As Worksheet
+    DashboardNaamZorgen
+    DashboardRijenInvoegen
+    ThisWorkbook.Names.Add Name:="Par_KaartOpen", RefersTo:="=0", Visible:=False
+    KaartIndelingProject
+    DashboardKnoppenPlaatsen
+    Set wd = ThisWorkbook.Worksheets(BL_DASH)
+    MsgBox "Klaar." & vbCrLf & "Rij " & AB_KOP & ": " & CStr(wd.Range("B" & AB_KOP).Value) & vbCrLf & _
+           "Rij " & KR_KOP & ": " & CStr(wd.Range("B" & KR_KOP).Value) & vbCrLf & _
+           "Rij " & NM_KOP & ": " & CStr(wd.Range("B" & NM_KOP).Value) & vbCrLf & _
+           "Rij " & (eerste - 3) & ": " & CStr(wd.Range("B" & (eerste - 3)).Value), vbInformation, BL_DASH
+End Sub
