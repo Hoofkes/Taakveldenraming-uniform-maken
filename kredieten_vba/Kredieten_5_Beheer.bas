@@ -1454,9 +1454,9 @@ Public Sub KnoppenUitlegPlaatsen()
                "31 maart ook die van het vorige jaar). De macro zoekt in de map 'export coda' het nieuwste " & _
                "Excelbestand en vraagt of je dat wilt uploaden (Ja of Nee). Daarna worden de bedragen per " & _
                "kredietnummer opgeteld en gecontroleerd. Sluit een jaar niet aan, dan wordt er niets bijgewerkt. " & _
-               "Anders komen de bedragen in de Verzamellijst; wat opvalt komt als melding op het blad 'Meldingen " & _
-               "uitgaven'. Ten slotte wordt het kredietoverzicht raad opnieuw gemaakt en bewaard in map 03. Daarna " & _
-               "sta je op het blad 'Meldingen uitgaven'."
+               "Anders komen de bedragen in de Verzamellijst. Wat opvalt, zie je in het venster na afloop; blijvende " & _
+               "fouten staan bij de controles op het dashboard. Ten slotte wordt het kredietoverzicht raad opnieuw " & _
+               "gemaakt en bewaard in map 03."
     KnopUitleg ws, "btnOverzichtNaam", "Kredietoverzicht naar rol: je kiest eerst 1 = budgetbeheerder, 2 = projectleider of 3 = tijdschrijver " & _
                "en daarna de naam (typ een nummer of een deel van de naam). Het overzicht toont de lopende kredieten " & _
                "van die persoon, de kredieten die dit jaar zijn afgesloten en de kredieten die nog niet zijn gestart " & _

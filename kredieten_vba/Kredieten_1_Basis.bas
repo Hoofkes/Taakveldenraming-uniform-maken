@@ -30,7 +30,8 @@ Public Const eerste As Long = 10 + DASH_EXTRA   ' eerste kaartrij (kaart: kopje 
 Public Const KAART_KNOP As Long = 35 + DASH_EXTRA     ' rij onder de invoerkaart: Ingevuld? Verwerken! en Scherm leegmaken
 Public cfMislukt As Boolean
 Public Const aantal As Long = 30
-Public Const BL_MELD As String = "Meldingen uitgaven"
+Public Const BL_MELD As String = "Meldingen uitgaven"   ' oud blad: wordt bij de volgende import weggehaald
+Public mMeldTekst As String               ' samenvatting van de meldingen van de laatste import (venster)
 Public mMeld As Collection
 Public mVorige As Object          ' bedragen per kredietnummer en jaar uit de vorige upload
 Public mHeeftVorige As Boolean

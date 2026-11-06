@@ -311,6 +311,12 @@ Public Sub DashboardNieuweIndeling()
     DashboardRijenInvoegen
     ThisWorkbook.Names.Add Name:="Par_KaartOpen", RefersTo:="=0", Visible:=False
     KaartIndelingProject
+    If BladBestaatStil(BL_MELD) Then                 ' oud blad Meldingen uitgaven weghalen (controles staan op het dashboard)
+        Application.DisplayAlerts = False
+        ThisWorkbook.Worksheets(BL_MELD).Unprotect WACHTWOORD
+        ThisWorkbook.Worksheets(BL_MELD).Delete
+        Application.DisplayAlerts = True
+    End If
     DashboardKnoppenPlaatsen
     Set wd = ThisWorkbook.Worksheets(BL_DASH)
     MsgBox "Klaar." & vbCrLf & "Rij " & AB_KOP & ": " & CStr(wd.Range("B" & AB_KOP).Value) & vbCrLf & _

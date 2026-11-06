@@ -594,9 +594,8 @@ VolgendJaar:
         alarm = MeldingenSchrijven(Dir(pad), peil)
         BeveiligingAan
         Application.ScreenUpdating = True
-        ThisWorkbook.Worksheets(BL_MELD).Activate
         MsgBox "Er is NIETS bijgewerkt: " & Dir(pad) & vbCrLf & vbCrLf & _
-               "Een jaar sluit niet aan of een verdeelsleutel (kolom K) is fout. Zie de ALARM-regels op blad '" & BL_MELD & "'." & vbCrLf & _
+               "Een jaar sluit niet aan of een verdeelsleutel (kolom K) is fout:" & vbCrLf & mMeldTekst & vbCrLf & _
                "Peildatum en vorige upload zijn ook niet aangepast. Los het op en verwerk het bestand opnieuw.", vbCritical, "Niets bijgewerkt"
         Exit Sub
     End If
@@ -681,11 +680,12 @@ VolgendJaar:
     ControlesVernieuwen
     BeveiligingAan
     Application.ScreenUpdating = True
-    ThisWorkbook.Worksheets(BL_MELD).Activate
+    NaarEigenDashboard
     tekst = "Verwerkt: " & Dir(pad) & vbCrLf & _
             lj & ": " & IIf(geschreven(0), "bijgewerkt", "NIET bijgewerkt") & vbCrLf
     If cJ(1) > 0 Then tekst = tekst & (lj - 1) & ": " & IIf(geschreven(1), "bijgewerkt", "alleen gecontroleerd") & vbCrLf
-    tekst = tekst & vbCrLf & mMeld.Count & " meldingen, waarvan " & alarm & " ALARM." & vbCrLf & "Zie blad '" & BL_MELD & "'." & vbCrLf & "Het kredietoverzicht is bijgewerkt (nieuw tabblad achteraan)."
+    tekst = tekst & vbCrLf & mMeld.Count & " meldingen, waarvan " & alarm & " ALARM." & vbCrLf & mMeldTekst & vbCrLf & _
+            "Het kredietoverzicht is bijgewerkt. Blijvende fouten staan bij de controles op het dashboard."
     MsgBox tekst, IIf(alarm > 0, vbCritical, vbInformation), IIf(alarm > 0, "LET OP: actie nodig", "Uitgaven bijgewerkt")
     Exit Sub
 
@@ -707,7 +707,7 @@ Fout:
     Application.ScreenUpdating = True
     If klaar Then
         MsgBox "De werkelijke uitgaven zijn bijgewerkt en vastgelegd, maar daarna ging iets mis:" & vbCrLf & foutTekst & vbCrLf & vbCrLf & _
-               "Kijk op blad '" & BL_MELD & "' en maak het kredietoverzicht zo nodig opnieuw.", vbExclamation
+               "Kijk bij de controles op het dashboard en maak het kredietoverzicht zo nodig opnieuw.", vbExclamation
     Else
         MsgBox "Fout: " & foutTekst & vbCrLf & "Er is niets gewijzigd.", vbCritical
     End If
@@ -1002,121 +1002,34 @@ Public Sub Meld(ByVal prio As Long, ByVal soort As String, ByVal jaar As Long, B
     mMeld.Add Array(prio, soort, jaar, nr, oms, rij, oud, nieuw, toel)
 End Sub
 
-' Schrijft blad 'Meldingen uitgaven' opnieuw, gesorteerd op ernst. Geeft het aantal ALARM-meldingen terug.
+' Meldingen van de import (afspraak november 2026: geen apart blad 'Meldingen uitgaven' meer). Maakt een korte
+' samenvatting voor het venster na de import: eerst ALARM, dan 'niet toegestaan' (maximaal 12 regels). Blijvende
+' fouten in de Verzamellijst staan bij de controles op het dashboard (blok 5). Geeft het aantal ALARM-meldingen terug.
 Private Function MeldingenSchrijven(ByVal bestand As String, ByVal peil As Date) As Long
-    Dim ws As Worksheet, rij As Long, p As Long, m As Variant, kleur As Long, alarm As Long
-    Dim wv As Worksheet, stat As Object, r As Long, laatste As Long, nrT As String, rijNr As Object, omsNr As Object, volgnr As Object
-    ' status (kolom H), rijnummer(s) en omschrijving per kredietnummer, voor de kolommen Status, Rij en Omschrijving
-    Set wv = Vz()
-    Set stat = CreateObject("Scripting.Dictionary")
-    Set rijNr = CreateObject("Scripting.Dictionary")
-    Set omsNr = CreateObject("Scripting.Dictionary")
-    Set volgnr = CreateObject("Scripting.Dictionary")
-    laatste = CLng(ThisWorkbook.Names("Par_LaatsteRij").RefersToRange.Value)
-    For r = 2 To laatste
-        nrT = NrTekst(wv.Cells(r, 3).Value)
-        If Len(nrT) > 0 Then
-            If Not stat.Exists(nrT) Then
-                stat.Add nrT, CStr(wv.Cells(r, 8).Value)
-                omsNr.Add nrT, CStr(wv.Cells(r, 4).Value)
-                rijNr.Add nrT, CStr(r)
-                volgnr.Add nrT, CStr(wv.Cells(r, 1).Value)
-            Else
-                rijNr(nrT) = rijNr(nrT) & ", " & r
-                volgnr(nrT) = volgnr(nrT) & ", " & CStr(wv.Cells(r, 1).Value)
-            End If
-        End If
-    Next r
-    If Not BladBestaat(BL_MELD) Then
-        Set ws = NieuwBlad()
-        ws.Name = BL_MELD
-    Else
-        Set ws = ThisWorkbook.Worksheets(BL_MELD)
+    Dim m As Variant, p As Long, alarm As Long, n As Long, regel As String
+    mMeldTekst = ""
+    If BladBestaatStil(BL_MELD) Then                 ' oud blad weghalen
+        Application.DisplayAlerts = False
+        ThisWorkbook.Worksheets(BL_MELD).Unprotect WACHTWOORD
+        ThisWorkbook.Worksheets(BL_MELD).Delete
+        Application.DisplayAlerts = True
     End If
-    ws.Cells.Clear
-    ws.Cells.Font.Name = "Tahoma"
-    ws.Cells.Font.Size = 10
-    ws.Range("A1").Value = "Meldingen werkelijke uitgaven"
-    ws.Range("A1").Font.Bold = True
-    ws.Range("A1").Font.Size = 14
-    ws.Range("A2").Value = "Uitdraai: " & bestand & " - peildatum " & Format$(peil, "dd-mm-yyyy") & " - verwerkt op " & _
-                           Format$(Now, "dd-mm-yyyy hh:mm") & " door " & ThisWorkbook.Names("Par_HuidigeGebruiker").RefersToRange.Value
-    ws.Range("A2").Font.Italic = True
-    ws.Range("A4:K4").Value = Array("Volgnr", "Rij", "Soort", "Jaar", "Kredietnummer", "Omschrijving", "Status", "Oud / verwacht", "Nieuw / uitdraai", "Verschil", "Toelichting")
-    With ws.Range("A4:K4")
-        .Font.Bold = True
-        .Interior.Color = RGB(208, 208, 208)
-        .Borders(xlEdgeBottom).LineStyle = xlContinuous
-    End With
-    rij = 5
-    For p = 1 To 5
+    If mMeld Is Nothing Then Exit Function
+    For p = 1 To 2
         For Each m In mMeld
             If m(0) = p Then
-                ws.Cells(rij, 3).Value = m(1)
-                ws.Cells(rij, 4).Value = m(2)
-                ws.Cells(rij, 5).NumberFormat = "@"
-                ws.Cells(rij, 5).Value = m(3)
-                ws.Cells(rij, 6).Value = m(4)
-                If Len(CStr(m(4))) = 0 And omsNr.Exists(CStr(m(3))) Then ws.Cells(rij, 6).Value = omsNr(CStr(m(3)))
-                If m(5) > 1 Then
-                    ws.Cells(rij, 7).Value = wv.Cells(m(5), 8).Value
-                ElseIf stat.Exists(CStr(m(3))) Then
-                    ws.Cells(rij, 7).Value = stat(CStr(m(3)))
-                ElseIf Len(CStr(m(3))) > 0 Then
-                    ws.Cells(rij, 7).Value = "geen krediet"
+                If p = 1 Then alarm = alarm + 1
+                n = n + 1
+                If n <= 12 Then
+                    regel = IIf(p = 1, "ALARM: ", "") & m(1) & IIf(Len(CStr(m(3))) > 0, " - " & m(3), "") & _
+                            IIf(Len(CStr(m(8))) > 0, " - " & Left$(CStr(m(8)), 90), "")
+                    mMeldTekst = mMeldTekst & "- " & regel & vbCrLf
                 End If
-                If m(5) > 0 Then
-                    ws.Cells(rij, 2).Value = m(5)
-                    If m(5) > 1 Then ws.Cells(rij, 1).Value = wv.Cells(m(5), 1).Value
-                ElseIf rijNr.Exists(CStr(m(3))) Then
-                    ws.Cells(rij, 1).NumberFormat = "@"
-                    ws.Cells(rij, 1).Value = volgnr(CStr(m(3)))         ' alle volgnummers van dit kredietnummer
-                    ws.Cells(rij, 2).NumberFormat = "@"
-                    ws.Cells(rij, 2).Value = rijNr(CStr(m(3)))          ' alle rijen van dit kredietnummer in de Verzamellijst
-                End If
-                If Not IsEmpty(m(6)) Then ws.Cells(rij, 8).Value = m(6)
-                If Not IsEmpty(m(7)) Then ws.Cells(rij, 9).Value = m(7)
-                If Not IsEmpty(m(6)) And Not IsEmpty(m(7)) Then ws.Cells(rij, 10).Value = m(7) - m(6)
-                ws.Cells(rij, 11).Value = m(8)
-                Select Case p
-                    Case 1: kleur = RGB(255, 150, 150): alarm = alarm + 1
-                        ws.Range(ws.Cells(rij, 1), ws.Cells(rij, 11)).Font.Bold = True
-                    Case 2: kleur = RGB(255, 190, 190)
-                    Case 3: kleur = RGB(255, 200, 120)
-                    Case 4: kleur = RGB(255, 255, 204)
-                    Case Else: kleur = xlNone
-                End Select
-                If kleur <> xlNone Then ws.Range(ws.Cells(rij, 1), ws.Cells(rij, 11)).Interior.Color = kleur
-                rij = rij + 1
             End If
         Next m
     Next p
-    If rij = 5 Then ws.Range("A5").Value = "Geen meldingen."
-    ws.Range("A3").Value = alarm & " ALARM-meldingen, " & (mMeld.Count - alarm) & " overige meldingen.  " & mAansl
-    ws.Range("A3").Font.Bold = True
-    If alarm > 0 Then
-        ws.Range("A3").Interior.Color = RGB(255, 0, 0)
-        ws.Range("A3").Font.Color = RGB(255, 255, 255)
-        ws.Tab.Color = RGB(255, 0, 0)
-    Else
-        ws.Tab.Color = RGB(0, 176, 80)
-    End If
-    ws.Range("H5:J" & Application.Max(5, rij)).NumberFormat = "#,##0.00;-#,##0.00;-"
-    ws.Range("A:B,D:E,G:G").HorizontalAlignment = xlLeft
-    ws.Columns("A").ColumnWidth = 10
-    ws.Columns("B").ColumnWidth = 10
-    ws.Columns("C").ColumnWidth = 44
-    ws.Columns("D").ColumnWidth = 7
-    ws.Columns("E").ColumnWidth = 14
-    ws.Columns("F").ColumnWidth = 36
-    ws.Columns("G").ColumnWidth = 12
-    ws.Columns("H:J").ColumnWidth = 16
-    ws.Columns("K").ColumnWidth = 80
-    ws.Range("A4:K" & rij).VerticalAlignment = xlTop
-    ws.Range("A4:K4").WrapText = True
-    ws.Range("A5:B" & rij & ",C5:C" & rij & ",F5:F" & rij & ",K5:K" & rij).WrapText = True
-    BladOpmaken ws, 4, 5, rij
-    KnopTerug ws, ws.Range("F1")
+    If n > 12 Then mMeldTekst = mMeldTekst & "- en nog " & (n - 12) & " meldingen" & vbCrLf
+    LogRegel "import uitgaven meldingen", , , "", , , bestand & " | " & mMeld.Count & " meldingen, " & alarm & " alarm"
     MeldingenSchrijven = alarm
 End Function
 

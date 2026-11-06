@@ -732,6 +732,9 @@ Deze drie onderdelen staan in de werkmap `KREDIETEN - NIEUW.xlsm` (gecontroleerd
 - Eenmalig inlezen met `AppLogoInlezen` (module 8): het logo komt ingesloten op het onzichtbare blad "Afbeeldingen" (vorm `AppLogo`).
 - Geplaatst rechtsboven op Dashboard FinAdv, Dashboard Adm en het blad Krediet raadplegen (`AppLogoPlaatsen`, `AppLogoOveral`). De kredietoverzichten houden hun eigen logo (bestand logo*.png in de map van het stambestand).
 
+### 14.11 Blad Meldingen uitgaven vervalt (versie 59)
+- Het blad "Meldingen uitgaven" wordt weggehaald (bij `DashboardNieuweIndeling` en bij de volgende import). Na Import werkelijke uitgaven toont het venster de belangrijkste meldingen (ALARM en niet toegestaan, maximaal 12). Blijvende fouten staan bij de controles op het dashboard (blok 5). In de kredietoverzichten blijft de kolom Melding leeg en verborgen.
+
 ---
 
 ## 15. Modules en bestanden
