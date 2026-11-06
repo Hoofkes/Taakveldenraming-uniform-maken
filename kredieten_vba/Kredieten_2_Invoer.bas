@@ -994,27 +994,22 @@ Public Sub FinAdmBlokPlaatsen()
     Set ws = ThisWorkbook.Worksheets(BL_ADM)
     kop = ADM_FA_KOP
     ws.Range("A" & kop & ":H" & (ADM_OV_KOP - 1)).Clear
-    ws.Range("B" & kop).Value = "1. Controle kredieten"
-    ws.Range("B" & kop).Font.Bold = True
-    ws.Range("B" & kop).Font.Size = 12
+    KopOpmaak ws, kop, "1. Kredieten controleren en raadplegen"
     ' oude teller bovenaan het Dashboard FinAdv (B5) opruimen
     ThisWorkbook.Worksheets(BL_DASH).Range("B5").FormatConditions.Delete
     ThisWorkbook.Worksheets(BL_DASH).Range("B5").ClearContents
-    With ws.Range("E" & (kop + 2))
+    With ws.Range("B" & (kop + 1))                 ' teller direct onder de kop (de uitleg staat onder het vraagteken)
         .Formula = "=COUNTIF(" & VL & "$AP:$AP,""" & CtlTeControleren() & """)&"" regels te controleren, ""&COUNTIF(" & VL & "$AP:$AP,""Afgekeurd"")&"" afgekeurd"""
         .Font.Bold = True
         .VerticalAlignment = xlCenter
         .FormatConditions.Delete
     End With
     Dim fc As Object
-    Set fc = VoegCF(ws.Range("E" & (kop + 2)), "=COUNTIF(" & VL & "$AP:$AP,""Afgekeurd"")>0")
+    Set fc = VoegCF(ws.Range("B" & (kop + 1)), "=COUNTIF(" & VL & "$AP:$AP,""Afgekeurd"")>0")
     If Not fc Is Nothing Then fc.Interior.Color = RGB(255, 150, 150)
-    Set fc = VoegCF(ws.Range("E" & (kop + 2)), "=COUNTIF(" & VL & "$AP:$AP,""" & CtlTeControleren() & """)>0")
+    Set fc = VoegCF(ws.Range("B" & (kop + 1)), "=COUNTIF(" & VL & "$AP:$AP,""" & CtlTeControleren() & """)>0")
     If Not fc Is Nothing Then fc.Interior.Color = RGB(255, 200, 120)
-    ws.Range("B" & (kop + 1)).Value = "Standaard: nieuwe kredieten controleren. Incidenteel: een bestaand (al goedgekeurd) krediet aanpassen. " & _
-                                          "Beide in de Verzamellijst; daarna bovenaan op 'Klaar: goedkeuren'."
-    ws.Range("B" & (kop + 1)).Font.Italic = True
-    ws.Range("B" & (kop + 1)).Font.Color = RGB(89, 89, 89)
+    ws.Rows(kop + 1).RowHeight = 18
     On Error Resume Next
     For Each naam In Array("btnFaVernieuwen", "btnFaOpenen", "btnFaBevestigen", "btnFaAfkeuren", "btnFaAanpassen", "btnFaVolgende")
         ws.Shapes(CStr(naam)).Delete

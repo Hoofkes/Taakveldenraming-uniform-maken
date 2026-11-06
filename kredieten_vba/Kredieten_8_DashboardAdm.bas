@@ -60,6 +60,7 @@ Public Sub DashboardAdmOpbouwen()
     WerkStart                                    ' beveiliging even uit, daarna vanzelf weer aan
     Dim wd As Worksheet, wa As Worksheet, b As Object, r As Long, c As Long, naam As Variant, kopieer As Boolean, actief As Object
     Dim stap As String
+    Dim rr As Variant
     On Error GoTo Fout
     stap = "begin"
     Set actief = ActiveSheet
@@ -101,9 +102,11 @@ Public Sub DashboardAdmOpbouwen()
     wa.Range("B1").Value = "Dashboard financi" & ChrW(235) & "le administratie"
     On Error Resume Next
     wa.Range("E3:F3").ClearContents                              ' keuzeopties ververst op: alleen voor de financieel adviseur
-    wa.Range("E2").ClearContents
+    wa.Range("E2:H2").ClearContents
+    wa.Range("E2:H2").Validation.Delete
+    wa.Range("E2:H2").Interior.Pattern = xlNone
     On Error GoTo Fout
-    wa.Range("F2").Value = "Naar tabblad:"
+    TitelOpmaak wa
     stap = "controles koppelen met formules"
     ' controles: dezelfde cellen als op Dashboard FinAdv (formule), zodat ze altijd gelijk zijn
     For r = CB_KOP To CB_LAATSTE + 2
@@ -115,7 +118,7 @@ Public Sub DashboardAdmOpbouwen()
             End If
         Next c
     Next r
-    wa.Range("B" & CB_KOP).Value = "4. Controles"
+    KopOpmaak wa, CB_KOP, "4. Controles"
 
     stap = "blok 1 Controle kredieten"
     ' 1. Controle door de financiele administratie (de knoppen die eerst in blok 3 van het Dashboard stonden)
@@ -133,9 +136,7 @@ Public Sub DashboardAdmOpbouwen()
 
     stap = "blok 2 Kredietoverzichten"
     ' 2. Kredietoverzichten
-    wa.Range("B" & ADM_OV_KOP).Value = "2. Kredietoverzichten"
-    wa.Range("B" & ADM_OV_KOP).Font.Bold = True
-    wa.Range("B" & ADM_OV_KOP).Font.Size = 12
+    KopOpmaak wa, ADM_OV_KOP, "2. Kredietoverzichten"
     wa.Range("B" & (ADM_OV_KOP + 1)).Value = "Bestanden gaan naar de mappen 'FinAdm Kredietoverzicht op naam' en 'FinAdm Kredietoverzicht jaarrekening'."
     wa.Range("B" & (ADM_OV_KOP + 1)).Font.Italic = True
     wa.Range("B" & (ADM_OV_KOP + 1)).Font.Color = RGB(89, 89, 89)
@@ -171,7 +172,15 @@ Public Sub DashboardAdmOpbouwen()
 
     stap = "rijen verbergen"
     ' lege rijen tussen blok 2 en de controles verbergen
-    wa.Rows((ADM_NR_KOP + 23) & ":" & (CB_KOP - 2)).Hidden = True
+    ' lege rijen weg: tussen de blokken een smalle rij, na de nummertabel alles verbergen tot de controles
+    For Each rr In Array(5, ADM_OV_KOP - 1, ADM_NR_KOP - 1, CB_KOP - 1)
+        wa.Rows(CLng(rr)).RowHeight = 8
+    Next rr
+    r = ADM_NR_KOP + 3
+    Do While Len(CStr(wa.Cells(r, 4).Value)) > 0
+        r = r + 1
+    Loop
+    wa.Rows(r & ":" & (CB_KOP - 2)).Hidden = True
     stap = "tabbladkiezer en Krediet raadplegen"
     ' knoppen bovenaan: tabbladkiezer en krediet raadplegen
     TabbladkiezerPlaatsen BL_ADM
@@ -446,4 +455,30 @@ Public Sub AppLogoPlaatsen(ByVal ws As Worksheet, ByVal links As Double, ByVal h
 klaar:
     Application.CutCopyMode = False
     Application.ScreenUpdating = scherm
+End Sub
+
+' Eenheidsopmaak van een kop op de dashboards (blok 1, 2, 3 ...): donkerblauwe balk van B tot en met G, witte vette
+' letters, maat 12. Zelfde lettertype als de rest van het blad.
+Public Sub KopOpmaak(ByVal ws As Worksheet, ByVal rij As Long, ByVal tekst As String)
+    ws.Range("B" & rij).Value = tekst
+    With ws.Range("B" & rij & ":G" & rij)
+        .Interior.Color = RGB(0, 73, 118)
+        .Font.Color = RGB(255, 255, 255)
+        .Font.Bold = True
+        .Font.Italic = False
+        .Font.Size = 12
+        .VerticalAlignment = xlCenter
+        .Borders.LineStyle = xlNone
+    End With
+    ws.Rows(rij).RowHeight = 22
+End Sub
+
+' Titel in B1 van een dashboard.
+Public Sub TitelOpmaak(ws As Worksheet)
+    With ws.Range("B1").Font
+        .Bold = True
+        .Size = 16
+        .Color = RGB(0, 73, 118)
+    End With
+    ws.Rows(1).RowHeight = 28
 End Sub

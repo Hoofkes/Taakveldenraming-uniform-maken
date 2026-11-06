@@ -620,7 +620,7 @@ Public Sub BladBeveiligen(ByVal ws As Worksheet)
                     ws.Cells(BijdrageRij(j, k), 5).Locked = False      ' bron van een bijdrage (kiezen of typen)
                 Next k
             Next j
-            ws.Range("G2").Locked = False                         ' tabbladkiezer
+            ws.Range("F2").Locked = False                         ' tabbladkiezer
             With ws.Cells(KaartRij(30), KaartKol(30))              ' naam samengesteld krediet: geblokkeerd tenzij nieuw samengesteld
                 If KaartNaamGeblokkeerd(ws) Then
                     .Locked = True
@@ -632,7 +632,7 @@ Public Sub BladBeveiligen(ByVal ws As Worksheet)
             End With
         Case BL_ADM
             ws.Cells.Locked = True
-            ws.Range("G2").Locked = False                         ' tabbladkiezer
+            ws.Range("F2").Locked = False                         ' tabbladkiezer
         Case BL_VZ
             If Not ws.AutoFilterMode Then
                 laatste = CLng(ThisWorkbook.Names("Par_LaatsteRij").RefersToRange.Value)
@@ -1199,8 +1199,8 @@ End Sub
 
 Public Sub NaarTabblad()
     Dim naam As String
-    If ActiveSheet.Name = BL_ADM Then naam = Trim$(CStr(ActiveSheet.Range("G2").Value)) _
-        Else naam = Trim$(CStr(ThisWorkbook.Worksheets(BL_DASH).Range("G2").Value))
+    If ActiveSheet.Name = BL_ADM Then naam = Trim$(CStr(ActiveSheet.Range("F2").Value)) _
+        Else naam = Trim$(CStr(ThisWorkbook.Worksheets(BL_DASH).Range("F2").Value))
     If Len(naam) = 0 Or Not BladBestaatStil(naam) Then
         MsgBox "Kies eerst in cel G2 een tabblad.", vbExclamation
         Exit Sub
@@ -1295,20 +1295,26 @@ Public Sub TabbladkiezerPlaatsen(Optional ByVal blad As String = BL_DASH)
     Dim ws As Worksheet, b As Object, knop As String
     Set ws = ThisWorkbook.Worksheets(blad)
     knop = IIf(blad = BL_ADM, "btnAdmNaarTabblad", "btnNaarTabblad")
-    ws.Range("F2").Value = "Naar tabblad:"
-    ws.Range("F2").HorizontalAlignment = xlRight
-    ws.Range("G2").Interior.Color = RGB(255, 255, 204)
-    If ws.Columns("G").ColumnWidth < 30 Then ws.Columns("G").ColumnWidth = 30
+    ' smaller dashboard: label in E2, keuzelijst in F2, knop in G2 (eerder F2, G2 en H2)
+    On Error Resume Next
+    ws.Range("G2:H2").Validation.Delete
+    On Error GoTo 0
+    ws.Range("G2:H2").ClearContents
+    ws.Range("G2:H2").Interior.Pattern = xlNone
+    ws.Range("E2").Value = "Naar tabblad:"
+    ws.Range("E2").HorizontalAlignment = xlRight
+    ws.Range("F2").Interior.Color = RGB(255, 255, 204)
+    If ws.Columns("F").ColumnWidth < 30 Then ws.Columns("F").ColumnWidth = 30
     On Error Resume Next
     ws.Buttons(knop).Delete
     ws.Shapes("uitleg_" & knop).Delete
     On Error GoTo 0
     If ws.Rows(2).RowHeight < 22 Then ws.Rows(2).RowHeight = 22
-    Set b = ws.Buttons.Add(ws.Range("H2").Left + 22, ws.Range("H2").Top + 2, 90, 18)   ' ruimte voor het keuzepijltje van G2
+    Set b = ws.Buttons.Add(ws.Range("G2").Left + 20, ws.Range("G2").Top + 2, 110, 18)   ' ruimte voor het keuzepijltje van F2
     b.Name = knop
     b.Caption = "Ga naar tabblad"
     b.OnAction = "NaarTabblad"
-    If blad = BL_ADM Then KnopUitleg ws, knop, "Ga naar tabblad: opent het tabblad dat je in cel G2 hebt gekozen. Er wordt niets gewijzigd."
+    If blad = BL_ADM Then KnopUitleg ws, knop, "Ga naar tabblad: opent het tabblad dat je links ervan (cel F2) hebt gekozen. Er wordt niets gewijzigd."
     TabbladkiezerVullen
 End Sub
 
@@ -1345,12 +1351,12 @@ Private Sub TabbladkiezerVullen()
             Set wd = ThisWorkbook.Worksheets(CStr(blad))
             beveiligd = wd.ProtectContents
             If beveiligd Then wd.Unprotect WACHTWOORD
-            With wd.Range("G2").Validation
+            With wd.Range("F2").Validation
                 .Delete
                 .Add Type:=xlValidateList, AlertStyle:=xlValidAlertStop, Formula1:=lijst
             End With
             ' voorselectie: het eerste tabblad uit de lijst (Verzamellijst) als er nog niets (geldigs) staat
-            With wd.Range("G2")
+            With wd.Range("F2")
                 If Len(Trim$(CStr(.Value))) = 0 Or Not BladBestaatStil(CStr(.Value)) Then .Value = Split(lijst, ",")(0)
             End With
             If beveiligd Then BladBeveiligen wd

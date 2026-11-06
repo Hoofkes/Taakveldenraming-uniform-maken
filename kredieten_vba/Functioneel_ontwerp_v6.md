@@ -735,6 +735,12 @@ Deze drie onderdelen staan in de werkmap `KREDIETEN - NIEUW.xlsm` (gecontroleerd
 ### 14.11 Blad Meldingen uitgaven vervalt (versie 59)
 - Het blad "Meldingen uitgaven" wordt weggehaald (bij `DashboardNieuweIndeling` en bij de volgende import). Na Import werkelijke uitgaven toont het venster de belangrijkste meldingen (ALARM en niet toegestaan, maximaal 12). Blijvende fouten staan bij de controles op het dashboard (blok 5). In de kredietoverzichten blijft de kolom Melding leeg en verborgen.
 
+### 14.12 Opmaak dashboards (versie 60)
+- Alle koppen (blok 1 tot en met 5 op FinAdv, 1 tot en met 4 op Adm, en de invoerkaart) hebben dezelfde opmaak: donkerblauwe balk B-G, witte vette letters maat 12 (`KopOpmaak`, module 8); titel in B1 maat 16 (`TitelOpmaak`).
+- Lege rijen: tussen de blokken een smalle rij (8 punten), overige lege rijen verborgen.
+- Smaller: "Naar tabblad:" in E2, keuzelijst in F2, knop Ga naar tabblad in G2, logo eronder.
+- Dashboard Adm blok 1 heet **Kredieten controleren en raadplegen**: teller direct onder de kop, knoppen Volgend krediet controleren · Bestaand krediet aanpassen · Krediet raadplegen.
+
 ---
 
 ## 15. Modules en bestanden

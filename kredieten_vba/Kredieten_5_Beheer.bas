@@ -649,7 +649,9 @@ Public Sub DashboardNaarRol()
     ws.Rows((eerste - 4) & ":" & (KAART_KNOP + 1)).Hidden = Not kaart        ' invoerkaart: pas na Krediet invoeren/wijzigen
     ws.Rows(eerste + 3).Hidden = True                                         ' korte omschrijving blijft altijd verborgen
     ws.Rows(NM_KOP & ":" & (FA_KOP - 1)).Hidden = Not adv Or kaart           ' 3. Kredietoverzichten en 4. Uitvraag
-    ws.Rows(FA_KOP & ":" & (CB_KOP - 1)).Hidden = True                       ' oud blok financiele administratie (staat op Dashboard Adm)
+    ws.Rows(FA_KOP & ":" & (CB_KOP - 2)).Hidden = True                       ' oud blok financiele administratie (staat op Dashboard Adm)
+    ws.Rows((KR_KOP + 5) & ":" & (KR_KOP + 6)).Hidden = True                 ' lege rijen onder blok 2
+    ws.Rows((NM_KOP + 5) & ":" & (FA_KOP - 1)).Hidden = True                 ' lege rijen onder blok 4
     ws.Rows(CB_KOP & ":" & (CB_LAATSTE + 10)).Hidden = kaart                 ' 5. Controles
     For Each shp In ws.Shapes                                                 ' knoppen op verborgen rijen ook verbergen
         shp.Visible = Not ws.Rows(shp.TopLeftCell.Row).Hidden
@@ -751,9 +753,7 @@ Public Sub ControleblokPlaatsen()
     Dim ws As Worksheet, r As Long, k As Long, fc As Object, b As Object, deel As Variant, aantalAf As String
     Set ws = ThisWorkbook.Worksheets(BL_DASH)
     ws.Range("A" & CB_KOP & ":H" & (CB_LAATSTE + 40)).Clear
-    ws.Range("B" & CB_KOP).Value = "5. Controles"
-    ws.Range("B" & CB_KOP).Font.Bold = True
-    ws.Range("B" & CB_KOP).Font.Size = 12
+    KopOpmaak ws, CB_KOP, "5. Controles"
     ws.Range("B" & (CB_KOP + 1)).Value = "Controles laatst vernieuwd"
     ws.Range("C" & (CB_KOP + 1)).NumberFormat = "dd-mm-yyyy hh:mm"
     ws.Range("C" & (CB_KOP + 1)).HorizontalAlignment = xlLeft
@@ -1519,7 +1519,7 @@ Public Sub KnoppenUitlegPlaatsen()
                "wordt geblokkeerd zolang er regels op het blad 'Uitvraag' staan die nog niet zijn verwerkt."
     KnopUitleg ws, "btnControles", "Controles vernieuwen: rekent de controles in blok 5 opnieuw uit (en werkt de vrije kredietnummers bij). Per controle zie je het aantal en " & _
                "waar in de Verzamellijst het zit (rood = nakijken). Er wordt niets gewijzigd."
-    KnopUitleg ws, "btnNaarTabblad", "Ga naar tabblad: opent het tabblad dat je in cel G2 hebt gekozen. Er wordt niets gewijzigd."
+    KnopUitleg ws, "btnNaarTabblad", "Ga naar tabblad: opent het tabblad dat je links ervan (cel F2) hebt gekozen. Er wordt niets gewijzigd."
     KnopUitleg ws, "btnAfgekeurd", "Afgekeurd krediet herstellen (financieel adviseur): de financi" & ChrW(235) & "le administratie kan een krediet " & _
                "afkeuren. Met deze knop kies je zo'n krediet (bij meer dan een uit een lijst). Het komt op de " & _
                "invoerkaart en een melding toont wie het afkeurde en waarom. Pas het aan en klik op 'Ingevuld? " & _

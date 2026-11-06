@@ -1884,16 +1884,10 @@ Public Sub UitdraaiBlokPlaatsen()
     kopRij = Array(AB_KOP, KR_KOP, NM_KOP, NM_KOP + 3)
     koppen = Array("1. Applicatiebeheer", "2. Kredieten verwerken en raadplegen", "3. Kredietoverzichten", "4. Uitvraag en verwerking kadernota/begroting")
     For i = 0 To 3
-        ws.Range("B" & kopRij(i)).Value = koppen(i)
-        ws.Range("B" & kopRij(i)).Font.Bold = True
-        ws.Range("B" & kopRij(i)).Font.Size = 12
-        ws.Range("B" & kopRij(i)).Font.Color = RGB(31, 78, 121)
-        ws.Range("B" & kopRij(i) & ":F" & kopRij(i)).Borders(xlEdgeBottom).LineStyle = xlContinuous
-        ws.Rows(kopRij(i)).RowHeight = 22
+        KopOpmaak ws, CLng(kopRij(i)), CStr(koppen(i))
     Next i
-    ws.Range("B" & (AB_KOP + 4)).Value = "Alleen zichtbaar voor de applicatiebeheerder."
-    ws.Range("B" & (AB_KOP + 4)).Font.Italic = True
-    ws.Range("B" & (AB_KOP + 4)).Font.Color = RGB(128, 128, 128)
+    KopOpmaak ws, eerste - 3, "Invoerkaart kredieten"
+    TitelOpmaak ws
     On Error Resume Next
     For Each naam In Array("btnOverzichtRaad", "btnOverzichtNaam", "btnOverzichtJaarrekening", "btnAlleBudgethouders", "btnTijdschrijven", _
                            "btnUitvraag", "btnActualisatie", "btnJaarovergang", "btnUitgaven", "btnAfgekeurd", "btnHercontrole", _
@@ -1906,8 +1900,8 @@ Public Sub UitdraaiBlokPlaatsen()
     For Each r In Array(AB_KOP + 1, AB_KOP + 2, AB_KOP + 3, KR_KOP + 1, KR_KOP + 2, KR_KOP + 3, NM_KOP + 1, NM_KOP + 4)
         ws.Rows(CLng(r)).RowHeight = 26
     Next r
-    For Each r In Array(AB_KOP + 4, KR_KOP + 4, KR_KOP + 5, KR_KOP + 6, NM_KOP + 2)
-        ws.Rows(CLng(r)).RowHeight = 12
+    For Each r In Array(5, AB_KOP + 4, KR_KOP + 4, NM_KOP + 2, CB_KOP - 1)    ' smalle rij tussen de blokken
+        ws.Rows(CLng(r)).RowHeight = 8
     Next r
     ' (rij, kolom) per knop; kolom 0 = eerste knop van links
     namen = Array("btnGebruikerToevoegen", "btnTsVervangen", "btnTijdschrijven", "btnJaarovergang", "btnUitgaven", "btnExport", "btnGebruikersOverzicht", _

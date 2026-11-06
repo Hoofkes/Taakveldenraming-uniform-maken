@@ -250,9 +250,7 @@ Public Sub KredietnummersBlokPlaatsen()
     Set ws = ThisWorkbook.Worksheets(BL_ADM)
     ws.Unprotect WACHTWOORD
     ws.Range("A" & ADM_NR_KOP & ":H" & (ADM_NR_KOP + 22)).Clear
-    ws.Range("B" & ADM_NR_KOP).Value = "3. Eerstvolgende vrije kredietnummers"
-    ws.Range("B" & ADM_NR_KOP).Font.Bold = True
-    ws.Range("B" & ADM_NR_KOP).Font.Size = 12
+    KopOpmaak ws, ADM_NR_KOP, "3. Eerstvolgende vrije kredietnummers"
     ws.Range("B" & (ADM_NR_KOP + 1)).Value = "Wordt vanzelf bijgehouden; de invoerkaart vult dit nummer in na het kiezen van de balanscode. " & _
                                              "'Zelf invullen': de eerste keer zelf een nummer geven (kolom C of knop hiernaast)."
     ws.Range("B" & (ADM_NR_KOP + 1)).Font.Italic = True

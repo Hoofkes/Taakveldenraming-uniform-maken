@@ -21,7 +21,7 @@ Public Sub RaadplegenKnopPlaatsen(Optional ByVal blad As String = BL_DASH)
     On Error GoTo 0
     If ws.Rows(2).RowHeight < 22 Then ws.Rows(2).RowHeight = 22
     If blad = BL_ADM Then
-        Set b = ws.Buttons.Add(ws.Range("H2").Left + 122, ws.Range("H2").Top + 2, 150, 18)
+        Set b = ws.Buttons.Add(ws.Range("B" & (ADM_FA_KOP + 2)).Left + 440, ws.Range("B" & (ADM_FA_KOP + 2)).Top + 2, 210, 22)   ' blok 1
     Else
         Set b = ws.Buttons.Add(ws.Range("B1").Left, ws.Range("B" & (KR_KOP + 2)).Top + 2, 195, 22)   ' Dashboard FinAdv, blok 2
     End If
