@@ -717,7 +717,7 @@ Deze drie onderdelen staan in de werkmap `KREDIETEN - NIEUW.xlsm` (gecontroleerd
 | --- | --- | --- | --- |
 | 1. Applicatiebeheer | 6-10 | Gebruiker toevoegen · Gebruiker verwijderen · Applicatiebeheerder toevoegen · Applicatiebeheerder verwijderen / Tijdschrijver vervangen · Overzicht tijdschrijven · Jaarovergang uitvoeren / Import werkelijke uitgaven · Export naar financieel pakket | applicatiebeheerder |
 | 2. Kredieten verwerken en raadplegen | 11-17 | Krediet invoeren · Krediet wijzigen · Krediet verwijderen / Krediet raadplegen · Afgekeurd krediet herstellen · Aanbieden voor hercontrole / Budgethouder vervangen · Projectleider vervangen | financieel adviseur |
-| Invoerkaart | 18-48 | Ingevuld? Verwerken! · Scherm leegmaken | alleen na Krediet invoeren of Krediet wijzigen; gaat dicht na opslaan of verwijderen |
+| Invoerkaart | 18-48 | Ingevuld? Verwerken! · Scherm leegmaken · Terug naar het dashboard | alleen na Krediet invoeren of Krediet wijzigen; dan zijn blok 1-5 verborgen (alleen de kaart); gaat dicht na opslaan, verwijderen of Terug naar het dashboard |
 | 3. Kredietoverzichten | 49-50 | Kredietoverzicht naar rol · Kredietoverzicht raad · Kredietoverzicht bij jaarafsluiting · Overzichten alle budgethouders | financieel adviseur |
 | 4. Uitvraag en verwerking kadernota/begroting | 52-53 | 1. Uitvraag versturen · 2. Aanleveringen ophalen · 3. Aanleveringen verwerken | financieel adviseur |
 | (oud blok financiële administratie) | 59-62 | — | verborgen |

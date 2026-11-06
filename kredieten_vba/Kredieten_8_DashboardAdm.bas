@@ -252,6 +252,8 @@ End Function
 Public Sub KaartTonen(ByVal tonen As Boolean)
     ThisWorkbook.Names.Add Name:="Par_KaartOpen", RefersTo:="=" & IIf(tonen, "1", "0"), Visible:=False
     DashboardNaarRol
+    On Error Resume Next
+    If ActiveSheet.Name = BL_DASH Then Application.GoTo ActiveSheet.Range("A1"), True   ' bovenaan beginnen
 End Sub
 
 ' Knop Krediet invoeren: de invoerkaart komt tevoorschijn.
@@ -264,8 +266,17 @@ Public Sub KredietInvoeren()
     KaartTonen True
     Set wd = ThisWorkbook.Worksheets(BL_DASH)
     wd.Activate
-    Application.GoTo wd.Range("A" & (eerste - 3)), True
+    Application.GoTo wd.Range("A1"), True
     wd.Cells(eerste, 3).Select
+End Sub
+
+' Knop Terug naar het dashboard (onder de invoerkaart): kaart dicht, alle onderdelen weer zichtbaar.
+Public Sub KaartSluiten()
+    Dim wd As Worksheet
+    KaartTonen False
+    Set wd = ThisWorkbook.Worksheets(BL_DASH)
+    wd.Activate
+    Application.GoTo wd.Range("A1"), True
 End Sub
 
 ' Met de hand te starten (Alt+F8) als de nieuwe indeling na het openen niet vanzelf is gemaakt.

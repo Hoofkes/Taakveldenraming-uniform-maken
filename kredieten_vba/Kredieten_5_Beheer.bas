@@ -592,7 +592,7 @@ End Sub
 ' Applicatiebeheerder (kolom Beheer = ja in de rollentabel, eerste keer: Michiel; daarna via de knoppen): ziet alles.
 ' Draait bij openen (na het kiezen van de gebruiker), bij Wie werkt er en bij het opbouwen van het Dashboard.
 Public Sub DashboardNaarRol()
-    Dim ws As Worksheet, adv As Boolean, fa As Boolean, beheer As Boolean, shp As Object, beveiligd As Boolean
+    Dim ws As Worksheet, adv As Boolean, fa As Boolean, beheer As Boolean, shp As Object, beveiligd As Boolean, kaart As Boolean
     On Error Resume Next
     If Not BladBestaatStil(BL_DASH) Then Exit Sub
     Set ws = ThisWorkbook.Worksheets(BL_DASH)
@@ -609,12 +609,14 @@ Public Sub DashboardNaarRol()
     beheer = HeeftRecht("Beheer")
     beveiligd = ws.ProtectContents
     If beveiligd Then ws.Unprotect WACHTWOORD
-    ws.Rows(AB_KOP & ":" & (KR_KOP - 1)).Hidden = Not beheer                 ' 1. Applicatiebeheer
-    ws.Rows(KR_KOP & ":" & (eerste - 5)).Hidden = Not adv                    ' 2. Kredieten verwerken en raadplegen
-    ws.Rows((eerste - 4) & ":" & (KAART_KNOP + 1)).Hidden = Not (adv And KaartOpen())   ' invoerkaart: pas na Krediet invoeren/wijzigen
+    kaart = adv And KaartOpen()                                               ' invoerkaart open: alleen de kaart tonen
+    ws.Rows(AB_KOP & ":" & (KR_KOP - 1)).Hidden = Not beheer Or kaart        ' 1. Applicatiebeheer
+    ws.Rows(KR_KOP & ":" & (eerste - 5)).Hidden = Not adv Or kaart           ' 2. Kredieten verwerken en raadplegen
+    ws.Rows((eerste - 4) & ":" & (KAART_KNOP + 1)).Hidden = Not kaart        ' invoerkaart: pas na Krediet invoeren/wijzigen
     ws.Rows(eerste + 3).Hidden = True                                         ' korte omschrijving blijft altijd verborgen
-    ws.Rows(NM_KOP & ":" & (FA_KOP - 1)).Hidden = Not adv                    ' 3. Kredietoverzichten en 4. Uitvraag
+    ws.Rows(NM_KOP & ":" & (FA_KOP - 1)).Hidden = Not adv Or kaart           ' 3. Kredietoverzichten en 4. Uitvraag
     ws.Rows(FA_KOP & ":" & (CB_KOP - 1)).Hidden = True                       ' oud blok financiele administratie (staat op Dashboard Adm)
+    ws.Rows(CB_KOP & ":" & (CB_LAATSTE + 10)).Hidden = kaart                 ' 5. Controles
     For Each shp In ws.Shapes                                                 ' knoppen op verborgen rijen ook verbergen
         shp.Visible = Not ws.Rows(shp.TopLeftCell.Row).Hidden
     Next shp
@@ -1385,6 +1387,8 @@ Public Sub KnoppenUitlegPlaatsen()
     KnopUitleg ws, "btnKaartWissen", "Scherm leegmaken: maakt de hele invoerkaart leeg, ook de bijdragen van derden, en vergeet een " & _
                "krediet dat je had geladen. Er wordt niets opgeslagen en er verandert niets in de Verzamellijst. Er " & _
                "komt geen vraag vooraf."
+    KnopUitleg ws, "btnKaartSluiten", "Terug naar het dashboard: de invoerkaart gaat dicht en je ziet weer alle onderdelen. Wat op de kaart staat, " & _
+               "blijft bewaard tot je op Scherm leegmaken klikt of een ander krediet opent."
     KnopUitleg ws, "btnKaartOpenen", "Krediet invoeren: de invoerkaart komt tevoorschijn. Vul de velden in en klik onder de kaart op " & _
                "'Ingevuld? Verwerken!'. Na het opslaan gaat de kaart weer dicht. Krediet wijzigen opent de kaart ook."
     KnopUitleg ws, "btnGebruikerToevoegen", "Gebruiker toevoegen (alleen applicatiebeheerder): typ de voornaam, eventueel de Windows-naam, " & _
