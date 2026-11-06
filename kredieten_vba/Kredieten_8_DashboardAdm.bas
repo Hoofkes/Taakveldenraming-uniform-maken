@@ -1,7 +1,7 @@
 Attribute VB_Name = "Kredieten_8_DashboardAdm"
 Option Explicit
-Public Const KNOP_B As Long = 211               ' breedte van een knop op de dashboards (hele tekst past)
-Public Const KNOP_STAP As Long = 218            ' afstand tussen knoppen naast elkaar (3 knoppen passen in kolom B tot en met E)
+Public Const KNOP_B As Long = 240               ' breedte van een knop op de dashboards (hele tekst past, gewone lettergrootte)
+Public Const KNOP_STAP As Long = 248            ' afstand tussen knoppen naast elkaar (3 knoppen in kolom B tot en met F)
 Private Const BL_AFB As String = "Afbeeldingen"      ' onzichtbaar blad met het logo (zie AppLogoInlezen)
 
 ' Twee dashboards: 'Dashboard FinAdv' (financieel adviseurs: invoerkaart, blok 2 en controles) en 'Dashboard Adm'
@@ -188,7 +188,6 @@ Public Sub DashboardAdmOpbouwen()
     TabbladkiezerWeg wa
     RaadplegenKnopPlaatsen BL_ADM
     AppLogoPlaatsen wa, wa.Range("E1").Left + wa.Range("E1").Width, 44, 3, True   ' logo rechtsboven, binnen kolom E
-    KnoppenLettergrootte wa
     wa.Unprotect WACHTWOORD
     Set wa = ThisWorkbook.Worksheets(BL_ADM)
     wa.Unprotect WACHTWOORD
@@ -296,7 +295,7 @@ Public Sub KaartSluitenKnopPlaatsen()
     On Error GoTo 0
     verborgen = ws.Rows(KAART_KNOP).Hidden
     ws.Rows(KAART_KNOP).Hidden = False                       ' op een zichtbare rij plaatsen, anders komt de knop verkeerd
-    Set b = ws.Buttons.Add(ws.Range("B" & KAART_KNOP).Left + 430, ws.Range("B" & KAART_KNOP).Top + 8, 210, 22)
+    Set b = ws.Buttons.Add(ws.Range("B" & KAART_KNOP).Left + 430, ws.Range("B" & KAART_KNOP).Top + 8, 230, 22)
     b.Name = "btnKaartSluiten"
     b.Caption = "Terug naar het dashboard"
     b.OnAction = "KaartSluiten"
@@ -551,7 +550,5 @@ End Sub
 Public Sub KnoppenLettergrootte(ByVal ws As Worksheet)
     Dim b As Object
     On Error Resume Next
-    For Each b In ws.Buttons
-        If b.Caption <> "?" Then b.Font.Size = 9
-    Next b
+    ' niet meer gebruikt: de knoppen houden de gewone lettergrootte (maat 9 was te klein); ze zijn breder gemaakt
 End Sub
