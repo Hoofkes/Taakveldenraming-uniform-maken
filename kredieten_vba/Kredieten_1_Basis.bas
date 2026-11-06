@@ -23,8 +23,11 @@ Public Const ADM_OV_KOP As Long = 10        ' Dashboard Adm blok 2 Kredietoverzi
 Public Const ADM_NR_KOP As Long = 14        ' Dashboard Adm blok 3 Eerstvolgende vrije kredietnummers: kopregel (tabel tot en met rij 27)
 Public mFinAdm As Boolean                   ' overzicht gemaakt via Dashboard Adm: opslaan in de mappen FinAdm ...
 Public Const VL As String = "'Verzamellijst'!"
-Public Const eerste As Long = 10         ' eerste kaartrij op het Dashboard (rij 7 kopje, rij 8 leeg, rij 9 kopregel tabel)
-Public Const KAART_KNOP As Long = 35     ' rij onder de invoerkaart: Ingevuld? Verwerken! en Scherm leegmaken
+Public Const DASH_EXTRA As Long = 12      ' rijen boven de invoerkaart voor blok 1 en 2 (indeling november 2026)
+Public Const AB_KOP As Long = 6           ' Dashboard FinAdv blok 1 Applicatiebeheer: kopregel (knoppen 7-9)
+Public Const KR_KOP As Long = 11          ' Dashboard FinAdv blok 2 Kredieten verwerken en raadplegen: kopregel (knoppen 12-14)
+Public Const eerste As Long = 10 + DASH_EXTRA   ' eerste kaartrij (kaart: kopje eerste-3, kopregel tabel eerste-1)
+Public Const KAART_KNOP As Long = 35 + DASH_EXTRA     ' rij onder de invoerkaart: Ingevuld? Verwerken! en Scherm leegmaken
 Public cfMislukt As Boolean
 Public Const aantal As Long = 30
 Public Const BL_MELD As String = "Meldingen uitgaven"
@@ -42,16 +45,16 @@ Public Const BL_MUTREG As String = "Mutaties kadernota-begroting"   ' register v
 Public Const WACHTWOORD As String = "Best"      ' bladbeveiliging (zet ook een wachtwoord op het VBA-project)
 Public mStil As Boolean
 Public Const UITLEG_VERSIE As String = "49e"   ' hoger nummer = uitleg onder de vraagtekens wordt bij het openen opnieuw geplaatst
-Public Const CB_KOP As Long = 51            ' Dashboard blok 4 Controles: kopregel (onderaan)
-Public Const CB_EERSTE As Long = 54         ' eerste controleregel
-Public Const CB_LAATSTE As Long = 69        ' laatste controleregel (16 controles)
-Public Const NM_KOP As Long = 37            ' Dashboard blok 2 Financieel adviseur: kopregel; daaronder 2a (38-40), 2b (41-43), 2c (44-45)
-Public Const FA_KOP As Long = 47            ' Dashboard blok 3 Financiele administratie: kopregel (uitleg 48, knoppen 49)
+Public Const CB_KOP As Long = 51 + DASH_EXTRA            ' Dashboard blok 4 Controles: kopregel (onderaan)
+Public Const CB_EERSTE As Long = 54 + DASH_EXTRA         ' eerste controleregel
+Public Const CB_LAATSTE As Long = 69 + DASH_EXTRA        ' laatste controleregel (16 controles)
+Public Const NM_KOP As Long = 37 + DASH_EXTRA            ' Dashboard blok 2 Financieel adviseur: kopregel; daaronder 2a (38-40), 2b (41-43), 2c (44-45)
+Public Const FA_KOP As Long = 47 + DASH_EXTRA            ' Dashboard blok 3 Financiele administratie: kopregel (uitleg 48, knoppen 49)
 Public Const BL_WERK As String = "Werkregel controle"   ' verborgen: regel die de financiele administratie open heeft
 Public Const BL_KENG As String = "Kengetallen"
 Public Const GEEN_WIJZ As String = "geen wijziging"
 Public Const MAX_TOEL As Long = 1000        ' maximale lengte toelichting (past altijd in de kredietoverzichten)
-Public Const FA_LIJST As Long = 120         ' kopregel van de lijst te controleren / afgekeurd (regels eronder)
+Public Const FA_LIJST As Long = 120 + DASH_EXTRA         ' kopregel van de lijst te controleren / afgekeurd (regels eronder)
 Public mHerbeveiligingGepland As Boolean
 Public mActiefVoorMacro As Object        ' blad dat actief was toen de macro begon
 Public mBlijfOpDashboard As Boolean      ' na krediet toevoegen, wijzigen of verwijderen altijd terug naar het Dashboard
@@ -173,6 +176,8 @@ End Sub
 
 Public Sub Auto_Open()
     DashboardNaamZorgen                          ' oud blad Dashboard heet nu Dashboard FinAdv
+    DashboardRijenInvoegen                       ' indeling november 2026: blok 1 en 2 boven de invoerkaart
+    If Not ThisWorkbook.ReadOnly Then ThisWorkbook.Names.Add Name:="Par_KaartOpen", RefersTo:="=0", Visible:=False   ' kaart dicht bij openen
     KaartIndelingProject                         ' invoerkaart: project met deelkredieten boven de omschrijving
     VerzamellijstHernoemen
     ' beveiliging opnieuw aanzetten (macro's mogen schrijven, gebruikers niet) en oude overzichtbladen opruimen
@@ -1317,14 +1322,14 @@ Public Sub DashboardAanmaken()
 
     ' Blok 1: invoerkaart. Links de gewone velden (B = veld, C = invoer), rechts de budgetten met bijdragen
     ' (E = veld/bron, F = bedrag). Verplichte velden hebben een * en worden gecontroleerd bij 'Ingevuld? Verwerken!'.
-    ws.Range("B7").Value = "1. Invoerkaart kredieten"
-    ws.Range("B7").Font.Bold = True
-    ws.Range("B7").Font.Size = 12
+    ws.Range("B" & (eerste - 3)).Value = "Invoerkaart kredieten"
+    ws.Range("B" & (eerste - 3)).Font.Bold = True
+    ws.Range("B" & (eerste - 3)).Font.Size = 12
     ' rij 8 blijft leeg
-    ws.Range("B9").Value = "Veld (* = verplicht)"
-    ws.Range("C9").Value = "Invoer (geel = verplicht, lichtblauw = mag leeg)"
-    ws.Range("E9").Value = "Budgetten en bijdragen van derden"
-    ws.Range("F9").Value = "Bedrag"
+    ws.Range("B" & (eerste - 1)).Value = "Veld (* = verplicht)"
+    ws.Range("C" & (eerste - 1)).Value = "Invoer (geel = verplicht, lichtblauw = mag leeg)"
+    ws.Range("E" & (eerste - 1)).Value = "Budgetten en bijdragen van derden"
+    ws.Range("F" & (eerste - 1)).Value = "Bedrag"
     ws.Range("B9:C9,E9:F9").Font.Bold = True
     ws.Range("B9:C9,E9:F9").Borders(xlEdgeBottom).LineStyle = xlContinuous
 
@@ -1455,7 +1460,7 @@ Public Sub DashboardAanmaken()
     ws.Activate
     ActiveWindow.DisplayGridlines = False
     ActiveWindow.Zoom = 90
-    ws.Range("C9").Select
+    ws.Range("C" & (eerste - 1)).Select
     On Error Resume Next
     Application.Run "DashboardKnoppenPlaatsen"
     Application.Run "ControleBladAanmaken"
@@ -1831,9 +1836,11 @@ Public Sub KredietToevoegen()
             VolgendeDeelVoorbereiden grp
         Else
             KaartWissen
+            KaartTonen False
         End If
     Else
         KaartWissen
+        KaartTonen False
         MsgBox "Krediet toegevoegd op rij " & r & ", volgnummer " & volgnr & bijtxt & ".", vbInformation
     End If
     Exit Sub

@@ -71,13 +71,15 @@ Public Function DashboardIndelingKlopt() As Boolean
     Dim ws As Worksheet, s As Object
     On Error Resume Next
     Set ws = ThisWorkbook.Worksheets(BL_DASH)
-    If CStr(ws.Range("B" & (NM_KOP + 1)).Value) <> "2a. Kredietoverzichten" Then Exit Function
+    If CStr(ws.Range("B" & NM_KOP).Value) <> "3. Kredietoverzichten" Then Exit Function          ' indeling november 2026
+    If CStr(ws.Range("B" & AB_KOP).Value) <> "1. Applicatiebeheer" Then Exit Function
+    If ws.Shapes("btnKaartOpenen") Is Nothing Then Exit Function
     Set s = ws.Shapes("btnUvOphalen")
     If s Is Nothing Then Exit Function
     Set s = Nothing
     Set s = ws.Shapes("btnExport")                ' knoppen import en export op een eigen regel (2c een regel lager)
     If s Is Nothing Then Exit Function
-    If Not CStr(ws.Range("B" & (NM_KOP + 8)).Value) Like "2c.*" Then Exit Function
+    If Not CStr(ws.Range("B" & (NM_KOP + 3)).Value) Like "4.*" Then Exit Function
     If CStr(ws.Cells(CB_LAATSTE + 1, 2).Value) Like "Werkelijke uitgaven hoger*" Then Exit Function     ' oude extra controleregel opruimen
     If Not BladBestaatStil(BL_ADM) Then Exit Function                                                  ' tweede dashboard ontbreekt nog
     If CStr(ThisWorkbook.Worksheets(BL_ADM).Range("B" & ADM_OV_KOP).Value) <> "2. Kredietoverzichten" Then Exit Function

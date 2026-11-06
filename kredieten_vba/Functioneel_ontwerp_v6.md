@@ -712,6 +712,21 @@ Deze drie onderdelen staan in de werkmap `KREDIETEN - NIEUW.xlsm` (gecontroleerd
 ### 14.8 Opmaak nieuwe regels (versie 56)
 - Een nieuw krediet (en een bijdrageregel) krijgt in de Verzamellijst exact dezelfde opmaak als **voorbeeldregel 272** (uitlijning, lettertype, randen, notatie, rijhoogte): `RegelOpmaakAlsVoorbeeld` (module 9), aangeroepen in `KredietToevoegen`.
 
+### 14.9 Indeling Dashboard FinAdv (versie 57)
+| Blok | Rijen | Knoppen | Zichtbaar voor |
+| --- | --- | --- | --- |
+| 1. Applicatiebeheer | 6-10 | Gebruiker toevoegen · Gebruiker verwijderen · Applicatiebeheerder toevoegen · Applicatiebeheerder verwijderen / Tijdschrijver vervangen · Overzicht tijdschrijven · Jaarovergang uitvoeren / Import werkelijke uitgaven · Export naar financieel pakket | applicatiebeheerder |
+| 2. Kredieten verwerken en raadplegen | 11-17 | Krediet invoeren · Krediet wijzigen · Krediet verwijderen / Krediet raadplegen · Afgekeurd krediet herstellen · Aanbieden voor hercontrole / Budgethouder vervangen · Projectleider vervangen | financieel adviseur |
+| Invoerkaart | 18-48 | Ingevuld? Verwerken! · Scherm leegmaken | alleen na Krediet invoeren of Krediet wijzigen; gaat dicht na opslaan of verwijderen |
+| 3. Kredietoverzichten | 49-50 | Kredietoverzicht naar rol · Kredietoverzicht raad · Kredietoverzicht bij jaarafsluiting · Overzichten alle budgethouders | financieel adviseur |
+| 4. Uitvraag en verwerking kadernota/begroting | 52-53 | 1. Uitvraag versturen · 2. Aanleveringen ophalen · 3. Aanleveringen verwerken | financieel adviseur |
+| (oud blok financiële administratie) | 59-62 | — | verborgen |
+| 5. Controles | 63-83 | Controles vernieuwen | iedereen |
+
+- Eenmalig bij het openen: 12 rijen ingevoegd boven de invoerkaart (`DashboardRijenInvoegen`, module 8, constante `DASH_EXTRA`); alle rijconstanten (`eerste`, `KAART_KNOP`, `NM_KOP`, `FA_KOP`, `CB_KOP`, `CB_EERSTE`, `CB_LAATSTE`, `FA_LIJST`) zijn 12 hoger. Daarna plaatst `DashboardKnoppenPlaatsen` alle knoppen opnieuw (`UitdraaiBlokPlaatsen`, module 3).
+- Kaart open/dicht: verborgen naam `Par_KaartOpen`, `KaartTonen`, `KredietInvoeren` (module 8). Bij openen van de werkmap is de kaart dicht.
+- Gebruiker verwijderen en de nieuwe knop Gebruiker toevoegen (`GebruikerToevoegen`, module 5) zijn alleen voor de applicatiebeheerder.
+
 ---
 
 ## 15. Modules en bestanden

@@ -210,3 +210,60 @@ End Sub
 Public Function OverzichtMap(ByVal standaard As String, ByVal finAdm As String) As String
     OverzichtMap = MapStambestand(IIf(mFinAdm, finAdm, standaard))
 End Function
+
+' ======================================================================
+' Indeling Dashboard FinAdv (november 2026)
+' ======================================================================
+'   1. Applicatiebeheer (rij 6-10, alleen applicatiebeheerder)   2. Kredieten verwerken en raadplegen (rij 11-17)
+'   invoerkaart (rij 18-48, alleen zichtbaar na 'Krediet invoeren' of 'Krediet wijzigen')
+'   3. Kredietoverzichten   4. Uitvraag kadernota/begroting   5. Controles
+' Het oude Dashboard had de invoerkaart direct onder de kop (rij 7). Eenmalig worden boven de kaart 12 rijen
+' ingevoegd (hele rijen: formules, namen en opmaak gaan mee); daarna worden alle knoppen opnieuw geplaatst.
+Public Sub DashboardRijenInvoegen()
+    Dim wd As Worksheet
+    On Error GoTo Fout
+    If Not BladBestaatStil(BL_DASH) Then Exit Sub
+    Set wd = ThisWorkbook.Worksheets(BL_DASH)
+    If Not (CStr(wd.Range("B7").Value) Like "*Invoerkaart*") Then Exit Sub          ' al omgezet
+    WerkStart                                    ' beveiliging even uit, daarna vanzelf weer aan
+    wd.Unprotect WACHTWOORD
+    Application.EnableEvents = False
+    Do While wd.Shapes.Count > 0                 ' alle knoppen weg: ze worden op de nieuwe plek opnieuw gemaakt
+        wd.Shapes(1).Delete
+    Loop
+    wd.Rows("6:" & (5 + DASH_EXTRA)).Insert Shift:=xlDown
+    wd.Rows("6:" & (5 + DASH_EXTRA)).Hidden = False
+    wd.Range("B" & (eerste - 3)).Value = "Invoerkaart kredieten"
+    Application.EnableEvents = True
+    LogRegel "dashboard", , , "Indeling", "invoerkaart bovenaan", "applicatiebeheer, kredieten, overzichten, uitvraag, controles"
+    Exit Sub
+Fout:
+    Application.EnableEvents = True
+    MsgBox "De nieuwe indeling van Dashboard FinAdv kon niet worden gemaakt: " & Err.Description, vbExclamation, BL_DASH
+End Sub
+
+' Staat de invoerkaart open (na Krediet invoeren of Krediet wijzigen)?
+Public Function KaartOpen() As Boolean
+    On Error Resume Next
+    KaartOpen = (CStr(Evaluate(ThisWorkbook.Names("Par_KaartOpen").RefersTo)) = "1")
+End Function
+
+' Invoerkaart tonen of verbergen (de rijen gaan open of dicht via DashboardNaarRol).
+Public Sub KaartTonen(ByVal tonen As Boolean)
+    ThisWorkbook.Names.Add Name:="Par_KaartOpen", RefersTo:="=" & IIf(tonen, "1", "0"), Visible:=False
+    DashboardNaarRol
+End Sub
+
+' Knop Krediet invoeren: de invoerkaart komt tevoorschijn.
+Public Sub KredietInvoeren()
+    Dim wd As Worksheet
+    If Not HeeftRecht("Toevoegen") Then
+        MsgBox "Alleen financieel adviseurs voeren kredieten in.", vbExclamation
+        Exit Sub
+    End If
+    KaartTonen True
+    Set wd = ThisWorkbook.Worksheets(BL_DASH)
+    wd.Activate
+    Application.GoTo wd.Range("A" & (eerste - 3)), True
+    wd.Cells(eerste, 3).Select
+End Sub

@@ -344,6 +344,46 @@ Fout:
     MsgBox t & vbCrLf & "Fout " & Err.Number & ": " & Err.Description, vbExclamation, "Rechten"
 End Sub
 
+' Knop Gebruiker toevoegen (blok 1 Applicatiebeheer): een nieuwe medewerker in de rollentabel zetten.
+Public Sub GebruikerToevoegen()
+    WerkStart                                    ' beveiliging even uit, daarna vanzelf weer aan
+    Dim wp As Worksheet, lo As ListObject, lr As ListRow, r As ListRow, naam As String, windows As String, k As String, rol As String
+    On Error GoTo Fout
+    If Not HeeftRecht("Beheer") Then
+        MsgBox "Dit mag alleen een applicatiebeheerder.", vbExclamation
+        Exit Sub
+    End If
+    Set wp = ThisWorkbook.Worksheets("Parameters")
+    Set lo = wp.ListObjects("Tbl_Rollen")
+    naam = Trim$(InputBox("Voornaam van de nieuwe gebruiker (zoals collega's hem of haar kennen):", "Gebruiker toevoegen"))
+    If Len(naam) = 0 Then Exit Sub
+    For Each r In lo.ListRows
+        If StrComp(Trim$(CStr(r.Range.Cells(1, 1).Value)), naam, vbTextCompare) = 0 Then
+            MsgBox naam & " staat al in de rollentabel.", vbExclamation
+            Exit Sub
+        End If
+    Next r
+    windows = Trim$(InputBox("Windows-naam van " & naam & " (mag leeg blijven; wordt dan bij de eerste keer openen gevraagd):", "Gebruiker toevoegen"))
+    k = Trim$(InputBox("Rol van " & naam & ":" & vbCrLf & "1 = financieel adviseur" & vbCrLf & "2 = financi" & ChrW(235) & "le administratie", "Gebruiker toevoegen", "1"))
+    If k <> "1" And k <> "2" Then Exit Sub
+    rol = IIf(k = "1", "financieel adviseur", "financi" & ChrW(235) & "le administratie")
+    wp.Unprotect WACHTWOORD
+    Set lr = lo.ListRows.Add
+    lr.Range.Cells(1, lo.ListColumns("Naam").Index).Value = naam
+    lr.Range.Cells(1, lo.ListColumns("Windows-naam").Index).Value = windows
+    lr.Range.Cells(1, lo.ListColumns("Rol").Index).Value = rol
+    lr.Range.Cells(1, lo.ListColumns("Toevoegen").Index).Value = IIf(k = "1", "ja", "nee")
+    lr.Range.Cells(1, lo.ListColumns("Wijzigen").Index).Value = "ja"
+    lr.Range.Cells(1, lo.ListColumns("Bevestigen").Index).Value = IIf(k = "1", "nee", "ja")
+    lr.Range.Cells(1, lo.ListColumns("Beheer").Index).Value = "nee"
+    BladBeveiligen wp
+    LogRegel "gebruiker toegevoegd", , , "Rol", , rol, naam & " toegevoegd door de applicatiebeheerder"
+    MsgBox naam & " is toegevoegd als " & rol & ".", vbInformation
+    Exit Sub
+Fout:
+    MsgBox "Gebruiker toevoegen is niet gelukt: " & Err.Description, vbExclamation
+End Sub
+
 ' Eenmalig met de hand te starten (Alt+F8): zet de kolom Beheer in de rollentabel en maakt Michiel applicatiebeheerder
 ' als er nog geen applicatiebeheerder is. Meldt precies wat er gebeurt (ook een foutmelding).
 Public Sub ApplicatiebeheerInstellen()
@@ -418,14 +458,13 @@ Public Sub BeheerKnoppenPlaatsen()
                 ws.Shapes(CStr(naam)).Delete
             Next naam
             On Error GoTo 0
-            If ws.Rows(3).RowHeight < 22 Then ws.Rows(3).RowHeight = 22
-            Set b = ws.Buttons.Add(ws.Range("G3").Left + 2, ws.Range("G3").Top + 2, 190, 18)
+            Set b = ws.Buttons.Add(ws.Range("B1").Left + 410, ws.Range("B" & (AB_KOP + 1)).Top + 2, 195, 22)   ' blok 1 Applicatiebeheer
             b.Name = pre & "BeheerToevoegen"
             b.Caption = "Applicatiebeheerder toevoegen"
             b.OnAction = "BeheerderToevoegen"
             b.Placement = xlFreeFloating
             b.PrintObject = False
-            Set b = ws.Buttons.Add(ws.Range("G3").Left + 202, ws.Range("G3").Top + 2, 190, 18)
+            Set b = ws.Buttons.Add(ws.Range("B1").Left + 615, ws.Range("B" & (AB_KOP + 1)).Top + 2, 195, 22)
             b.Name = pre & "BeheerVerwijderen"
             b.Caption = "Applicatiebeheerder verwijderen"
             b.OnAction = "BeheerderVerwijderen"
@@ -553,50 +592,34 @@ End Sub
 ' Applicatiebeheerder (kolom Beheer = ja in de rollentabel, eerste keer: Michiel; daarna via de knoppen): ziet alles.
 ' Draait bij openen (na het kiezen van de gebruiker), bij Wie werkt er en bij het opbouwen van het Dashboard.
 Public Sub DashboardNaarRol()
-    Dim ws As Worksheet, adv As Boolean, fa As Boolean, shp As Object, beveiligd As Boolean
+    Dim ws As Worksheet, adv As Boolean, fa As Boolean, beheer As Boolean, shp As Object, beveiligd As Boolean
     On Error Resume Next
     If Not BladBestaatStil(BL_DASH) Then Exit Sub
     Set ws = ThisWorkbook.Worksheets(BL_DASH)
-    If CStr(ws.Range("B" & NM_KOP).Value) <> "2. Financieel adviseur" Then Exit Sub   ' oud Dashboard: eerst DashboardAanmaken
+    If CStr(ws.Range("B" & NM_KOP).Value) <> "3. Kredietoverzichten" Then Exit Sub   ' oude indeling: eerst DashboardKnoppenPlaatsen
     BeheerKolomZorgen                            ' kolom Beheer in de rollentabel (applicatiebeheerder)
     Set shp = Nothing
     Set shp = ws.Shapes("btnGebruikerVerwijderen")
-    If shp Is Nothing Then                                                    ' knop ontbreekt (nog): alsnog plaatsen
-        GebruikerKnopPlaatsen
-        KnoppenUitlegPlaatsen
-    End If
+    If shp Is Nothing Then GebruikerKnopPlaatsen: KnoppenUitlegPlaatsen       ' knop ontbreekt (nog): alsnog plaatsen
+    Set shp = Nothing
+    Set shp = ws.Shapes("btnBeheerToevoegen")
+    If shp Is Nothing Then BeheerKnoppenPlaatsen
     adv = HeeftRecht("Toevoegen")
     fa = HeeftRecht("Bevestigen")
-    If HeeftRecht("Beheer") Then adv = True: fa = True             ' applicatiebeheerder ziet alle blokken
+    beheer = HeeftRecht("Beheer")
     beveiligd = ws.ProtectContents
     If beveiligd Then ws.Unprotect WACHTWOORD
-    ws.Rows("7:" & (KAART_KNOP + 1)).Hidden = Not adv                       ' blok 1 invoerkaart en knoppen eronder
+    ws.Rows(AB_KOP & ":" & (KR_KOP - 1)).Hidden = Not beheer                 ' 1. Applicatiebeheer
+    ws.Rows(KR_KOP & ":" & (eerste - 5)).Hidden = Not adv                    ' 2. Kredieten verwerken en raadplegen
+    ws.Rows((eerste - 4) & ":" & (KAART_KNOP + 1)).Hidden = Not (adv And KaartOpen())   ' invoerkaart: pas na Krediet invoeren/wijzigen
     ws.Rows(eerste + 3).Hidden = True                                         ' korte omschrijving blijft altijd verborgen
-    ws.Rows(NM_KOP & ":" & (FA_KOP - 1)).Hidden = Not adv                    ' blok 2 financieel adviseur
-    ' blok 3 financiele administratie: staat nu op Dashboard Adm (de oude rijen hier blijven verborgen)
-    ws.Rows(FA_KOP & ":" & (CB_KOP - 1)).Hidden = (Not fa) Or BladBestaatStil(BL_ADM)
+    ws.Rows(NM_KOP & ":" & (FA_KOP - 1)).Hidden = Not adv                    ' 3. Kredietoverzichten en 4. Uitvraag
+    ws.Rows(FA_KOP & ":" & (CB_KOP - 1)).Hidden = True                       ' oud blok financiele administratie (staat op Dashboard Adm)
     For Each shp In ws.Shapes                                                 ' knoppen op verborgen rijen ook verbergen
         shp.Visible = Not ws.Rows(shp.TopLeftCell.Row).Hidden
     Next shp
-    ws.Shapes("btnGebruikerVerwijderen").Visible = adv                         ' alleen de financieel adviseur ziet deze knop
-    ws.Shapes("uitleg_btnGebruikerVerwijderen").Visible = adv
-    Set shp = Nothing
-    Set shp = ws.Shapes("btnBeheerToevoegen")
-    If shp Is Nothing Then
-        BeheerKnoppenPlaatsen                                                 ' knoppen ontbreken (nog): alsnog plaatsen
-    ElseIf shp.TopLeftCell.Row <> 3 Then
-        BeheerKnoppenPlaatsen                                                 ' oude plek (rij 4, door de controlestatus): verplaatsen
-    End If
-    BeheerKnoppenZichtbaar ws, "btn"                                         ' alleen de applicatiebeheerder
-    If BladBestaatStil(BL_ADM) Then
-        ThisWorkbook.Worksheets(BL_ADM).Unprotect WACHTWOORD
-        BeheerKnoppenZichtbaar ThisWorkbook.Worksheets(BL_ADM), "btnAdm"         ' oude knoppen daar (als ze er nog staan) verbergen
-        BladBeveiligen ThisWorkbook.Worksheets(BL_ADM)
-    End If
     If beveiligd Then BladBeveiligen ws
-    beveiligd = False
     DashboardsZichtbaar                                                       ' alleen het eigen dashboard tonen
-    If beveiligd Then BladBeveiligen ws
 End Sub
 
 ' Knop Naam vervangen (bovenaan het Dashboard): vervangt in een keer een budgetbeheerder, projectleider of
@@ -692,7 +715,7 @@ Public Sub ControleblokPlaatsen()
     Dim ws As Worksheet, r As Long, k As Long, fc As Object, b As Object, deel As Variant, aantalAf As String
     Set ws = ThisWorkbook.Worksheets(BL_DASH)
     ws.Range("A" & CB_KOP & ":H" & (CB_LAATSTE + 40)).Clear
-    ws.Range("B" & CB_KOP).Value = "4. Controles"
+    ws.Range("B" & CB_KOP).Value = "5. Controles"
     ws.Range("B" & CB_KOP).Font.Bold = True
     ws.Range("B" & CB_KOP).Font.Size = 12
     ws.Range("B" & (CB_KOP + 1)).Value = "Controles laatst vernieuwd"
@@ -860,7 +883,7 @@ Public Sub ControlesVernieuwen()
     Dim grp As Object, grpRij As Object, k As Variant, dubbel As Object, sleutel As String, cel As Range, eerste As String
     On Error GoTo Fout
     Set wd = ThisWorkbook.Worksheets(BL_DASH)
-    If CStr(wd.Cells(CB_KOP, 2).Value) <> "4. Controles" Then Exit Sub   ' blok 4 nog niet op deze plek (eerst DashboardAanmaken)
+    If CStr(wd.Cells(CB_KOP, 2).Value) <> "5. Controles" Then Exit Sub   ' blok 4 nog niet op deze plek (eerst DashboardAanmaken)
     Set wv = Vz()
     laatste = CLng(ThisWorkbook.Names("Par_LaatsteRij").RefersToRange.Value)
     maxRij = CLng(ThisWorkbook.Names("Par_MaxRij").RefersToRange.Value)
@@ -1362,6 +1385,10 @@ Public Sub KnoppenUitlegPlaatsen()
     KnopUitleg ws, "btnKaartWissen", "Scherm leegmaken: maakt de hele invoerkaart leeg, ook de bijdragen van derden, en vergeet een " & _
                "krediet dat je had geladen. Er wordt niets opgeslagen en er verandert niets in de Verzamellijst. Er " & _
                "komt geen vraag vooraf."
+    KnopUitleg ws, "btnKaartOpenen", "Krediet invoeren: de invoerkaart komt tevoorschijn. Vul de velden in en klik onder de kaart op " & _
+               "'Ingevuld? Verwerken!'. Na het opslaan gaat de kaart weer dicht. Krediet wijzigen opent de kaart ook."
+    KnopUitleg ws, "btnGebruikerToevoegen", "Gebruiker toevoegen (alleen applicatiebeheerder): typ de voornaam, eventueel de Windows-naam, " & _
+               "en kies de rol (financieel adviseur of financi" & ChrW(235) & "le administratie). De rechten horen bij de rol. Komt in het Logboek."
     KnopUitleg ws, "btnWijzigen", "Krediet wijzigen: je kiest eerst waarop je zoekt (1 = kredietnummer, 2 = omschrijving, 3 = " & _
                "activanummer, 4 = volgnummer) en typt dan wat je zoekt. Zijn er meer treffers, dan kies je er een " & _
                "uit de lijst. Het krediet komt op de invoerkaart. Er is dan nog niets gewijzigd: pas de velden aan " & _
@@ -1389,7 +1416,7 @@ Public Sub KnoppenUitlegPlaatsen()
                "Anders komen de bedragen in de Verzamellijst; wat opvalt komt als melding op het blad 'Meldingen " & _
                "uitgaven'. Ten slotte wordt het kredietoverzicht raad opnieuw gemaakt en bewaard in map 03. Daarna " & _
                "sta je op het blad 'Meldingen uitgaven'."
-    KnopUitleg ws, "btnOverzichtNaam", "Kredietoverzicht op naam: je kiest eerst 1 = budgetbeheerder, 2 = projectleider of 3 = tijdschrijver " & _
+    KnopUitleg ws, "btnOverzichtNaam", "Kredietoverzicht naar rol: je kiest eerst 1 = budgetbeheerder, 2 = projectleider of 3 = tijdschrijver " & _
                "en daarna de naam (typ een nummer of een deel van de naam). Het overzicht toont de lopende kredieten " & _
                "van die persoon, de kredieten die dit jaar zijn afgesloten en de kredieten die nog niet zijn gestart " & _
                "(in een eigen sectie). Het komt als blad 'Laatste overzicht op naam' (een vorig overzicht wordt " & _
@@ -1401,7 +1428,7 @@ Public Sub KnoppenUitlegPlaatsen()
                "bijdragen (negatief budget) en kredieten zonder budget en zonder uitgaven laat het weg; opbrengsten " & _
                "van activa blijven staan. Het komt als blad 'Laatste kredietoverzicht' (een vorig overzicht wordt " & _
                "vervangen) en wordt ook als los bestand met datum bewaard in map 03."
-    KnopUitleg ws, "btnOverzichtJaarrekening", "Kredietoverzicht jaarrekening: maakt het overzicht met de stand per 31 december, uit de back-up die " & _
+    KnopUitleg ws, "btnOverzichtJaarrekening", "Kredietoverzicht bij jaarafsluiting: maakt het overzicht met de stand per 31 december, uit de back-up die " & _
                "bij de jaarovergang is gemaakt (blad 'Verzamellijst 31-12-<jaar>', het nieuwste jaar). Het gebruikt " & _
                "dezelfde regels als het overzicht voor de raad. Het wordt als los bestand bewaard in map 03. Bestaat " & _
                "er nog geen back-up, dan vraagt de macro of je een proef wilt zien op basis van de huidige lijst. " & _
@@ -1433,7 +1460,7 @@ Public Sub KnoppenUitlegPlaatsen()
                "krijgt de regel het signaal 'aanlevering gewijzigd na beoordeling'. De statusregel van elke " & _
                "budgetbeheerder (rood = nog niet ingeleverd) wordt hierbij bijgewerkt. Er wordt niets in de " & _
                "Verzamellijst gewijzigd. Ophalen kan alleen in het jaar waarin de uitvraag is gemaakt."
-    KnopUitleg ws, "btnUvVerwerkAlle", "3. Uitvraag verwerken: verwerkt alle regels op het blad 'Uitvraag' (van alle budgetbeheerders) die " & _
+    KnopUitleg ws, "btnUvVerwerkAlle", "3. Aanleveringen verwerken: verwerkt alle regels op het blad 'Uitvraag' (van alle budgetbeheerders) die " & _
                "nog geen status hebben en waarbij het besluit goedkeuren of afwijzen is. De macro toont eerst de " & _
                "aantallen en vraagt om bevestiging. Bij goedkeuren gaan de budgetten per jaar, de omschrijving en de " & _
                "toelichting naar de Verzamellijst. Is er iets gewijzigd, dan krijgt dat krediet direct de status 'Te " & _
@@ -1477,7 +1504,7 @@ Public Sub KnoppenUitlegPlaatsen()
                "afgesloten kredieten (A). De macro toont in hoeveel cellen de naam voorkomt en vraagt om " & _
                "bevestiging. Na Ja wordt de naam vervangen in de kolom Tijdschrijvers van de Verzamellijst; andere " & _
                "tijdschrijvers in dezelfde cel blijven staan. Elke wijziging komt in het Logboek."
-    KnopUitleg ws, "btnGebruikerVerwijderen", "Gebruiker verwijderen (alleen financieel adviseur): toont een genummerde lijst met de gebruikers uit " & _
+    KnopUitleg ws, "btnGebruikerVerwijderen", "Gebruiker verwijderen (alleen applicatiebeheerder): toont een genummerde lijst met de gebruikers uit " & _
                "de rollentabel (blad Parameters) met hun functie. Je typt het nummer van de persoon die je wilt " & _
                "verwijderen. Jezelf verwijderen kan niet. Daarna vraagt de macro om bevestiging (standaard Nee). Na " & _
                "Ja verdwijnt die persoon uit de rollentabel. Wie niet in de tabel staat, kan zichzelf bij het openen " & _

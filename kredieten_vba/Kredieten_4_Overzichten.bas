@@ -1321,8 +1321,7 @@ Public Sub GebruikerKnopPlaatsen()
     ws.Shapes("uitleg_btnGebruikerVerwijderen").Delete
     ws.Shapes("btnGebruikerVerwijderen").Delete
     On Error GoTo 0
-    If ws.Rows(2).RowHeight < 22 Then ws.Rows(2).RowHeight = 22
-    Set b = ws.Buttons.Add(ws.Range("E2").Left + 2, ws.Range("E2").Top + 2, 170, 18)
+    Set b = ws.Buttons.Add(ws.Range("B1").Left + 205, ws.Range("B" & (AB_KOP + 1)).Top + 2, 195, 22)   ' blok 1 Applicatiebeheer
     b.Name = "btnGebruikerVerwijderen"
     b.Caption = "Gebruiker verwijderen"
     b.OnAction = "GebruikerVerwijderen"

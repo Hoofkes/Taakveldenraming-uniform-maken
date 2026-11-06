@@ -14,7 +14,7 @@ Public Sub DashboardKnoppenPlaatsen()
         ws.Shapes("uitleg_" & CStr(naam)).Delete
     Next naam
     On Error GoTo 0
-    ws.Rows(6).RowHeight = 6                          ' de knoppen staan onder de invoerkaart en in blok 2
+    ws.Rows(eerste - 4).RowHeight = 6                 ' smalle rij boven de invoerkaart
     ' knop naast het veld Tijdschrijvers
     Set b = ws.Buttons.Add(ws.Range("B" & KaartRij(14)).Left + ws.Range("B" & KaartRij(14)).Width - 112, ws.Range("B" & KaartRij(14)).Top + 1, 110, 16)
     b.Name = "btnTijdschrijvers"
@@ -30,14 +30,7 @@ Public Sub DashboardKnoppenPlaatsen()
     b.Name = "btnKaartWissen"
     b.Caption = "Scherm leegmaken"
     b.OnAction = "KaartWissen"
-    Set b = ws.Buttons.Add(ws.Range("B" & KAART_KNOP).Left + 430, ws.Range("B" & KAART_KNOP).Top + 8, 160, 22)
-    b.Name = "btnWijzigen"
-    b.Caption = "Krediet wijzigen"
-    b.OnAction = "KredietWijzigen"
-    Set b = ws.Buttons.Add(ws.Range("B" & KAART_KNOP).Left + 610, ws.Range("B" & KAART_KNOP).Top + 8, 160, 22)
-    b.Name = "btnVerwijderen"
-    b.Caption = "Krediet verwijderen"
-    b.OnAction = "KredietVerwijderen"
+    ' Krediet wijzigen en verwijderen staan nu in blok 2 (UitdraaiBlokPlaatsen)
     UitdraaiBlokPlaatsen
     ControleblokPlaatsen
     KoppenStartEindjaar
@@ -661,6 +654,7 @@ Public Sub ToonOpKaart(ByVal r As Long)
     Set wv = Vz()
     KaartWissen
     wd.Range("Kaart_Rijnummer").Value = r
+    If Not KaartOpen() Then KaartTonen True        ' invoerkaart tevoorschijn
     ZetKaartVolgnr wv.Cells(r, 1).Value
     ZetKaartVeld wd, 1, CodeNaarWeergave("Tbl_Programma", wv.Cells(r, 2).Value)
     ZetKaartVeld wd, 2, wv.Cells(r, 3).Value
@@ -927,6 +921,7 @@ Public Sub WijzigingOpslaan()
     klaar = True                                 ' de wijziging is gelukt; fouten hierna draaien die niet meer terug
     KeuzelijstenVerversen True
     KaartWissen
+    KaartTonen False
     BlijfOpDashboard
     Application.ScreenUpdating = True
     MsgBox "Opgeslagen (" & nw & " veld(en) gewijzigd" & IIf(nB > 0, ", " & nB & " bijdrage(n) toegevoegd", "") & ", rij " & r & ")." & waarsch, vbInformation
@@ -1934,6 +1929,7 @@ Public Sub KredietVerwijderen()
     weg = True                                   ' het krediet is weg; fouten hierna draaien dat niet terug
     KeuzelijstenVerversen True
     KaartWissen
+    KaartTonen False
     ControleLijstVernieuwen
     BlijfOpDashboard
     MsgBox "Krediet verwijderd (" & rijen.Count & " regel(s)). De gegevens staan in het Logboek.", vbInformation

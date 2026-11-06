@@ -1952,62 +1952,77 @@ Public Function BladBestaatStil(ByVal naam As String) As Boolean
     Next ws
 End Function
 
-' Blok 2 op het Dashboard (financieel adviseur) in drie subonderdelen met elk een eigen kopregel:
-' 2a Kredietoverzichten, 2b Omzetting en controle, 2c Uitvraag en verwerking kadernota/begroting (voorlopig de oude knoppen).
+' Knoppen op Dashboard FinAdv (indeling november 2026), elk blok met een eigen kopregel:
+'   1. Applicatiebeheer (alleen applicatiebeheerder): gebruikers, applicatiebeheerders, tijdschrijvers, jaarovergang,
+'      import werkelijke uitgaven en export naar het financieel pakket.
+'   2. Kredieten verwerken en raadplegen: invoeren, wijzigen, verwijderen, raadplegen, afgekeurd, hercontrole, namen vervangen.
+'   3. Kredietoverzichten   4. Uitvraag en verwerking kadernota/begroting
+' De knoppen Gebruiker verwijderen, Applicatiebeheerder toevoegen/verwijderen en Krediet raadplegen plaatsen hun eigen macro's.
 Public Sub UitdraaiBlokPlaatsen()
     WerkStart                                    ' beveiliging even uit, daarna vanzelf weer aan
-    Dim ws As Worksheet, b As Object, naam As Variant, i As Long, titels As Variant, acties As Variant, namen As Variant, rijOff As Variant, kolOff As Variant
-    Dim koppen As Variant, kopRij As Variant
+    Dim ws As Worksheet, b As Object, naam As Variant, i As Long, titels As Variant, acties As Variant, namen As Variant, rijen As Variant, kolOff As Variant
+    Dim koppen As Variant, kopRij As Variant, r As Variant
     Set ws = ThisWorkbook.Worksheets(BL_DASH)
     On Error Resume Next
     ws.Range("C" & (NM_KOP + 1) & ":C" & (FA_KOP - 1)).Validation.Delete       ' oude keuzecellen rol en naam
     On Error GoTo 0
+    ws.Range("A" & AB_KOP & ":H" & (eerste - 5)).Clear
     ws.Range("A" & NM_KOP & ":H" & (FA_KOP - 1)).Clear
-    ws.Range("B" & NM_KOP).Value = "2. Financieel adviseur"
-    ws.Range("B" & NM_KOP).Font.Bold = True
-    ws.Range("B" & NM_KOP).Font.Size = 12
-    kopRij = Array(NM_KOP + 1, NM_KOP + 4, NM_KOP + 8)
-    koppen = Array("2a. Kredietoverzichten", "2b. Omzetting en controle", "2c. Uitvraag en verwerking kadernota/begroting")
-    For i = 0 To 2
+    kopRij = Array(AB_KOP, KR_KOP, NM_KOP, NM_KOP + 3)
+    koppen = Array("1. Applicatiebeheer", "2. Kredieten verwerken en raadplegen", "3. Kredietoverzichten", "4. Uitvraag en verwerking kadernota/begroting")
+    For i = 0 To 3
         ws.Range("B" & kopRij(i)).Value = koppen(i)
         ws.Range("B" & kopRij(i)).Font.Bold = True
+        ws.Range("B" & kopRij(i)).Font.Size = 12
         ws.Range("B" & kopRij(i)).Font.Color = RGB(31, 78, 121)
         ws.Range("B" & kopRij(i) & ":F" & kopRij(i)).Borders(xlEdgeBottom).LineStyle = xlContinuous
-        ws.Rows(kopRij(i)).RowHeight = 20
+        ws.Rows(kopRij(i)).RowHeight = 22
     Next i
+    ws.Range("B" & (AB_KOP + 4)).Value = "Alleen zichtbaar voor de applicatiebeheerder."
+    ws.Range("B" & (AB_KOP + 4)).Font.Italic = True
+    ws.Range("B" & (AB_KOP + 4)).Font.Color = RGB(128, 128, 128)
     On Error Resume Next
     For Each naam In Array("btnOverzichtRaad", "btnOverzichtNaam", "btnOverzichtJaarrekening", "btnAlleBudgethouders", "btnTijdschrijven", _
                            "btnUitvraag", "btnActualisatie", "btnJaarovergang", "btnUitgaven", "btnAfgekeurd", "btnHercontrole", _
-                           "btnBhVervangen", "btnPlVervangen", "btnTsVervangen", "btnExport", "btnUvStand", "btnUvControle", "btnUvOphalen", "btnUvVerwerkAlle")
+                           "btnBhVervangen", "btnPlVervangen", "btnTsVervangen", "btnExport", "btnUvStand", "btnUvControle", "btnUvOphalen", "btnUvVerwerkAlle", _
+                           "btnGebruikerToevoegen", "btnKaartOpenen", "btnWijzigen", "btnVerwijderen")
         ws.Shapes(CStr(naam)).Delete
         ws.Shapes("uitleg_" & CStr(naam)).Delete
     Next naam
     On Error GoTo 0
-    For Each naam In Array(NM_KOP + 2, NM_KOP + 3, NM_KOP + 5, NM_KOP + 6, NM_KOP + 7, NM_KOP + 9)
-        ws.Rows(CLng(naam)).RowHeight = 26
-    Next naam
-    ' 2b: rij 1 jaarovergang en afgekeurd, rij 2 namen vervangen, rij 3 import en export naast elkaar
-    namen = Array("btnOverzichtNaam", "btnOverzichtRaad", "btnOverzichtJaarrekening", "btnAlleBudgethouders", "btnTijdschrijven", _
-                  "btnJaarovergang", "btnAfgekeurd", "btnHercontrole", _
-                  "btnBhVervangen", "btnPlVervangen", "btnTsVervangen", "btnUitgaven", "btnExport", _
+    For Each r In Array(AB_KOP + 1, AB_KOP + 2, AB_KOP + 3, KR_KOP + 1, KR_KOP + 2, KR_KOP + 3, NM_KOP + 1, NM_KOP + 4)
+        ws.Rows(CLng(r)).RowHeight = 26
+    Next r
+    For Each r In Array(AB_KOP + 4, KR_KOP + 4, KR_KOP + 5, KR_KOP + 6, NM_KOP + 2)
+        ws.Rows(CLng(r)).RowHeight = 12
+    Next r
+    ' (rij, kolom) per knop; kolom 0 = eerste knop van links
+    namen = Array("btnGebruikerToevoegen", "btnTsVervangen", "btnTijdschrijven", "btnJaarovergang", "btnUitgaven", "btnExport", _
+                  "btnKaartOpenen", "btnWijzigen", "btnVerwijderen", "btnAfgekeurd", "btnHercontrole", "btnBhVervangen", "btnPlVervangen", _
+                  "btnOverzichtNaam", "btnOverzichtRaad", "btnOverzichtJaarrekening", "btnAlleBudgethouders", _
                   "btnUitvraag", "btnUvOphalen", "btnUvVerwerkAlle")
-    titels = Array("Kredietoverzicht op naam", "Kredietoverzicht raad", "Kredietoverzicht jaarrekening", "Overzichten alle budgethouders", "Overzicht tijdschrijven", _
-                   "Jaarovergang uitvoeren", "Afgekeurd krediet herstellen", "Aanbieden voor hercontrole", _
-                   "Budgethouder vervangen", "Projectleider vervangen", "Tijdschrijver vervangen", "Import werkelijke uitgaven", "Export naar financieel pakket", _
-                   "1. Uitvraag versturen", "2. Aanleveringen ophalen", "3. Uitvraag verwerken")
-    acties = Array("KredietoverzichtOpNaam", "KredietoverzichtMaken", "KredietoverzichtJaarrekening", "KredietoverzichtAlleBudgethouders", "OverzichtTijdschrijven", _
-                   "JaarovergangUitvoeren", "AfgekeurdHerstellen", "HercontroleAanbieden", _
-                   "BudgethouderVervangen", "ProjectleiderVervangen", "TijdschrijverVervangen", "UitgavenBijwerken", "ExportNaarFinancieelPakket", _
+    titels = Array("Gebruiker toevoegen", "Tijdschrijver vervangen", "Overzicht tijdschrijven", "Jaarovergang uitvoeren", "Import werkelijke uitgaven", "Export naar financieel pakket", _
+                   "Krediet invoeren", "Krediet wijzigen", "Krediet verwijderen", "Afgekeurd krediet herstellen", "Aanbieden voor hercontrole", "Budgethouder vervangen", "Projectleider vervangen", _
+                   "Kredietoverzicht naar rol", "Kredietoverzicht raad", "Kredietoverzicht bij jaarafsluiting", "Overzichten alle budgethouders", _
+                   "1. Uitvraag versturen", "2. Aanleveringen ophalen", "3. Aanleveringen verwerken")
+    acties = Array("GebruikerToevoegen", "TijdschrijverVervangen", "OverzichtTijdschrijven", "JaarovergangUitvoeren", "UitgavenBijwerken", "ExportNaarFinancieelPakket", _
+                   "KredietInvoeren", "KredietWijzigen", "KredietVerwijderen", "AfgekeurdHerstellen", "HercontroleAanbieden", "BudgethouderVervangen", "ProjectleiderVervangen", _
+                   "KredietoverzichtOpNaam", "KredietoverzichtMaken", "KredietoverzichtJaarrekening", "KredietoverzichtAlleBudgethouders", _
                    "UitvraagBegroting", "UitvraagOphalen", "UitvraagVerwerken")
-    rijOff = Array(NM_KOP + 2, NM_KOP + 2, NM_KOP + 2, NM_KOP + 2, NM_KOP + 3, _
-                   NM_KOP + 5, NM_KOP + 5, NM_KOP + 5, _
-                   NM_KOP + 6, NM_KOP + 6, NM_KOP + 6, NM_KOP + 7, NM_KOP + 7, _
-                   NM_KOP + 9, NM_KOP + 9, NM_KOP + 9)
-    kolOff = Array(0, 1, 2, 3, 0, 0, 1, 2, 0, 1, 2, 0, 1, 0, 1, 2)
+    rijen = Array(AB_KOP + 1, AB_KOP + 2, AB_KOP + 2, AB_KOP + 2, AB_KOP + 3, AB_KOP + 3, _
+                  KR_KOP + 1, KR_KOP + 1, KR_KOP + 1, KR_KOP + 2, KR_KOP + 2, KR_KOP + 3, KR_KOP + 3, _
+                  NM_KOP + 1, NM_KOP + 1, NM_KOP + 1, NM_KOP + 1, _
+                  NM_KOP + 4, NM_KOP + 4, NM_KOP + 4)
+    kolOff = Array(0, 0, 1, 2, 0, 1, _
+                   0, 1, 2, 1, 2, 0, 1, _
+                   0, 1, 2, 3, _
+                   0, 1, 2)
     For i = 0 To UBound(namen)
-        Set b = ws.Buttons.Add(ws.Range("B1").Left + kolOff(i) * 205, ws.Range("B" & rijOff(i)).Top + 2, 195, 22)
+        Set b = ws.Buttons.Add(ws.Range("B1").Left + kolOff(i) * 205, ws.Range("B" & rijen(i)).Top + 2, 195, 22)
         b.Name = namen(i)
         b.Caption = titels(i)
         b.OnAction = acties(i)
+        b.Placement = xlFreeFloating
+        b.PrintObject = False
     Next i
 End Sub
