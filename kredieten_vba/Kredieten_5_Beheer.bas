@@ -199,6 +199,7 @@ Public Function BeheerKolomZorgen() As Boolean
     Set lc = lo.ListColumns("Beheer")
     On Error GoTo klaar
     If Not lc Is Nothing Then BeheerKolomZorgen = True: Exit Function
+    If CStr(lo.HeaderRowRange.Cells(1, 1).Value) Like "Kolom#*" Then Exit Function   ' tabel door elkaar: eerst RollentabelHerstellen
     wasBeveiligd = wp.ProtectContents
     wp.Unprotect WACHTWOORD
     Set lc = KolomBeheerToevoegen(lo)
@@ -212,7 +213,8 @@ Public Function BeheerKolomZorgen() As Boolean
     BeheerKolomZorgen = True
     Exit Function
 klaar:
-    MsgBox "De kolom Beheer kon niet aan de rollentabel worden toegevoegd: " & Err.Description, vbExclamation
+    MsgBox "De kolom Beheer kon niet aan de rollentabel worden toegevoegd: " & Err.Description & vbCrLf & vbCrLf & _
+           "Is de rollentabel door elkaar geraakt (koppen Kolom1, Kolom2 ...)? Start dan via Alt+F8 de macro RollentabelHerstellen.", vbExclamation
 End Function
 
 ' Voegt kolom Beheer rechts aan de rollentabel toe zonder cellen te verschuiven (ListColumns.Add schuift cellen,
