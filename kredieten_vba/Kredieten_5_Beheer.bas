@@ -604,6 +604,9 @@ Public Sub DashboardNaarRol()
     Set shp = Nothing
     Set shp = ws.Shapes("btnBeheerToevoegen")
     If shp Is Nothing Then BeheerKnoppenPlaatsen
+    Set shp = Nothing
+    Set shp = ws.Shapes("btnKaartSluiten")
+    If shp Is Nothing Then KaartSluitenKnopPlaatsen                           ' knop onder de invoerkaart ontbreekt: alsnog plaatsen
     adv = HeeftRecht("Toevoegen")
     fa = HeeftRecht("Bevestigen")
     beheer = HeeftRecht("Beheer")

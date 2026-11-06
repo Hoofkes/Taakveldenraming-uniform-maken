@@ -40,11 +40,7 @@ Public Sub DashboardKnoppenPlaatsen()
     b.Caption = "Scherm leegmaken"
     b.OnAction = "KaartWissen"
     b.Placement = xlMove
-    Set b = ws.Buttons.Add(ws.Range("B" & KAART_KNOP).Left + 430, ws.Range("B" & KAART_KNOP).Top + 8, 180, 22)
-    b.Name = "btnKaartSluiten"
-    b.Caption = "Terug naar het dashboard"
-    b.OnAction = "KaartSluiten"
-    b.Placement = xlMove
+    KaartSluitenKnopPlaatsen
     ' Krediet wijzigen en verwijderen staan nu in blok 2 (UitdraaiBlokPlaatsen)
     UitdraaiBlokPlaatsen
     ControleblokPlaatsen

@@ -270,6 +270,28 @@ Public Sub KredietInvoeren()
     wd.Cells(eerste, 3).Select
 End Sub
 
+' Knop Terug naar het dashboard onder de invoerkaart (naast Scherm leegmaken).
+Public Sub KaartSluitenKnopPlaatsen()
+    Dim ws As Worksheet, b As Object, verborgen As Boolean, beveiligd As Boolean
+    Set ws = ThisWorkbook.Worksheets(BL_DASH)
+    beveiligd = ws.ProtectContents
+    If beveiligd Then ws.Unprotect WACHTWOORD
+    On Error Resume Next
+    ws.Shapes("btnKaartSluiten").Delete
+    On Error GoTo 0
+    verborgen = ws.Rows(KAART_KNOP).Hidden
+    ws.Rows(KAART_KNOP).Hidden = False                       ' op een zichtbare rij plaatsen, anders komt de knop verkeerd
+    Set b = ws.Buttons.Add(ws.Range("B" & KAART_KNOP).Left + 430, ws.Range("B" & KAART_KNOP).Top + 8, 180, 22)
+    b.Name = "btnKaartSluiten"
+    b.Caption = "Terug naar het dashboard"
+    b.OnAction = "KaartSluiten"
+    b.Placement = xlMove
+    b.PrintObject = False
+    ws.Rows(KAART_KNOP).Hidden = verborgen
+    b.Visible = Not verborgen
+    If beveiligd Then BladBeveiligen ws
+End Sub
+
 ' Knop Terug naar het dashboard (onder de invoerkaart): kaart dicht, alle onderdelen weer zichtbaar.
 Public Sub KaartSluiten()
     Dim wd As Worksheet
