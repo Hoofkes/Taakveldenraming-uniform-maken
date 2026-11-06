@@ -251,8 +251,7 @@ Public Sub KredietnummersBlokPlaatsen()
     ws.Unprotect WACHTWOORD
     ws.Range("A" & ADM_NR_KOP & ":H" & (ADM_NR_KOP + 22)).Clear
     KopOpmaak ws, ADM_NR_KOP, "3. Eerstvolgende vrije kredietnummers"
-    ws.Range("B" & (ADM_NR_KOP + 1)).Value = "Wordt vanzelf bijgehouden; de invoerkaart vult dit nummer in na het kiezen van de balanscode. " & _
-                                             "'Zelf invullen': de eerste keer zelf een nummer geven (kolom C of knop hiernaast)."
+    ws.Range("B" & (ADM_NR_KOP + 1)).Value = "Wordt vanzelf bijgehouden. 'Invullen' = eerste nummer zelf geven (knop onder de tabel)."
     ws.Range("B" & (ADM_NR_KOP + 1)).Font.Italic = True
     ws.Range("B" & (ADM_NR_KOP + 1)).Font.Color = RGB(89, 89, 89)
     ws.Range("B" & (ADM_NR_KOP + 2) & ":E" & (ADM_NR_KOP + 2)).Value = Array("Balanscode", "Omschrijving", "Reeks", "Eerstvolgende vrije nummer")

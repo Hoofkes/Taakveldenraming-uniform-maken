@@ -139,7 +139,7 @@ Public Sub DashboardAdmOpbouwen()
     stap = "blok 2 Kredietoverzichten"
     ' 2. Kredietoverzichten
     KopOpmaak wa, ADM_OV_KOP, "2. Kredietoverzichten"
-    wa.Range("B" & (ADM_OV_KOP + 1)).Value = "Bestanden gaan naar de mappen 'FinAdm Kredietoverzicht op naam' en 'FinAdm Kredietoverzicht jaarrekening'."
+    wa.Range("B" & (ADM_OV_KOP + 1)).Value = "Bestanden komen in de eigen FinAdm-mappen."
     wa.Range("B" & (ADM_OV_KOP + 1)).Font.Italic = True
     wa.Range("B" & (ADM_OV_KOP + 1)).Font.Color = RGB(89, 89, 89)
     wa.Rows(ADM_OV_KOP + 2).RowHeight = 26
