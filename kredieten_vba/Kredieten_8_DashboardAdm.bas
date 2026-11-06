@@ -1,5 +1,6 @@
 Attribute VB_Name = "Kredieten_8_DashboardAdm"
 Option Explicit
+Private Const BL_AFB As String = "Afbeeldingen"      ' onzichtbaar blad met het logo (zie AppLogoInlezen)
 
 ' Twee dashboards: 'Dashboard FinAdv' (financieel adviseurs: invoerkaart, blok 2 en controles) en 'Dashboard Adm'
 ' (financiele administratie: controle van kredieten, kredietoverzichten en dezelfde controles).
@@ -324,7 +325,6 @@ End Sub
 ' Het logo staat eenmalig in de werkmap, op het onzichtbare blad 'Afbeeldingen' (vorm 'AppLogo'), zodat het geen
 ' bestand in een map nodig heeft. Inlezen: macro AppLogoInlezen (Alt+F8) en het bestand HoofDidThis_logo.png kiezen.
 ' Daarna komt het rechtsboven op Dashboard FinAdv, Dashboard Adm en het blad Krediet raadplegen.
-Private Const BL_AFB As String = "Afbeeldingen"
 
 Public Sub AppLogoInlezen()
     Dim f As Variant, wa As Worksheet, shp As Object
