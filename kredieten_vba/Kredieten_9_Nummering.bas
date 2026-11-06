@@ -16,6 +16,15 @@ Private Function Reeksen() As Variant
                     Array("7306", "A126MN", 7306003), Array("7307", "A129MN", 7307002))
 End Function
 
+' Naam van een balanscode die niet in de balanscodetabel (Parameters) staat.
+Private Function VasteNaam(ByVal bc As String) As String
+    Select Case bc
+        Case "A125MN": VasteNaam = "Vervoermiddelen (maatschappelijk nut)"
+        Case "A126MN": VasteNaam = "Machines, apparaten en installaties (maatschappelijk nut)"
+        Case "A129MN": VasteNaam = "Overige materi" & ChrW(235) & "le vaste activa (maatschappelijk nut)"
+    End Select
+End Function
+
 ' Reeks bij een balanscode, bijvoorbeeld A121EN -> 7201, A124ENH -> 7204, A124MN1 -> 7304. Leeg als er geen reeks is.
 Public Function NummerReeks(ByVal balanscode As String) As String
     Dim bc As String, cijfer As String
@@ -160,7 +169,7 @@ Public Sub KredietnummersBlokPlaatsen()
         On Error Resume Next
         oms = CStr(CodeNaarWeergave("Tbl_Balanscode", Split(CStr(x(1)), " / ")(0)))
         On Error GoTo 0
-        If InStr(oms, " - ") > 0 Then oms = Mid$(oms, InStr(oms, " - ") + 3) Else oms = ""
+        If InStr(oms, " - ") > 0 Then oms = Mid$(oms, InStr(oms, " - ") + 3) Else oms = VasteNaam(CStr(x(1)))
         ws.Cells(r, 2).Value = x(1)
         ws.Cells(r, 3).Value = oms
         ws.Cells(r, 4).NumberFormat = "@"
