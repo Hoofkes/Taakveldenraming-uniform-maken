@@ -176,7 +176,7 @@ Public Sub DashboardAdmOpbouwen()
     ' knoppen bovenaan: tabbladkiezer en krediet raadplegen
     TabbladkiezerPlaatsen BL_ADM
     RaadplegenKnopPlaatsen BL_ADM
-    AppLogoPlaatsen wa, RechtsVanKop(wa), 60          ' logo rechtsboven
+    LogoOnderGaNaar wa, "btnAdmNaarTabblad"        ' logo onder Ga naar tabblad
     wa.Unprotect WACHTWOORD
     Set wa = ThisWorkbook.Worksheets(BL_ADM)
     wa.Unprotect WACHTWOORD
@@ -369,8 +369,21 @@ Public Sub AppLogoOveral()
         End If
     Next w
     On Error GoTo 0
-    If BladBestaatStil(BL_DASH) Then AppLogoPlaatsen ThisWorkbook.Worksheets(BL_DASH), RechtsVanKop(ThisWorkbook.Worksheets(BL_DASH)), 60
-    If BladBestaatStil(BL_ADM) Then AppLogoPlaatsen ThisWorkbook.Worksheets(BL_ADM), RechtsVanKop(ThisWorkbook.Worksheets(BL_ADM)), 60
+    If BladBestaatStil(BL_DASH) Then LogoOnderGaNaar ThisWorkbook.Worksheets(BL_DASH), "btnNaarTabblad"
+    If BladBestaatStil(BL_ADM) Then LogoOnderGaNaar ThisWorkbook.Worksheets(BL_ADM), "btnAdmNaarTabblad"
+End Sub
+
+' Logo direct onder de knop Ga naar tabblad (zelfde linkerkant). Geen knop: rechts van de kop.
+Public Sub LogoOnderGaNaar(ByVal ws As Worksheet, ByVal knop As String)
+    Dim b As Object
+    On Error Resume Next
+    Set b = ws.Shapes(knop)
+    On Error GoTo 0
+    If b Is Nothing Then
+        AppLogoPlaatsen ws, RechtsVanKop(ws), 60
+    Else
+        AppLogoPlaatsen ws, b.Left, 60, b.Top + b.Height + 4
+    End If
 End Sub
 
 ' Plek voor het logo: rechts van alles wat in rij 1 tot en met 4 staat (knoppen en tekst), met wat ruimte ertussen.
@@ -390,7 +403,7 @@ Public Function RechtsVanKop(ByVal ws As Worksheet) As Double
 End Function
 
 ' Zet een kopie van het logo op een blad (links = positie in punten, hoogte in punten). Geen logo ingelezen: niets.
-Public Sub AppLogoPlaatsen(ByVal ws As Worksheet, ByVal links As Double, ByVal hoogte As Double)
+Public Sub AppLogoPlaatsen(ByVal ws As Worksheet, ByVal links As Double, ByVal hoogte As Double, Optional ByVal boven As Double = 3)
     Dim src As Object, shp As Object, actief As Object, scherm As Boolean, beveiligd As Boolean, zicht As Long
     On Error GoTo klaar
     If Not BladBestaatStil(BL_AFB) Then Exit Sub
@@ -416,9 +429,9 @@ Public Sub AppLogoPlaatsen(ByVal ws As Worksheet, ByVal links As Double, ByVal h
     shp.ScaleWidth 1, msoTrue
     shp.LockAspectRatio = msoTrue
     shp.Height = hoogte
-    shp.Top = 3
+    shp.Top = boven
     shp.Left = links
-    shp.Placement = xlFreeFloating               ' blijft bovenaan staan (rij 1 tot en met 4 gaan nooit dicht)
+    shp.Placement = xlFreeFloating               ' blijft bovenaan staan (rij 1 tot en met 5 gaan nooit dicht)
     shp.OnAction = ""
     Application.CutCopyMode = False
     If Not actief Is Nothing Then actief.Activate
