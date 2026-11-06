@@ -36,7 +36,7 @@ Public Sub RaadplegenKnopPlaatsen(Optional ByVal blad As String = BL_DASH)
                "0 = overal zoeken (alle kolommen). Een deel van de tekst is genoeg, behalve bij het volgnummer. " & _
                "Zijn er meer treffers, dan kies je er een uit de lijst. Bij meer dan " & MAX_KEUZE & " treffers komen ze " & _
                "allemaal op het blad 'Krediet raadplegen'; zoek dan opnieuw op volgnummer. Je ziet alle gegevens van " & _
-               "het krediet, de andere delen als het een samengesteld krediet is, en de wijzigingen uit het Logboek."
+               "het krediet, de andere delen als het een project met deelkredieten is, en de wijzigingen uit het Logboek."
 End Sub
 
 Public Sub KredietRaadplegen()
@@ -294,7 +294,7 @@ Private Sub KredietTonen(ByVal wv As Worksheet, ByRef v As Variant, ByVal r As L
     ' 2. Samengesteld krediet: alle delen met hetzelfde getal in kolom J
     If IsGetal(v(r, 10)) Then
         rij = rij + 1
-        RpSectie ws, rij, "Samengesteld krediet: alle delen (zelfde nummer in kolom J: " & v(r, 10) & ")"
+        RpSectie ws, rij, "Project met deelkredieten: alle delen (zelfde nummer in kolom J: " & v(r, 10) & ")"
         rij = rij + 1
         RpKop ws, rij, Array("Volgnr", "Omschrijving", "Kredietnummer", "Status", "Budget t/m lopend jaar", "Werkelijke uitgaven", "Restantkrediet", "Toelichting")
         rij = rij + 1

@@ -141,16 +141,16 @@ Public Sub DashboardAdmOpbouwen()
     wa.Rows(ADM_OV_KOP + 2).RowHeight = 26
     Set b = wa.Buttons.Add(wa.Range("B" & (ADM_OV_KOP + 2)).Left, wa.Range("B" & (ADM_OV_KOP + 2)).Top + 2, 210, 22)
     b.Name = "btnAdmOverzichtNaam"
-    b.Caption = "Kredietoverzicht op naam"
+    b.Caption = "Kredietoverzicht naar rol"
     b.OnAction = "AdmKredietoverzichtOpNaam"
     Set b = wa.Buttons.Add(wa.Range("B" & (ADM_OV_KOP + 2)).Left + 220, wa.Range("B" & (ADM_OV_KOP + 2)).Top + 2, 210, 22)
     b.Name = "btnAdmJaarrekening"
-    b.Caption = "Kredietoverzicht jaarrekening"
+    b.Caption = "Kredietoverzicht bij jaarafsluiting"
     b.OnAction = "AdmKredietoverzichtJaarrekening"
-    KnopUitleg wa, "btnAdmOverzichtNaam", "Kredietoverzicht op naam: je kiest eerst 1 = budgetbeheerder, 2 = projectleider of 3 = tijdschrijver " & _
+    KnopUitleg wa, "btnAdmOverzichtNaam", "Kredietoverzicht naar rol: je kiest eerst 1 = budgetbeheerder, 2 = projectleider of 3 = tijdschrijver " & _
                "en daarna de naam. Het overzicht komt als blad 'Laatste overzicht op naam' en wordt ook als los bestand met " & _
                "datum bewaard in de map 'FinAdm Kredietoverzicht op naam', in de submap van die persoon."
-    KnopUitleg wa, "btnAdmJaarrekening", "Kredietoverzicht jaarrekening: maakt het overzicht met de stand per 31 december, uit de back-up die " & _
+    KnopUitleg wa, "btnAdmJaarrekening", "Kredietoverzicht bij jaarafsluiting: maakt het overzicht met de stand per 31 december, uit de back-up die " & _
                "bij de jaarovergang is gemaakt. Het wordt als los bestand bewaard in de map 'FinAdm Kredietoverzicht jaarrekening'. " & _
                "Bestaat er nog geen back-up, dan kun je een proef zien op basis van de huidige lijst (wordt niet bewaard)."
 

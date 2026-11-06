@@ -1416,8 +1416,9 @@ Public Sub KnoppenUitlegPlaatsen()
                "administratie'. Heb je eerst een krediet geladen met 'Krediet wijzigen', dan worden alleen de velden " & _
                "opgeslagen die je hebt aangepast; ook dat krediet moet daarna opnieuw gecontroleerd worden. Eerst " & _
                "controleert de macro of alle verplichte (gele) velden zijn ingevuld. Zo niet, dan krijg je een lijst " & _
-               "met wat ontbreekt en wordt er niets opgeslagen. Alles komt in het Logboek. Gaat er tijdens het " & _
-               "opslaan iets mis, dan wordt alles teruggezet."
+               "met wat ontbreekt en wordt er niets opgeslagen. Is het kredietnummer leeg, dan krijgt een nieuw krediet " & _
+               "het eerstvolgende vrije nummer van de balanscode. Alles komt in het Logboek. Gaat er tijdens het " & _
+               "opslaan iets mis, dan wordt alles teruggezet. Na het opslaan gaat de kaart dicht en sta je weer op het dashboard."
     KnopUitleg ws, "btnKaartWissen", "Scherm leegmaken: maakt de hele invoerkaart leeg, ook de bijdragen van derden, en vergeet een " & _
                "krediet dat je had geladen. Er wordt niets opgeslagen en er verandert niets in de Verzamellijst. Er " & _
                "komt geen vraag vooraf."
@@ -1431,7 +1432,7 @@ Public Sub KnoppenUitlegPlaatsen()
                "en kies de rol (financieel adviseur of financi" & ChrW(235) & "le administratie). De rechten horen bij de rol. Komt in het Logboek."
     KnopUitleg ws, "btnWijzigen", "Krediet wijzigen: je kiest eerst waarop je zoekt (1 = kredietnummer, 2 = omschrijving, 3 = " & _
                "activanummer, 4 = volgnummer) en typt dan wat je zoekt. Zijn er meer treffers, dan kies je er een " & _
-               "uit de lijst. Het krediet komt op de invoerkaart. Er is dan nog niets gewijzigd: pas de velden aan " & _
+               "uit de lijst. De invoerkaart gaat open met het krediet erop. Er is dan nog niets gewijzigd: pas de velden aan " & _
                "en klik op 'Ingevuld? Verwerken!' om op te slaan. Staat er al een krediet op de kaart, dan vraagt de " & _
                "macro eerst of je dat wilt vervangen."
     KnopUitleg ws, "btnVerwijderen", "Krediet verwijderen (alleen financieel adviseur): staat er een krediet op de invoerkaart, dan wordt " & _
@@ -1447,9 +1448,9 @@ Public Sub KnoppenUitlegPlaatsen()
                "die niet in de lijst staan blijven behouden. Daarna kun je nog een naam typen die niet in de lijst " & _
                "staat. Het resultaat komt in het veld Tijdschrijvers op de invoerkaart. Er wordt pas iets opgeslagen " & _
                "als je op 'Ingevuld? Verwerken!' klikt."
-    KnopUitleg ws, "btnExport", "Export naar financieel pakket: maakt een bestand waarmee de kredieten en budgetten in het " & _
+    KnopUitleg ws, "btnExport", "Export naar financieel pakket (alleen applicatiebeheerder): maakt een bestand waarmee de kredieten en budgetten in het " & _
                "boekhoudpakket (Coda, later Centric) worden geladen. Wordt nog gebouwd (stap 10)."
-    KnopUitleg ws, "btnUitgaven", "Import werkelijke uitgaven: werkt de werkelijke uitgaven en inkomsten van het lopende jaar bij (tot en met " & _
+    KnopUitleg ws, "btnUitgaven", "Import werkelijke uitgaven (alleen applicatiebeheerder): werkt de werkelijke uitgaven en inkomsten van het lopende jaar bij (tot en met " & _
                "31 maart ook die van het vorige jaar). De macro zoekt in de map 'export coda' het nieuwste " & _
                "Excelbestand en vraagt of je dat wilt uploaden (Ja of Nee). Daarna worden de bedragen per " & _
                "kredietnummer opgeteld en gecontroleerd. Sluit een jaar niet aan, dan wordt er niets bijgewerkt. " & _
@@ -1474,14 +1475,14 @@ Public Sub KnoppenUitlegPlaatsen()
                "er nog geen back-up, dan vraagt de macro of je een proef wilt zien op basis van de huidige lijst. " & _
                "Die proef wordt niet bewaard."
     KnopUitleg ws, "btnAlleBudgethouders", "Overzichten alle budgethouders: maakt voor elke budgetbeheerder die in de Verzamellijst staat een " & _
-               "kredietoverzicht op naam (zelfde inhoud als bij 'Kredietoverzicht op naam') en bewaart elk overzicht " & _
+               "kredietoverzicht naar rol (zelfde inhoud als bij 'Kredietoverzicht naar rol') en bewaart elk overzicht " & _
                "als los bestand met datum in map 02, in de submap van die persoon. Eerst vraagt de macro of het mag, " & _
                "met het aantal budgetbeheerders. Er worden geen e-mails verstuurd. Staat een bestand open of is een " & _
                "map niet bereikbaar, dan meldt de macro aan het eind welke niet zijn gelukt."
-    KnopUitleg ws, "btnTijdschrijven", "Overzicht tijdschrijven: voor de beheerder tijdschrijven. Het toont alleen de kredieten waar iets " & _
+    KnopUitleg ws, "btnTijdschrijven", "Overzicht tijdschrijven (alleen applicatiebeheerder): voor de beheerder tijdschrijven. Het toont alleen de kredieten waar iets " & _
                "mee moet gebeuren: nieuwe, gewijzigde en afgesloten kredieten, met de kolommen Kredietnummer, " & _
                "Omschrijving, Status, Tijdschrijvers, Actie en Toegevoegd op. Het vergelijkt met de stand van de " & _
-               "vorige keer; de eerste keer is alles nieuw. Bij een samengesteld krediet staat alleen het hoofddeel " & _
+               "vorige keer; de eerste keer is alles nieuw. Bij een project met deelkredieten staat alleen het hoofddeel " & _
                "in de lijst. Het komt als blad 'Laatste overzicht tijdschrijven' (vervangt het vorige) en als los " & _
                "bestand in map 01. De nieuwe stand wordt onthouden voor de volgende keer."
     KnopUitleg ws, "btnUitvraag", "1. Uitvraag versturen: eerst kies je voor wie: 0 = alle budgetbeheerders, of het nummer van een " & _
@@ -1508,7 +1509,7 @@ Public Sub KnoppenUitlegPlaatsen()
                "kredieten'; die voer je zelf in via de invoerkaart. Alles komt in het register 'Mutaties " & _
                "kadernota-begroting' en het Logboek. Klopt de nameting niet of gaat er iets mis, dan wordt alles " & _
                "teruggezet. Regels met 'nog niet' blijven open."
-    KnopUitleg ws, "btnJaarovergang", "Jaarovergang (alleen financieel adviseur): pas uitvoeren vanaf 1 januari en test het eerst op een " & _
+    KnopUitleg ws, "btnJaarovergang", "Jaarovergang (alleen applicatiebeheerder, met wachtwoord): pas uitvoeren vanaf 1 januari en test het eerst op een " & _
                "kopie. De macro vraagt eerst om bevestiging. Dan: 1) er komt een back-up als blad 'Verzamellijst " & _
                "31-12-<jaar>' met de stand per 31 december; 2) alle bedragen schuiven een jaar op; 3) lopende " & _
                "kredieten van het oude jaar krijgen status L met het nieuwe jaar; startjaar en eindjaar met het oude " & _
@@ -1516,7 +1517,7 @@ Public Sub KnoppenUitlegPlaatsen()
                "met 1 omhoog; 5) de totalen worden gecontroleerd. Klopt iets niet, dan wordt alles teruggezet. De " & _
                "bladen 'Laatste ...' met overzichten worden weggehaald; maak ze daarna opnieuw. De jaarovergang " & _
                "wordt geblokkeerd zolang er regels op het blad 'Uitvraag' staan die nog niet zijn verwerkt."
-    KnopUitleg ws, "btnControles", "Controles vernieuwen: rekent de controles in blok 4 opnieuw uit. Per controle zie je het aantal en " & _
+    KnopUitleg ws, "btnControles", "Controles vernieuwen: rekent de controles in blok 5 opnieuw uit (en werkt de vrije kredietnummers bij). Per controle zie je het aantal en " & _
                "waar in de Verzamellijst het zit (rood = nakijken). Er wordt niets gewijzigd."
     KnopUitleg ws, "btnNaarTabblad", "Ga naar tabblad: opent het tabblad dat je in cel G2 hebt gekozen. Er wordt niets gewijzigd."
     KnopUitleg ws, "btnAfgekeurd", "Afgekeurd krediet herstellen (financieel adviseur): de financi" & ChrW(235) & "le administratie kan een krediet " & _
@@ -1539,7 +1540,7 @@ Public Sub KnoppenUitlegPlaatsen()
                "afgesloten kredieten (A). De macro toont in hoeveel cellen de naam voorkomt en vraagt om " & _
                "bevestiging. Na Ja wordt de naam in de kolom Projectleider van de Verzamellijst vervangen. Elke " & _
                "wijziging komt in het Logboek."
-    KnopUitleg ws, "btnTsVervangen", "Tijdschrijver vervangen: je typt de naam die vervangen moet worden (precies zoals in de lijst) en de " & _
+    KnopUitleg ws, "btnTsVervangen", "Tijdschrijver vervangen (alleen applicatiebeheerder): je typt de naam die vervangen moet worden (precies zoals in de lijst) en de " & _
                "naam van de opvolger. Daarna kies je of het alleen voor lopende kredieten (L) geldt, of ook voor " & _
                "afgesloten kredieten (A). De macro toont in hoeveel cellen de naam voorkomt en vraagt om " & _
                "bevestiging. Na Ja wordt de naam vervangen in de kolom Tijdschrijvers van de Verzamellijst; andere " & _
@@ -1547,7 +1548,8 @@ Public Sub KnoppenUitlegPlaatsen()
     KnopUitleg ws, "btnGebruikerVerwijderen", "Gebruiker verwijderen (alleen applicatiebeheerder): toont een genummerde lijst met de gebruikers uit " & _
                "de rollentabel (blad Parameters) met hun functie. Je typt het nummer van de persoon die je wilt " & _
                "verwijderen. Jezelf verwijderen kan niet. Daarna vraagt de macro om bevestiging (standaard Nee). Na " & _
-               "Ja verdwijnt die persoon uit de rollentabel. Wie niet in de tabel staat, kan zichzelf bij het openen " & _
+               "Ja verdwijnt die persoon uit de rollentabel. Er blijft altijd minstens " & ChrW(233) & ChrW(233) & "n applicatiebeheerder over. " & _
+               "Wie niet in de tabel staat, kan zichzelf bij het openen " & _
                "van het bestand weer toevoegen. Het wordt vastgelegd in het Logboek."
     ThisWorkbook.Names.Add Name:="Uitleg_Versie", RefersTo:="=""" & UITLEG_VERSIE & """", Visible:=False
 End Sub

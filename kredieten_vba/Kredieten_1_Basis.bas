@@ -44,7 +44,7 @@ Public Const OPBRENGST As String = "Opbrengst activa"   ' bron/toelichting voor 
 Public Const BL_MUTREG As String = "Mutaties kadernota-begroting"   ' register voor de lastenberekening
 Public Const WACHTWOORD As String = "Best"      ' bladbeveiliging (zet ook een wachtwoord op het VBA-project)
 Public mStil As Boolean
-Public Const UITLEG_VERSIE As String = "49e"   ' hoger nummer = uitleg onder de vraagtekens wordt bij het openen opnieuw geplaatst
+Public Const UITLEG_VERSIE As String = "57"   ' hoger nummer = uitleg onder de vraagtekens wordt bij het openen opnieuw geplaatst
 Public Const CB_KOP As Long = 51 + DASH_EXTRA            ' Dashboard blok 4 Controles: kopregel (onderaan)
 Public Const CB_EERSTE As Long = 54 + DASH_EXTRA         ' eerste controleregel
 Public Const CB_LAATSTE As Long = 69 + DASH_EXTRA        ' laatste controleregel (16 controles)
