@@ -17,6 +17,10 @@ Public Sub DashboardKnoppenPlaatsen()
     ' eerst alle rijen tonen, zodat elke knop op de juiste rij komt; DashboardNaarRol verbergt daarna wat dicht moet
     ws.Unprotect WACHTWOORD
     ws.Rows.Hidden = False
+    ' alle knoppen weg (ook oude of dubbele met dezelfde naam); hieronder worden ze allemaal opnieuw gemaakt
+    Do While ws.Shapes.Count > 0
+        ws.Shapes(1).Delete
+    Loop
     ws.Rows(eerste - 4).RowHeight = 6                 ' smalle rij boven de invoerkaart
     ' knop naast het veld Tijdschrijvers
     Set b = ws.Buttons.Add(ws.Range("B" & KaartRij(14)).Left + ws.Range("B" & KaartRij(14)).Width - 112, ws.Range("B" & KaartRij(14)).Top + 1, 110, 16)
