@@ -1,5 +1,7 @@
 Attribute VB_Name = "Kredieten_8_DashboardAdm"
 Option Explicit
+Public Const KNOP_B As Long = 158               ' breedte van een knop op de dashboards
+Public Const KNOP_STAP As Long = 165            ' afstand tussen knoppen naast elkaar (4 knoppen passen in kolom B tot en met E)
 Private Const BL_AFB As String = "Afbeeldingen"      ' onzichtbaar blad met het logo (zie AppLogoInlezen)
 
 ' Twee dashboards: 'Dashboard FinAdv' (financieel adviseurs: invoerkaart, blok 2 en controles) en 'Dashboard Adm'
@@ -141,11 +143,11 @@ Public Sub DashboardAdmOpbouwen()
     wa.Range("B" & (ADM_OV_KOP + 1)).Font.Italic = True
     wa.Range("B" & (ADM_OV_KOP + 1)).Font.Color = RGB(89, 89, 89)
     wa.Rows(ADM_OV_KOP + 2).RowHeight = 26
-    Set b = wa.Buttons.Add(wa.Range("B" & (ADM_OV_KOP + 2)).Left, wa.Range("B" & (ADM_OV_KOP + 2)).Top + 2, 210, 22)
+    Set b = wa.Buttons.Add(wa.Range("B" & (ADM_OV_KOP + 2)).Left, wa.Range("B" & (ADM_OV_KOP + 2)).Top + 2, KNOP_B, 22)
     b.Name = "btnAdmOverzichtNaam"
     b.Caption = "Kredietoverzicht naar rol"
     b.OnAction = "AdmKredietoverzichtOpNaam"
-    Set b = wa.Buttons.Add(wa.Range("B" & (ADM_OV_KOP + 2)).Left + 220, wa.Range("B" & (ADM_OV_KOP + 2)).Top + 2, 210, 22)
+    Set b = wa.Buttons.Add(wa.Range("B" & (ADM_OV_KOP + 2)).Left + KNOP_STAP, wa.Range("B" & (ADM_OV_KOP + 2)).Top + 2, KNOP_B, 22)
     b.Name = "btnAdmJaarrekening"
     b.Caption = "Kredietoverzicht bij jaarafsluiting"
     b.OnAction = "AdmKredietoverzichtJaarrekening"
@@ -163,7 +165,7 @@ Public Sub DashboardAdmOpbouwen()
 
     stap = "knop Controles vernieuwen"
     ' knop Controles vernieuwen bij blok 3
-    Set b = wa.Buttons.Add(wa.Range("E" & (CB_KOP + 1)).Left + 2, wa.Range("E" & (CB_KOP + 1)).Top + 3, 170, 18)
+    Set b = wa.Buttons.Add(wa.Range("E" & (CB_KOP + 1)).Left + 2, wa.Range("E" & (CB_KOP + 1)).Top + 3, KNOP_B, 18)
     b.Name = "btnAdmControles"
     b.Caption = "Controles vernieuwen"
     b.OnAction = "ControlesVernieuwen"
@@ -180,12 +182,12 @@ Public Sub DashboardAdmOpbouwen()
     Do While Len(CStr(wa.Cells(r, 4).Value)) > 0
         r = r + 1
     Loop
-    wa.Rows(r & ":" & (CB_KOP - 2)).Hidden = True
+    wa.Rows((r + 1) & ":" & (CB_KOP - 2)).Hidden = True        ' rij r: knop Kredietnummer aanpassen
     stap = "tabbladkiezer en Krediet raadplegen"
     ' knoppen bovenaan: tabbladkiezer en krediet raadplegen
-    TabbladkiezerPlaatsen BL_ADM
+    TabbladkiezerWeg wa
     RaadplegenKnopPlaatsen BL_ADM
-    LogoOnderGaNaar wa, "btnAdmNaarTabblad"        ' logo onder Ga naar tabblad
+    AppLogoPlaatsen wa, wa.Range("E1").Left + wa.Range("E1").Width, 44, 3, True   ' logo rechtsboven, binnen kolom E
     wa.Unprotect WACHTWOORD
     Set wa = ThisWorkbook.Worksheets(BL_ADM)
     wa.Unprotect WACHTWOORD
@@ -384,8 +386,14 @@ Public Sub AppLogoOveral()
         End If
     Next w
     On Error GoTo 0
-    If BladBestaatStil(BL_DASH) Then LogoOnderGaNaar ThisWorkbook.Worksheets(BL_DASH), "btnNaarTabblad"
-    If BladBestaatStil(BL_ADM) Then LogoOnderGaNaar ThisWorkbook.Worksheets(BL_ADM), "btnAdmNaarTabblad"
+    Dim blad As Variant
+    For Each blad In Array(BL_DASH, BL_ADM)                 ' rechtsboven, rechts uitgelijnd op kolom E, klein (44 punten)
+        If BladBestaatStil(CStr(blad)) Then
+            With ThisWorkbook.Worksheets(CStr(blad))
+                AppLogoPlaatsen ThisWorkbook.Worksheets(CStr(blad)), .Range("E1").Left + .Range("E1").Width, 44, 3, True
+            End With
+        End If
+    Next blad
 End Sub
 
 ' Logo direct onder de knop Ga naar tabblad (zelfde linkerkant). Geen knop: rechts van de kop.
@@ -418,7 +426,8 @@ Public Function RechtsVanKop(ByVal ws As Worksheet) As Double
 End Function
 
 ' Zet een kopie van het logo op een blad (links = positie in punten, hoogte in punten). Geen logo ingelezen: niets.
-Public Sub AppLogoPlaatsen(ByVal ws As Worksheet, ByVal links As Double, ByVal hoogte As Double, Optional ByVal boven As Double = 3)
+Public Sub AppLogoPlaatsen(ByVal ws As Worksheet, ByVal links As Double, ByVal hoogte As Double, Optional ByVal boven As Double = 3, _
+                           Optional ByVal rechtsUitlijnen As Boolean = False)
     Dim src As Object, shp As Object, actief As Object, scherm As Boolean, beveiligd As Boolean, zicht As Long
     On Error GoTo klaar
     If Not BladBestaatStil(BL_AFB) Then Exit Sub
@@ -445,7 +454,7 @@ Public Sub AppLogoPlaatsen(ByVal ws As Worksheet, ByVal links As Double, ByVal h
     shp.LockAspectRatio = msoTrue
     shp.Height = hoogte
     shp.Top = boven
-    shp.Left = links
+    shp.Left = IIf(rechtsUitlijnen, links - shp.Width, links)   ' rechts uitlijnen: links = rechterkant
     shp.Placement = xlFreeFloating               ' blijft bovenaan staan (rij 1 tot en met 5 gaan nooit dicht)
     shp.OnAction = ""
     Application.CutCopyMode = False
@@ -481,4 +490,24 @@ Public Sub TitelOpmaak(ws As Worksheet)
         .Color = RGB(0, 73, 118)
     End With
     ws.Rows(1).RowHeight = 28
+End Sub
+
+' Smaller dashboard (afspraak november 2026): geen tabbladkiezer meer bovenaan (Naar tabblad, keuzelijst en knop),
+' kolom F weer smal en kolom G als smalle rand. Alles past dan binnen kolom A tot en met F.
+Public Sub TabbladkiezerWeg(ByVal ws As Worksheet)
+    Dim naam As Variant, beveiligd As Boolean
+    beveiligd = ws.ProtectContents
+    If beveiligd Then ws.Unprotect WACHTWOORD
+    On Error Resume Next
+    For Each naam In Array("btnNaarTabblad", "btnAdmNaarTabblad")
+        ws.Shapes(CStr(naam)).Delete
+        ws.Shapes("uitleg_" & CStr(naam)).Delete
+    Next naam
+    ws.Range("E2:H2").Validation.Delete
+    On Error GoTo 0
+    ws.Range("E2:H2").ClearContents
+    ws.Range("E2:H2").Interior.Pattern = xlNone
+    ws.Columns("F").ColumnWidth = 16
+    ws.Columns("G").ColumnWidth = 3
+    If beveiligd Then BladBeveiligen ws
 End Sub

@@ -45,7 +45,7 @@ Public Sub DashboardKnoppenPlaatsen()
     UitdraaiBlokPlaatsen
     ControleblokPlaatsen
     KoppenStartEindjaar
-    TabbladkiezerPlaatsen
+    TabbladkiezerWeg ws                          ' geen tabbladkiezer meer: smaller dashboard
     RaadplegenKnopPlaatsen
     BeheerKnoppenPlaatsen
     GebruikerKnopPlaatsen
@@ -1017,11 +1017,11 @@ Public Sub FinAdmBlokPlaatsen()
     Next naam
     On Error GoTo 0
     ws.Rows(kop + 2).RowHeight = 26
-    Set b = ws.Buttons.Add(ws.Range("B" & (kop + 2)).Left, ws.Range("B" & (kop + 2)).Top + 2, 210, 22)
+    Set b = ws.Buttons.Add(ws.Range("B" & (kop + 2)).Left, ws.Range("B" & (kop + 2)).Top + 2, KNOP_B, 22)
     b.Name = "btnFaVolgende"
     b.Caption = "Volgend krediet controleren"
     b.OnAction = "FaVolgende"
-    Set b = ws.Buttons.Add(ws.Range("B" & (kop + 2)).Left + 220, ws.Range("B" & (kop + 2)).Top + 2, 210, 22)
+    Set b = ws.Buttons.Add(ws.Range("B" & (kop + 2)).Left + KNOP_STAP, ws.Range("B" & (kop + 2)).Top + 2, KNOP_B, 22)
     b.Name = "btnFaAanpassen"
     b.Caption = "Bestaand krediet aanpassen"
     b.OnAction = "GoedgekeurdKredietAanpassen"

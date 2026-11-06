@@ -1925,7 +1925,7 @@ Public Sub UitdraaiBlokPlaatsen()
                    0, 1, 2, 3, _
                    0, 1, 2)
     For i = 0 To UBound(namen)
-        Set b = ws.Buttons.Add(ws.Range("B1").Left + kolOff(i) * 205, ws.Range("B" & rijen(i)).Top + 2, 195, 22)
+        Set b = ws.Buttons.Add(ws.Range("B1").Left + kolOff(i) * KNOP_STAP, ws.Range("B" & rijen(i)).Top + 2, KNOP_B, 22)
         b.Name = namen(i)
         b.Caption = titels(i)
         b.OnAction = acties(i)

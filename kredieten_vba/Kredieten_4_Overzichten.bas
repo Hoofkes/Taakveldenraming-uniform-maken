@@ -1327,7 +1327,7 @@ Public Sub GebruikerKnopPlaatsen()
     ws.Shapes("uitleg_btnGebruikerVerwijderen").Delete
     ws.Shapes("btnGebruikerVerwijderen").Delete
     On Error GoTo 0
-    Set b = ws.Buttons.Add(ws.Range("B1").Left + 205, ws.Range("B" & (AB_KOP + 1)).Top + 2, 195, 22)   ' blok 1 Applicatiebeheer
+    Set b = ws.Buttons.Add(ws.Range("B1").Left + KNOP_STAP, ws.Range("B" & (AB_KOP + 1)).Top + 2, KNOP_B, 22)   ' blok 1 Applicatiebeheer
     b.Name = "btnGebruikerVerwijderen"
     b.Caption = "Gebruiker verwijderen"
     b.OnAction = "GebruikerVerwijderen"
@@ -1338,6 +1338,7 @@ End Sub
 ' Keuzelijst in G2 met alle zichtbare tabbladen behalve het Dashboard.
 Private Sub TabbladkiezerVullen()
     Dim ws As Worksheet, lijst As String, wd As Worksheet, beveiligd As Boolean, blad As Variant
+    Exit Sub                                     ' tabbladkiezer is weg (smaller dashboard, november 2026)
     On Error Resume Next
     For Each ws In ThisWorkbook.Worksheets
         If ws.Visible = xlSheetVisible And ws.Name <> BL_DASH And ws.Name <> BL_ADM And InStr(ws.Name, ",") = 0 Then

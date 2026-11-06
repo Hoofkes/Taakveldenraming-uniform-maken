@@ -285,11 +285,12 @@ Public Sub KredietnummersBlokPlaatsen()
     ws.Shapes("uitleg_btnAdmNummerAanpassen").Delete
     ws.Shapes("btnAdmNummerAanpassen").Delete
     On Error GoTo 0
-    Set b = ws.Buttons.Add(ws.Range("G" & (ADM_NR_KOP + 2)).Left + 2, ws.Range("G" & (ADM_NR_KOP + 2)).Top, 190, 18)
+    ws.Rows(r).RowHeight = 26                                              ' direct onder de tabel, links uitgelijnd zoals de andere knoppen
+    Set b = ws.Buttons.Add(ws.Range("B" & r).Left, ws.Range("B" & r).Top + 2, KNOP_B, 22)
     b.Name = "btnAdmNummerAanpassen"
     b.Caption = "Kredietnummer aanpassen"
     b.OnAction = "KredietnummerAanpassen"
-    b.Placement = xlFreeFloating
+    b.Placement = xlMove
     b.PrintObject = False
     KnopUitleg ws, "btnAdmNummerAanpassen", "Kredietnummer aanpassen (financi" & ChrW(235) & "le administratie): kies de reeks en typ het " & _
                "eerstvolgende vrije nummer, bijvoorbeeld als in Coda al een nummer is gebruikt dat niet in de Verzamellijst staat. " & _

@@ -489,13 +489,13 @@ Public Sub BeheerKnoppenPlaatsen()
                 ws.Shapes(CStr(naam)).Delete
             Next naam
             On Error GoTo 0
-            Set b = ws.Buttons.Add(ws.Range("B1").Left + 410, ws.Range("B" & (AB_KOP + 1)).Top + 2, 195, 22)   ' blok 1 Applicatiebeheer
+            Set b = ws.Buttons.Add(ws.Range("B1").Left + 2 * KNOP_STAP, ws.Range("B" & (AB_KOP + 1)).Top + 2, KNOP_B, 22)   ' blok 1 Applicatiebeheer
             b.Name = pre & "BeheerToevoegen"
             b.Caption = "Applicatiebeheerder toevoegen"
             b.OnAction = "BeheerderToevoegen"
             b.Placement = xlMove
             b.PrintObject = False
-            Set b = ws.Buttons.Add(ws.Range("B1").Left + 615, ws.Range("B" & (AB_KOP + 1)).Top + 2, 195, 22)
+            Set b = ws.Buttons.Add(ws.Range("B1").Left + 3 * KNOP_STAP, ws.Range("B" & (AB_KOP + 1)).Top + 2, KNOP_B, 22)
             b.Name = pre & "BeheerVerwijderen"
             b.Caption = "Applicatiebeheerder verwijderen"
             b.OnAction = "BeheerderVerwijderen"
@@ -762,7 +762,7 @@ Public Sub ControleblokPlaatsen()
     ws.Shapes("uitleg_btnControles").Delete
     On Error GoTo 0
     ws.Rows(CB_KOP + 1).RowHeight = 24               ' knop past binnen de rij en loopt niet door de kopregel eronder
-    Set b = ws.Buttons.Add(ws.Range("E" & (CB_KOP + 1)).Left + 2, ws.Range("E" & (CB_KOP + 1)).Top + 3, 170, 18)
+    Set b = ws.Buttons.Add(ws.Range("E" & (CB_KOP + 1)).Left + 2, ws.Range("E" & (CB_KOP + 1)).Top + 3, KNOP_B, 18)
     b.Name = "btnControles"
     b.Caption = "Controles vernieuwen"
     b.OnAction = "ControlesVernieuwen"
