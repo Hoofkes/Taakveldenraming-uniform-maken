@@ -1888,6 +1888,21 @@ Public Sub UitdraaiBlokPlaatsen()
     Next i
     KopOpmaak ws, eerste - 3, "Invoerkaart kredieten"
     TitelOpmaak ws
+    ' blok 1, rechts naast tijdschrijvers en import/export: datum van de laatste import werkelijke uitgaven
+    With ws.Range("F" & (AB_KOP + 3))
+        .Value = "Laatste import werkelijke uitgaven"
+        .HorizontalAlignment = xlRight
+        .Font.Italic = True
+        .Font.Color = RGB(89, 89, 89)
+        .VerticalAlignment = xlCenter
+    End With
+    With ws.Range("F" & (AB_KOP + 4))
+        .Formula = "=IF(Par_PeildatumUitgaven="""",""nog geen import"",Par_PeildatumUitgaven)"
+        .NumberFormat = "dd-mm-yyyy"
+        .HorizontalAlignment = xlRight
+        .Font.Bold = True
+        .VerticalAlignment = xlCenter
+    End With
     On Error Resume Next
     For Each naam In Array("btnOverzichtRaad", "btnOverzichtNaam", "btnOverzichtJaarrekening", "btnAlleBudgethouders", "btnTijdschrijven", _
                            "btnUitvraag", "btnActualisatie", "btnJaarovergang", "btnUitgaven", "btnAfgekeurd", "btnHercontrole", _
