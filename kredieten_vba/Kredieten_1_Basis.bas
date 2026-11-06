@@ -338,8 +338,9 @@ End Sub
 
 ' Geeft True als de huidige gebruiker het recht heeft: "Toevoegen", "Wijzigen", "Bevestigen" of "Beheer".
 ' Ontbreekt de kolom van dat recht in de rollentabel, dan is het antwoord nee (geen foutmelding).
+' Een applicatiebeheerder (Beheer = ja) heeft alle rechten.
 Public Function HeeftRecht(ByVal recht As String) As Boolean
-    Dim lo As ListObject, r As ListRow, naam As String, c As Long
+    Dim lo As ListObject, r As ListRow, naam As String, c As Long, b As Long
     If Not TabelBestaat() Then Exit Function
     naam = CStr(ThisWorkbook.Names("Par_HuidigeGebruiker").RefersToRange.Value)
     If Len(naam) = 0 Then Exit Function
@@ -348,9 +349,15 @@ Public Function HeeftRecht(ByVal recht As String) As Boolean
     c = lo.ListColumns(recht).Index
     On Error GoTo 0
     If c = 0 Then Exit Function
+    On Error Resume Next
+    b = lo.ListColumns("Beheer").Index                 ' applicatiebeheerder: heeft alle rechten
+    On Error GoTo 0
     For Each r In lo.ListRows
         If StrComp(CStr(r.Range.Cells(1, 1).Value), naam, vbTextCompare) = 0 Then
             HeeftRecht = (LCase$(CStr(r.Range.Cells(1, c).Value)) = "ja")
+            If b > 0 Then
+                If LCase$(Trim$(CStr(r.Range.Cells(1, b).Value))) = "ja" Then HeeftRecht = True
+            End If
             Exit Function
         End If
     Next r
