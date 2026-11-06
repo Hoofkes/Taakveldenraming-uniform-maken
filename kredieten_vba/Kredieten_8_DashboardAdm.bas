@@ -511,3 +511,37 @@ Public Sub TabbladkiezerWeg(ByVal ws As Worksheet)
     ws.Columns("G").ColumnWidth = 3
     If beveiligd Then BladBeveiligen ws
 End Sub
+
+' Vaag logo als achtergrond van beide dashboards (achter de cellen, wordt niet afgedrukt). Eenmalig met Alt+F8 starten
+' en het bestand HoofDidThis_achtergrond.png kiezen; Excel bewaart de achtergrond in de werkmap.
+Public Sub AchtergrondInstellen()
+    Dim f As Variant, blad As Variant, ws As Worksheet, beveiligd As Boolean
+    f = Application.GetOpenFilename("Afbeelding (*.png),*.png", , "Kies de achtergrond (HoofDidThis_achtergrond.png)")
+    If VarType(f) = vbBoolean Then Exit Sub
+    On Error GoTo Fout
+    For Each blad In Array(BL_DASH, BL_ADM)
+        If BladBestaatStil(CStr(blad)) Then
+            Set ws = ThisWorkbook.Worksheets(CStr(blad))
+            beveiligd = ws.ProtectContents
+            If beveiligd Then ws.Unprotect WACHTWOORD
+            ws.SetBackgroundPicture CStr(f)
+            If beveiligd Then BladBeveiligen ws
+        End If
+    Next blad
+    LogRegel "achtergrond", , , "Dashboards", "", CStr(f), "vaag logo als achtergrond"
+    MsgBox "De achtergrond staat op beide dashboards.", vbInformation, "Achtergrond"
+    Exit Sub
+Fout:
+    MsgBox "De achtergrond kon niet worden ingesteld: " & Err.Description, vbExclamation, "Achtergrond"
+End Sub
+
+' Achtergrond weer weghalen.
+Public Sub AchtergrondWeghalen()
+    Dim blad As Variant
+    On Error Resume Next
+    For Each blad In Array(BL_DASH, BL_ADM)
+        ThisWorkbook.Worksheets(CStr(blad)).Unprotect WACHTWOORD
+        ThisWorkbook.Worksheets(CStr(blad)).SetBackgroundPicture ""
+        BladBeveiligen ThisWorkbook.Worksheets(CStr(blad))
+    Next blad
+End Sub
