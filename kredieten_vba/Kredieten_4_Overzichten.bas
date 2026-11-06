@@ -588,12 +588,12 @@ Public Sub BeveiligingUit()
 End Sub
 
 ' Naam samengesteld krediet (kaartveld 30): bij een nieuw krediet alleen invulbaar als bij Samengesteld/standaard/stelpost
-' "nieuw samengesteld krediet" is gekozen. Bij een volgend deelkrediet van een bestaande groep staat de naam dus vast.
+' "nieuw project met deelkredieten" is gekozen. Bij een volgend deelkrediet van een bestaande groep staat de naam dus vast.
 ' Bij het laden van een bestaand krediet (wijzigen) blijft het veld gewoon bewerkbaar.
 Public Function KaartNaamGeblokkeerd(ByVal ws As Worksheet) As Boolean
     On Error Resume Next
     If Len(CStr(ws.Range("Kaart_Rijnummer").Value)) > 0 Then Exit Function
-    KaartNaamGeblokkeerd = (LCase$(Trim$(CStr(ws.Cells(KaartRij(8), KaartKol(8)).Value))) <> "nieuw samengesteld krediet")
+    KaartNaamGeblokkeerd = (Left$(LCase$(Trim$(CStr(ws.Cells(KaartRij(8), KaartKol(8)).Value))), 5) <> "nieuw")
 End Function
 
 Public Sub BladBeveiligen(ByVal ws As Worksheet)

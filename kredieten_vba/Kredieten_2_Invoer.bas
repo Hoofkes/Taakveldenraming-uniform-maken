@@ -54,6 +54,69 @@ Public Sub DashboardKnoppenPlaatsen()
     ws.Activate
 End Sub
 
+' Invoerkaart: project met deelkredieten boven de omschrijving (afspraak november 2026). Zet eenmalig de cellen in
+' kolom A tot en met D om (kolom E en F met de budgetten blijven staan). Oude indeling (rij 10 tot en met 18):
+' programma, kredietnummer, omschrijving lang, kort (verborgen), status, jaar, investeringsgroep, samengesteld, naam.
+' Nieuwe indeling: programma, kredietnummer, project met deelkredieten, kort (verborgen), naam project,
+' omschrijving (deel)krediet, status, jaar, investeringsgroep. Draait bij het openen; doet niets als het al klaar is.
+Public Sub KaartIndelingProject()
+    Dim wd As Worksheet, stap As String
+    On Error GoTo Fout
+    If Not BladBestaatStil(BL_DASH) Then Exit Sub
+    Set wd = ThisWorkbook.Worksheets(BL_DASH)
+    If CStr(wd.Cells(eerste + 2, 2).Value) Like "Project met deelkredieten*" And _
+       CStr(wd.Cells(eerste + 4, 2).Value) Like "Naam project*" Then Exit Sub        ' al klaar
+    WerkStart                                    ' beveiliging even uit, daarna vanzelf weer aan
+    wd.Unprotect WACHTWOORD
+    Application.EnableEvents = False
+    If CStr(wd.Cells(eerste + 2, 2).Value) Like "Omschrijving lang*" Then
+        stap = "samengesteld en naam boven de omschrijving zetten"
+        wd.Range(wd.Cells(eerste + 7, 1), wd.Cells(eerste + 8, 4)).Cut
+        wd.Range(wd.Cells(eerste + 2, 1), wd.Cells(eerste + 2, 4)).Insert Shift:=xlDown
+        Application.CutCopyMode = False
+    End If
+    If CStr(wd.Cells(eerste + 3, 2).Value) Like "Naam*" Then
+        stap = "korte omschrijving terug op de verborgen rij zetten"
+        wd.Range(wd.Cells(eerste + 5, 1), wd.Cells(eerste + 5, 4)).Cut
+        wd.Range(wd.Cells(eerste + 3, 1), wd.Cells(eerste + 3, 4)).Insert Shift:=xlDown
+        Application.CutCopyMode = False
+    End If
+    stap = "veldnamen aanpassen"
+    wd.Cells(KaartRij(8), 2).Value = "Project met deelkredieten / standaard / stelpost *"
+    wd.Cells(KaartRij(30), 2).Value = "Naam project met deelkredieten"
+    wd.Cells(KaartRij(3), 2).Value = "Omschrijving (deel)krediet (max 36) *"
+    wd.Rows(KaartRij(4)).Hidden = True                                         ' korte omschrijving blijft verborgen
+    wd.Rows(KaartRij(30)).Hidden = False
+    wd.Rows(KaartRij(3)).Hidden = False
+    Application.EnableEvents = True
+    BladBeveiligen wd
+    LogRegel "invoerkaart", , , "Indeling", "samengesteld onder investeringsgroep", "project met deelkredieten boven de omschrijving"
+    Exit Sub
+Fout:
+    Application.EnableEvents = True
+    Application.CutCopyMode = False
+    MsgBox "De invoerkaart kon niet worden omgezet." & vbCrLf & "Stap: " & stap & vbCrLf & "Fout " & Err.Number & ": " & Err.Description & _
+           vbCrLf & vbCrLf & "Stuur deze melding door.", vbExclamation, "Invoerkaart"
+End Sub
+
+' Bestaat er al een project (kolom AT) met deze naam? Geeft dan het groepsnummer (kolom J), anders 0.
+Public Function ProjectGroep(ByVal naam As String) As Long
+    Dim wv As Worksheet, laatste As Long, v As Variant, i As Long
+    If Len(Trim$(naam)) = 0 Then Exit Function
+    Set wv = Vz()
+    laatste = CLng(ThisWorkbook.Names("Par_LaatsteRij").RefersToRange.Value)
+    If laatste < 2 Then Exit Function
+    v = wv.Range("A2:AT" & laatste).Value
+    For i = 1 To UBound(v, 1)
+        If Not IsError(v(i, 46)) And Not IsError(v(i, 10)) Then
+            If StrComp(Trim$(CStr(v(i, 46))), Trim$(naam), vbTextCompare) = 0 And IsGetal(v(i, 10)) Then
+                ProjectGroep = CLng(v(i, 10))
+                Exit Function
+            End If
+        End If
+    Next i
+End Function
+
 ' Een knop voor toevoegen en wijzigen: is er een regel geladen om te wijzigen, dan wordt de wijziging opgeslagen,
 ' anders wordt een nieuw krediet toegevoegd.
 Public Sub Verwerken()
@@ -364,12 +427,16 @@ Private Function ControleerKaart(ByRef k As TKaart, ByVal wijzigRij As Long) As 
     If Not Leeg(k.f(8)) Then
         If j8 = "standaard" Or j8 = "stelpost" Then
             k.jWaarde = j8
-        ElseIf j8 = "nieuw samengesteld krediet" Then
+        ElseIf Left$(j8, 5) = "nieuw" Then
             k.nieuw = True
             k.grp = CLng(Application.WorksheetFunction.Max(wv.Range("J2:J" & laatste))) + 1
             k.jWaarde = k.grp
             k.naam = Trim$(CStr(k.f(30)))
-            If Len(k.naam) = 0 Then fouten = fouten & "- naam samengesteld krediet is verplicht bij een nieuw samengesteld krediet" & vbCrLf
+            If Len(k.naam) = 0 Then fouten = fouten & "- naam project is verplicht bij een nieuw project met deelkredieten" & vbCrLf
+            If Len(k.naam) > 0 Then
+                If ProjectGroep(k.naam) > 0 Then fouten = fouten & "- project '" & k.naam & "' bestaat al (groep " & ProjectGroep(k.naam) & _
+                                                         "). Kies bij 'Project met deelkredieten' die groep uit de lijst" & vbCrLf
+            End If
         ElseIf Left$(j8, 6) = "groep " Then
             k.grp = CLng(Val(Mid$(j8, 7)))
             If k.grp < 1 Then

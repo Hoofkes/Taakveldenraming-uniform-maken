@@ -702,6 +702,12 @@ Deze drie onderdelen staan in de werkmap `KREDIETEN - NIEUW.xlsm` (gecontroleerd
 - Het tijdelijke nummer 7999998 wordt niet automatisch gegeven (de oude afspraak en het alarm blijven bestaan).
 - Code: module 9 `Kredieten_9_Nummering`; aanroepen in `KredietToevoegen` en `Auto_Open` (module 1), `KaartGewijzigd` (module 2), `ControlesVernieuwen` (module 5), `DashboardAdmOpbouwen` (module 8), `DashboardIndelingKlopt` (module 6).
 
+### 14.7 Project met deelkredieten op de invoerkaart (versie 55)
+- Begrippen: "samengesteld krediet" heet nu **project met deelkredieten**; "omschrijving lang" heet **omschrijving (deel)krediet**. In de keuzelijst staat "nieuw project met deelkredieten" (de oude tekst "nieuw samengesteld krediet" werkt ook nog).
+- Indeling invoerkaart (kolom A-D, rij 10-18): programma · kredietnummer · project met deelkredieten / standaard / stelpost · (korte omschrijving, verborgen) · naam project met deelkredieten · omschrijving (deel)krediet · status · jaar · investeringsgroep. Eenmalig omgezet bij het openen door `KaartIndelingProject` (module 2): alleen de cellen in kolom A-D verschuiven, de budgetten in kolom E-F blijven staan. `KaartRij` (module 3) volgt deze indeling.
+- Verdeelsleutel (kolom K) volgt uit de budgetten van de delen en is per project samen altijd 100%. Werkelijke uitgaven worden volgens die sleutel over de delen verdeeld (bestond al).
+- Nieuw project met een naam die al bestaat: geweigerd met de melding welke groep gekozen moet worden (`ProjectGroep`). Zo krijgt één project nooit twee projectnummers.
+
 ---
 
 ## 15. Modules en bestanden

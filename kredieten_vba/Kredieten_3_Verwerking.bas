@@ -140,18 +140,21 @@ Public Sub VerzamellijstOpschonen()
 End Sub
 
 ' Rij op het Dashboard van veld i (1 t/m 30). Onder elk budgetjaar staan twee bijdrageregels.
+' Indeling sinds november 2026 (project met deelkredieten boven de omschrijving, zie KaartIndelingProject):
+' rij 10 programma, 11 kredietnummer, 12 project met deelkredieten, 13 korte omschrijving (verborgen),
+' 14 naam project, 15 omschrijving (deel)krediet, 16 status, 17 jaar, 18 investeringsgroep, 19 t/m 32 de rest.
 Public Function KaartRij(ByVal i As Long) As Long
-    If i <= 8 Then
-        KaartRij = eerste + i - 1                ' rij 10 t/m 17 (rij 13 = korte omschrijving, verborgen; rij 17 = samengesteld)
-    ElseIf i <= 22 Then
-        KaartRij = eerste + i                    ' rij 19 t/m 32 (rij 18 = naam samengesteld krediet)
-    ElseIf i <= 28 Then
-        KaartRij = eerste + 4 + 3 * (i - 23)     ' budgetten rechts: rij 14, 17, 20, 23, 26, 29
-    ElseIf i = 29 Then
-        KaartRij = eerste + 23                   ' toelichting (rij 33)
-    Else
-        KaartRij = eerste + 8                    ' naam samengesteld krediet: direct onder 'samengesteld' (rij 18)
-    End If
+    Select Case i
+        Case 1, 2: KaartRij = eerste + i - 1     ' rij 10 en 11
+        Case 8: KaartRij = eerste + 2            ' project met deelkredieten / standaard / stelpost (rij 12)
+        Case 4: KaartRij = eerste + 3            ' korte omschrijving, verborgen (rij 13)
+        Case 30: KaartRij = eerste + 4           ' naam project met deelkredieten (rij 14)
+        Case 3: KaartRij = eerste + 5            ' omschrijving (deel)krediet (rij 15)
+        Case 5, 6, 7: KaartRij = eerste + i + 1  ' status, jaar, investeringsgroep (rij 16 t/m 18)
+        Case 9 To 22: KaartRij = eerste + i      ' rij 19 t/m 32
+        Case 23 To 28: KaartRij = eerste + 4 + 3 * (i - 23)     ' budgetten rechts: rij 14, 17, 20, 23, 26, 29
+        Case 29: KaartRij = eerste + 23          ' toelichting (rij 33)
+    End Select
 End Function
 
 ' Kolom van de invoercel van veld i: C voor de gewone velden, F voor de budgetten (veldnaam staat er links naast).

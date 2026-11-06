@@ -173,6 +173,7 @@ End Sub
 
 Public Sub Auto_Open()
     DashboardNaamZorgen                          ' oud blad Dashboard heet nu Dashboard FinAdv
+    KaartIndelingProject                         ' invoerkaart: project met deelkredieten boven de omschrijving
     VerzamellijstHernoemen
     ' beveiliging opnieuw aanzetten (macro's mogen schrijven, gebruikers niet) en oude overzichtbladen opruimen
     BeveiligingAan
@@ -1163,7 +1164,7 @@ Private Sub GroepenLijstSchrijven(ByVal wsP As Worksheet, ByVal wsV As Worksheet
     wsP.Range("J14").Value = "Lst_SamengesteldStandaardStelpost"
     wsP.Range("J15").Value = "standaard"
     wsP.Range("J16").Value = "stelpost"
-    wsP.Range("J17").Value = "nieuw samengesteld krediet"
+    wsP.Range("J17").Value = "nieuw project met deelkredieten"
     For r = 2 To laatste
         j = wsV.Cells(r, 10).Value
         If VarType(j) <> vbString And Not IsEmpty(j) And Not IsError(j) Then
@@ -1241,12 +1242,12 @@ Public Sub DashboardAanmaken()
 
     v(1) = veld("Programma", "B", "Lst_Programma", True, "@")
     v(2) = veld("Kredietnummer", "C", "", False, "")
-    v(3) = veld("Omschrijving lang (max 36)", "D", "", True, "@")
+    v(3) = veld("Omschrijving (deel)krediet (max 36)", "D", "", True, "@")
     v(4) = veld("Omschrijving kort (max 20)", "F", "", False, "@")
     v(5) = veld("Status (L of A)", "H", "Lst_Statusletter", True, "@")
     v(6) = veld("Jaar van de status", "H", "Lst_Jaren", True, "@")
     v(7) = veld("Investeringsgroep", "I", "Lst_Soort", True, "@")
-    v(8) = veld("Samengesteld/standaard/stelpost", "J", "Lst_SamengesteldStandaardStelpost", True, "")
+    v(8) = veld("Project met deelkredieten / standaard / stelpost", "J", "Lst_SamengesteldStandaardStelpost", True, "")
     v(9) = veld("Besluit", "L", "Lst_LaatsteBesluit", True, "@")
     v(10) = veld("Startjaar uitgaven", "M", "Lst_Jaren", True, "")
     v(11) = veld("Eindjaar uitgaven", "N", "Lst_Jaren", True, "")
@@ -1268,7 +1269,7 @@ Public Sub DashboardAanmaken()
     v(27) = veld("=""Budget ""&(Par_LopendJaar+4)", "AH", "", False, "bedrag")
     v(28) = veld("=""Budget ""&(Par_LopendJaar+5)", "AI", "", False, "bedrag")
     v(29) = veld("Toelichting op het investeringskrediet", "AJ", "", False, "@")
-    v(30) = veld("Naam samengesteld krediet", "AT", "", False, "@")
+    v(30) = veld("Naam project met deelkredieten", "AT", "", False, "@")
 
     Set actief = ActiveSheet
     Set ws = ThisWorkbook.Worksheets.Add(Before:=ThisWorkbook.Worksheets(1))
@@ -1396,7 +1397,7 @@ Public Sub DashboardAanmaken()
     Next bk2
     Set fc = VoegCF(ws.Cells(KaartRij(30), 3), "=LEFT($C$" & KaartRij(8) & ",5)=""nieuw""")
     If Not fc Is Nothing Then fc.Interior.Color = RGB(255, 255, 204)
-    ws.Cells(KaartRij(30), 2).Value = "Naam samengesteld krediet"
+    ws.Cells(KaartRij(30), 2).Value = "Naam project met deelkredieten"
     ws.Cells(eerste + 1, 5).ShrinkToFit = True
     ws.Rows(eerste & ":" & (eerste + 23)).RowHeight = 17
     ws.Cells(KaartRij(29), 3).WrapText = True
@@ -1476,7 +1477,7 @@ Private Function ControleFormule(ByVal i As Long, ByVal r As Long, ByVal Leeg As
     Dim c As String, k As String
     c = "C" & r
     If i = 30 Then
-        ControleFormule = "=IF(LEFT($C$16,5)=""nieuw"",IF(" & c & "="""",""verplicht bij een nieuw samengesteld krediet"",""goed""),IF(LEFT($C$16,6)=""groep "",""wordt overgenomen van de groep"",""""))"
+        ControleFormule = "=IF(LEFT($C$" & KaartRij(8) & ",5)=""nieuw"",IF(" & c & "="""",""verplicht bij een nieuw project met deelkredieten"",""goed""),IF(LEFT($C$" & KaartRij(8) & ",6)=""groep "",""wordt overgenomen van de groep"",""""))"
         Exit Function
     End If
     Select Case i
@@ -1493,7 +1494,7 @@ Private Function ControleFormule(ByVal i As Long, ByVal r As Long, ByVal Leeg As
         Case 6
             k = "IF(IFERROR(AND(LEN(" & c & ")=4,ISNUMBER(--" & c & ")),FALSE),""goed"",""vier cijfers nodig"")"
         Case 8
-            k = "IF(" & c & "=""nieuw samengesteld krediet"",""nieuw: krijgt groepsnummer ""&(MAX(" & VL & "$J:$J)+1),IF(OR(" & c & "=""standaard""," & c & "=""stelpost"",LEFT(" & c & ",6)=""groep ""),""goed"",""kies standaard, stelpost of samengesteld""))"
+            k = "IF(LEFT(" & c & ",5)=""nieuw"",""nieuw: krijgt groepsnummer ""&(MAX(" & VL & "$J:$J)+1),IF(OR(" & c & "=""standaard""," & c & "=""stelpost"",LEFT(" & c & ",6)=""groep ""),""goed"",""kies standaard, stelpost of samengesteld""))"
         Case 11
             k = "IF(OR(C" & (r - 1) & "="""",NOT(ISNUMBER(C" & (r - 1) & ")),NOT(ISNUMBER(" & c & "))),""goed"",IF(C" & (r - 1) & "<=" & c & ",""goed"",""start na einde""))"
         Case 16
@@ -1635,12 +1636,17 @@ Public Sub KredietToevoegen()
     If Not Leeg(f(8)) Then
         If j8 = "standaard" Or j8 = "stelpost" Then
             jWaarde = j8
-        ElseIf j8 = "nieuw samengesteld krediet" Then
+        ElseIf Left$(j8, 5) = "nieuw" Then
             nieuw = True
             grp = CLng(Application.WorksheetFunction.Max(wv.Range("J2:J" & laatste))) + 1
             jWaarde = grp
             naam = Trim$(CStr(f(30)))
-            If Len(naam) = 0 Then fouten = fouten & "- naam samengesteld krediet is verplicht bij een nieuw samengesteld krediet" & vbCrLf
+            If Len(naam) = 0 Then fouten = fouten & "- naam project is verplicht bij een nieuw project met deelkredieten" & vbCrLf
+            ' bestaat dit project al? Dan geen tweede projectnummer: het volgende deel hoort bij de bestaande groep
+            If Len(naam) > 0 Then
+                If ProjectGroep(naam) > 0 Then fouten = fouten & "- project '" & naam & "' bestaat al (groep " & ProjectGroep(naam) & _
+                                                       "). Kies bij 'Project met deelkredieten' die groep uit de lijst" & vbCrLf
+            End If
         ElseIf Left$(j8, 6) = "groep " Then
             grp = CLng(Val(Mid$(j8, 7)))
             If grp < 1 Then
@@ -1818,7 +1824,7 @@ Public Sub KredietToevoegen()
     If grp > 0 Then
         If MsgBox("Krediet toegevoegd op rij " & r & ", volgnummer " & volgnr & ", groep " & grp & bijtxt & "." & vbCrLf & _
                   IIf(Len(waarsch) > 0, waarsch & vbCrLf, "") & vbCrLf & _
-                  "Nog een deelkrediet bij dit samengestelde krediet toevoegen?", vbYesNo + vbQuestion, "Krediet toevoegen") = vbYes Then
+                  "Nog een deelkrediet bij dit project toevoegen?", vbYesNo + vbQuestion, "Krediet toevoegen") = vbYes Then
             VolgendeDeelVoorbereiden grp
         Else
             KaartWissen
@@ -1904,7 +1910,7 @@ Private Sub VolgendeDeelVoorbereiden(ByVal grp As Long)
     zoek = "groep " & grp & " - "
     For Each cel In ThisWorkbook.Names("Lst_SamengesteldStandaardStelpost").RefersToRange.Cells
         If Left$(CStr(cel.Value), Len(zoek)) = zoek Then
-            wd.Cells(eerste + 7, 3).Value = cel.Value
+            wd.Cells(KaartRij(8), KaartKol(8)).Value = cel.Value
             Exit For
         End If
     Next cel
