@@ -200,7 +200,7 @@ End Sub
 Private Sub BladAfronden(ByVal ws As Worksheet, ByVal lr As Long)
     ws.Range(ws.Cells(5, 1), ws.Cells(lr, 8)).VerticalAlignment = xlTop
     KnopTerug ws, ws.Range("A3")
-    AppLogoPlaatsen ws, ws.Columns(8).Left + ws.Columns(8).Width - 90, 55   ' logo rechtsboven
+    AppLogoPlaatsen ws, ws.Columns(8).Left + ws.Columns(8).Width - 75, 45   ' logo rechtsboven
     AfdrukA3 ws, "", 4, lr, 8
     ws.Protect Password:=WACHTWOORD, DrawingObjects:=True, Contents:=True, UserInterfaceOnly:=True, AllowFormattingRows:=True
     TabbladenOrdenen

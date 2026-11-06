@@ -176,7 +176,7 @@ Public Sub DashboardAdmOpbouwen()
     ' knoppen bovenaan: tabbladkiezer en krediet raadplegen
     TabbladkiezerPlaatsen BL_ADM
     RaadplegenKnopPlaatsen BL_ADM
-    AppLogoPlaatsen wa, wa.Range("I1").Left + 10, 80     ' logo rechtsboven
+    AppLogoPlaatsen wa, RechtsVanKop(wa), 60          ' logo rechtsboven
     wa.Unprotect WACHTWOORD
     Set wa = ThisWorkbook.Worksheets(BL_ADM)
     wa.Unprotect WACHTWOORD
@@ -354,9 +354,33 @@ End Sub
 
 ' Logo op beide dashboards zetten (na het opnieuw plaatsen van de knoppen).
 Public Sub AppLogoOveral()
-    If BladBestaatStil(BL_DASH) Then AppLogoPlaatsen ThisWorkbook.Worksheets(BL_DASH), ThisWorkbook.Worksheets(BL_DASH).Range("I1").Left + 10, 80
-    If BladBestaatStil(BL_ADM) Then AppLogoPlaatsen ThisWorkbook.Worksheets(BL_ADM), ThisWorkbook.Worksheets(BL_ADM).Range("I1").Left + 10, 80
+    Dim w As Worksheet
+    On Error Resume Next
+    For Each w In ThisWorkbook.Worksheets                ' eerst losse kopieen op andere bladen opruimen
+        If w.Name <> BL_AFB And w.Name <> BL_DASH And w.Name <> BL_ADM And w.Name <> BL_RAADPLEGEN Then
+            If Not w.Shapes("AppLogo") Is Nothing Then w.Unprotect WACHTWOORD: w.Shapes("AppLogo").Delete
+        End If
+    Next w
+    On Error GoTo 0
+    If BladBestaatStil(BL_DASH) Then AppLogoPlaatsen ThisWorkbook.Worksheets(BL_DASH), RechtsVanKop(ThisWorkbook.Worksheets(BL_DASH)), 60
+    If BladBestaatStil(BL_ADM) Then AppLogoPlaatsen ThisWorkbook.Worksheets(BL_ADM), RechtsVanKop(ThisWorkbook.Worksheets(BL_ADM)), 60
 End Sub
+
+' Plek voor het logo: rechts van alles wat in rij 1 tot en met 4 staat (knoppen en tekst), met wat ruimte ertussen.
+Public Function RechtsVanKop(ByVal ws As Worksheet) As Double
+    Dim shp As Object, c As Long, r As Long, x As Double
+    x = ws.Range("H1").Left + ws.Range("H1").Width
+    For Each shp In ws.Shapes
+        If shp.Name <> "AppLogo" And shp.Top < ws.Rows(5).Top Then
+            If shp.Left + shp.Width > x Then x = shp.Left + shp.Width
+        End If
+    Next shp
+    For r = 1 To 4
+        c = ws.Cells(r, ws.Columns.Count).End(xlToLeft).Column
+        If ws.Cells(r, c + 1).Left > x Then x = ws.Cells(r, c + 1).Left
+    Next r
+    RechtsVanKop = x + 20
+End Function
 
 ' Zet een kopie van het logo op een blad (links = positie in punten, hoogte in punten). Geen logo ingelezen: niets.
 Public Sub AppLogoPlaatsen(ByVal ws As Worksheet, ByVal links As Double, ByVal hoogte As Double)
@@ -376,9 +400,13 @@ Public Sub AppLogoPlaatsen(ByVal ws As Worksheet, ByVal links As Double, ByVal h
     ws.Visible = xlSheetVisible
     src.Copy
     ws.Activate
+    ws.Range("A1").Select
     ws.Paste
     Set shp = ws.Shapes(ws.Shapes.Count)
+    If shp.Type <> msoPicture Then GoTo klaar          ' plakken mislukt: niets doen
     shp.Name = "AppLogo"
+    shp.ScaleHeight 1, msoTrue                          ' eerst terug naar de echte maat, dan pas verkleinen
+    shp.ScaleWidth 1, msoTrue
     shp.LockAspectRatio = msoTrue
     shp.Height = hoogte
     shp.Top = 3
