@@ -489,13 +489,13 @@ Public Sub BeheerKnoppenPlaatsen()
                 ws.Shapes(CStr(naam)).Delete
             Next naam
             On Error GoTo 0
-            Set b = ws.Buttons.Add(ws.Range("B1").Left + 2 * KNOP_STAP, ws.Range("B" & (AB_KOP + 1)).Top + 2, KNOP_B, 22)   ' blok 1 Applicatiebeheer
+            Set b = ws.Buttons.Add(ws.Range("B1").Left, ws.Range("B" & (AB_KOP + 2)).Top + 2, KNOP_B, 22)   ' blok 1 Applicatiebeheer, 2e rij
             b.Name = pre & "BeheerToevoegen"
             b.Caption = "Applicatiebeheerder toevoegen"
             b.OnAction = "BeheerderToevoegen"
             b.Placement = xlMove
             b.PrintObject = False
-            Set b = ws.Buttons.Add(ws.Range("B1").Left + 3 * KNOP_STAP, ws.Range("B" & (AB_KOP + 1)).Top + 2, KNOP_B, 22)
+            Set b = ws.Buttons.Add(ws.Range("B1").Left + KNOP_STAP, ws.Range("B" & (AB_KOP + 2)).Top + 2, KNOP_B, 22)
             b.Name = pre & "BeheerVerwijderen"
             b.Caption = "Applicatiebeheerder verwijderen"
             b.OnAction = "BeheerderVerwijderen"

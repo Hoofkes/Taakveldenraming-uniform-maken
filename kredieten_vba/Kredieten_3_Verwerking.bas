@@ -1897,10 +1897,10 @@ Public Sub UitdraaiBlokPlaatsen()
         ws.Shapes("uitleg_" & CStr(naam)).Delete
     Next naam
     On Error GoTo 0
-    For Each r In Array(AB_KOP + 1, AB_KOP + 2, AB_KOP + 3, KR_KOP + 1, KR_KOP + 2, KR_KOP + 3, NM_KOP + 1, NM_KOP + 4)
+    For Each r In Array(AB_KOP + 1, AB_KOP + 2, AB_KOP + 3, AB_KOP + 4, KR_KOP + 1, KR_KOP + 2, KR_KOP + 3, NM_KOP + 1, NM_KOP + 2, NM_KOP + 4)
         ws.Rows(CLng(r)).RowHeight = 26
     Next r
-    For Each r In Array(5, AB_KOP + 4, KR_KOP + 4, NM_KOP + 2, CB_KOP - 1)    ' smalle rij tussen de blokken
+    For Each r In Array(5, KR_KOP + 4, CB_KOP - 1)                            ' smalle rij tussen de blokken
         ws.Rows(CLng(r)).RowHeight = 8
     Next r
     ' (rij, kolom) per knop; kolom 0 = eerste knop van links
@@ -1916,13 +1916,15 @@ Public Sub UitdraaiBlokPlaatsen()
                    "KredietInvoeren", "KredietWijzigen", "KredietVerwijderen", "AfgekeurdHerstellen", "HercontroleAanbieden", "BudgethouderVervangen", "ProjectleiderVervangen", _
                    "KredietoverzichtOpNaam", "KredietoverzichtMaken", "KredietoverzichtJaarrekening", "KredietoverzichtAlleBudgethouders", _
                    "UitvraagBegroting", "UitvraagOphalen", "UitvraagVerwerken")
-    rijen = Array(AB_KOP + 1, AB_KOP + 2, AB_KOP + 2, AB_KOP + 2, AB_KOP + 3, AB_KOP + 3, AB_KOP + 3, _
+    ' blok 1 (max 3 per rij): rij 1 gebruikers (verwijderen = eigen macro), rij 2 applicatiebeheerders (eigen macro) + jaarovergang,
+    ' rij 3 tijdschrijvers, rij 4 import en export
+    rijen = Array(AB_KOP + 1, AB_KOP + 3, AB_KOP + 3, AB_KOP + 2, AB_KOP + 4, AB_KOP + 4, AB_KOP + 1, _
                   KR_KOP + 1, KR_KOP + 1, KR_KOP + 1, KR_KOP + 2, KR_KOP + 2, KR_KOP + 3, KR_KOP + 3, _
-                  NM_KOP + 1, NM_KOP + 1, NM_KOP + 1, NM_KOP + 1, _
+                  NM_KOP + 1, NM_KOP + 1, NM_KOP + 1, NM_KOP + 2, _
                   NM_KOP + 4, NM_KOP + 4, NM_KOP + 4)
     kolOff = Array(0, 0, 1, 2, 0, 1, 2, _
                    0, 1, 2, 1, 2, 0, 1, _
-                   0, 1, 2, 3, _
+                   0, 1, 2, 0, _
                    0, 1, 2)
     For i = 0 To UBound(namen)
         Set b = ws.Buttons.Add(ws.Range("B1").Left + kolOff(i) * KNOP_STAP, ws.Range("B" & rijen(i)).Top + 2, KNOP_B, 22)

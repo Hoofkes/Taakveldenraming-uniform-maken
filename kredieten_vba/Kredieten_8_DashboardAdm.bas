@@ -1,7 +1,7 @@
 Attribute VB_Name = "Kredieten_8_DashboardAdm"
 Option Explicit
-Public Const KNOP_B As Long = 158               ' breedte van een knop op de dashboards
-Public Const KNOP_STAP As Long = 165            ' afstand tussen knoppen naast elkaar (4 knoppen passen in kolom B tot en met E)
+Public Const KNOP_B As Long = 211               ' breedte van een knop op de dashboards (hele tekst past)
+Public Const KNOP_STAP As Long = 218            ' afstand tussen knoppen naast elkaar (3 knoppen passen in kolom B tot en met E)
 Private Const BL_AFB As String = "Afbeeldingen"      ' onzichtbaar blad met het logo (zie AppLogoInlezen)
 
 ' Twee dashboards: 'Dashboard FinAdv' (financieel adviseurs: invoerkaart, blok 2 en controles) en 'Dashboard Adm'
