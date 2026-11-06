@@ -28,7 +28,7 @@ Public Sub RaadplegenKnopPlaatsen(Optional ByVal blad As String = BL_DASH)
     b.Name = knop
     b.Caption = "Krediet raadplegen"
     b.OnAction = "KredietRaadplegen"
-    b.Placement = xlFreeFloating
+    b.Placement = xlMove
     b.PrintObject = False
     KnopUitleg ws, knop, "Krediet raadplegen: alleen bekijken, er wordt niets gewijzigd. Je kiest waarop je zoekt: " & _
                "1 = volgnummer (kolom A), 2 = kredietnummer (C), 3 = omschrijving (D), 4 = activanummer (X), " & _

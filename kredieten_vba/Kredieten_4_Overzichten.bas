@@ -1325,7 +1325,7 @@ Public Sub GebruikerKnopPlaatsen()
     b.Name = "btnGebruikerVerwijderen"
     b.Caption = "Gebruiker verwijderen"
     b.OnAction = "GebruikerVerwijderen"
-    b.Placement = xlFreeFloating
+    b.Placement = xlMove
     b.PrintObject = False
 End Sub
 

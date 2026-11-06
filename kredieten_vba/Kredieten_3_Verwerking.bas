@@ -2022,7 +2022,7 @@ Public Sub UitdraaiBlokPlaatsen()
         b.Name = namen(i)
         b.Caption = titels(i)
         b.OnAction = acties(i)
-        b.Placement = xlFreeFloating
+        b.Placement = xlMove                 ' beweegt mee als rijen open of dicht gaan
         b.PrintObject = False
     Next i
 End Sub

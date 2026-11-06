@@ -462,13 +462,13 @@ Public Sub BeheerKnoppenPlaatsen()
             b.Name = pre & "BeheerToevoegen"
             b.Caption = "Applicatiebeheerder toevoegen"
             b.OnAction = "BeheerderToevoegen"
-            b.Placement = xlFreeFloating
+            b.Placement = xlMove
             b.PrintObject = False
             Set b = ws.Buttons.Add(ws.Range("B1").Left + 615, ws.Range("B" & (AB_KOP + 1)).Top + 2, 195, 22)
             b.Name = pre & "BeheerVerwijderen"
             b.Caption = "Applicatiebeheerder verwijderen"
             b.OnAction = "BeheerderVerwijderen"
-            b.Placement = xlFreeFloating
+            b.Placement = xlMove
             b.PrintObject = False
             KnopUitleg ws, pre & "BeheerToevoegen", "Applicatiebeheerder toevoegen (alleen applicatiebeheerder): toont een genummerde lijst met de " & _
                        "gebruikers uit de rollentabel die nog geen applicatiebeheerder zijn. Typ het nummer. Die persoon krijgt " & _
@@ -1532,6 +1532,7 @@ Public Sub KnopUitleg(ByVal ws As Worksheet, ByVal knop As String, ByVal tekst A
     q.Name = "uitleg_" & knop
     q.Caption = "?"
     q.OnAction = "KnopUitlegTonen"
+    q.Placement = xlMove                         ' beweegt mee met de knop als rijen open of dicht gaan
     UitlegBewaren ws, "uitleg_" & knop, tekst
 End Sub
 

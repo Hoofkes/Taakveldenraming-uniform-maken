@@ -14,22 +14,28 @@ Public Sub DashboardKnoppenPlaatsen()
         ws.Shapes("uitleg_" & CStr(naam)).Delete
     Next naam
     On Error GoTo 0
+    ' eerst alle rijen tonen, zodat elke knop op de juiste rij komt; DashboardNaarRol verbergt daarna wat dicht moet
+    ws.Unprotect WACHTWOORD
+    ws.Rows.Hidden = False
     ws.Rows(eerste - 4).RowHeight = 6                 ' smalle rij boven de invoerkaart
     ' knop naast het veld Tijdschrijvers
     Set b = ws.Buttons.Add(ws.Range("B" & KaartRij(14)).Left + ws.Range("B" & KaartRij(14)).Width - 112, ws.Range("B" & KaartRij(14)).Top + 1, 110, 16)
     b.Name = "btnTijdschrijvers"
     b.Caption = "Tijdschrijvers kiezen"
     b.OnAction = "TijdschrijversKiezen"
+    b.Placement = xlMove                          ' hoort bij de invoerkaart: gaat mee open en dicht
     ' onder de invoerkaart: Ingevuld? Verwerken! en Scherm leegmaken
     ws.Rows(KAART_KNOP).RowHeight = 38
     Set b = ws.Buttons.Add(ws.Range("B" & KAART_KNOP).Left, ws.Range("B" & KAART_KNOP).Top + 4, 230, 30)
     b.Name = "btnVerwerken"
     b.Caption = "Ingevuld? Verwerken!"
     b.OnAction = "Verwerken"
+    b.Placement = xlMove
     Set b = ws.Buttons.Add(ws.Range("B" & KAART_KNOP).Left + 250, ws.Range("B" & KAART_KNOP).Top + 8, 160, 22)
     b.Name = "btnKaartWissen"
     b.Caption = "Scherm leegmaken"
     b.OnAction = "KaartWissen"
+    b.Placement = xlMove
     ' Krediet wijzigen en verwijderen staan nu in blok 2 (UitdraaiBlokPlaatsen)
     UitdraaiBlokPlaatsen
     ControleblokPlaatsen
