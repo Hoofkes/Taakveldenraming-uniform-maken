@@ -162,7 +162,7 @@ Private Sub TabelNummersVullen()
         rk = Trim$(CStr(ws.Cells(r, 4).Value))
         If Len(rk) = 4 And IsNumeric(rk) Then
             ws.Cells(r, 5).Value = NummerTekst(rk)
-            ws.Cells(r, 5).Font.Color = IIf(ws.Cells(r, 5).Value = "Invullen", RGB(192, 0, 0), RGB(0, 0, 0))
+            ws.Cells(r, 5).Font.Color = IIf(VarType(ws.Cells(r, 5).Value) = vbString, RGB(192, 0, 0), RGB(0, 0, 0))
         End If
     Next r
     If beveiligd Then BladBeveiligen ws
@@ -274,7 +274,7 @@ Public Sub KredietnummersBlokPlaatsen()
         ws.Cells(r, 4).NumberFormat = "@"
         ws.Cells(r, 4).Value = x(0)
         ws.Cells(r, 5).Value = NummerTekst(CStr(x(0)))
-        If ws.Cells(r, 5).Value = "Invullen" Then ws.Cells(r, 5).Font.Color = RGB(192, 0, 0)
+        If VarType(ws.Cells(r, 5).Value) = vbString Then ws.Cells(r, 5).Font.Color = RGB(192, 0, 0)
         ws.Cells(r, 5).NumberFormat = "0"
         ws.Cells(r, 5).HorizontalAlignment = xlLeft
         ws.Cells(r, 5).Font.Bold = True

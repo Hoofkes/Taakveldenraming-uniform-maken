@@ -699,7 +699,7 @@ Deze drie onderdelen staan in de werkmap `KREDIETEN - NIEUW.xlsm` (gecontroleerd
 - **Invoerkaart:** na het kiezen van de balanscode vult de kaart het eerstvolgende vrije nummer in (alleen bij een nieuw krediet en als het veld leeg is of nog een eerder voorstel bevat; een zelf getypt nummer blijft staan). **Krediet toevoegen:** is het kredietnummer leeg, dan komt het eerstvolgende vrije nummer in kolom C. Na het toevoegen schuift het nummer van die reeks door.
 - Een nummer dat al in kolom C van de Verzamellijst staat, wordt altijd overgeslagen (`KredietnummersBijwerken`: bij openen, na toevoegen en bij Controles vernieuwen).
 - **Dashboard Adm, blok 3** "Eerstvolgende vrije kredietnummers" (rij 14-27): tabel per reeks en knop **Kredietnummer aanpassen** (met de hand corrigeren, in het Logboek). Controles zijn nu blok 4.
-- **Balanscodes die nog niet in de Verzamellijst voorkomen** (A122EN, A125MN, A126MN, A129MN en nieuwe codes in de balanscodetabel) staan ook in de tabel, met "zelf invullen". De financiële administratie geeft de eerste keer zelf een nummer (kolom C of knop Kredietnummer aanpassen); daarna werkt het net als bij de andere. De invoerkaart vult bij die codes nog geen nummer in.
+- **Balanscodes die nog niet in de Verzamellijst voorkomen** (A122EN, A125MN, A126MN, A129MN en nieuwe codes in de balanscodetabel) staan ook in de tabel, met "Invullen" (rood). De tabel bevat waarden die de macro schrijft, geen formules (die gaven soms #NAAM?). De financiële administratie geeft de eerste keer zelf een nummer (kolom C of knop Kredietnummer aanpassen); daarna werkt het net als bij de andere. De invoerkaart vult bij die codes nog geen nummer in.
 - Het tijdelijke nummer 7999998 wordt niet automatisch gegeven (de oude afspraak en het alarm blijven bestaan).
 - Code: module 9 `Kredieten_9_Nummering`; aanroepen in `KredietToevoegen` en `Auto_Open` (module 1), `KaartGewijzigd` (module 2), `ControlesVernieuwen` (module 5), `DashboardAdmOpbouwen` (module 8), `DashboardIndelingKlopt` (module 6).
 
@@ -708,6 +708,9 @@ Deze drie onderdelen staan in de werkmap `KREDIETEN - NIEUW.xlsm` (gecontroleerd
 - Indeling invoerkaart (kolom A-D, rij 10-18): programma · kredietnummer · project met deelkredieten / standaard / stelpost · (korte omschrijving, verborgen) · naam project met deelkredieten · omschrijving (deel)krediet · status · jaar · investeringsgroep. Eenmalig omgezet bij het openen door `KaartIndelingProject` (module 2): alleen de cellen in kolom A-D verschuiven, de budgetten in kolom E-F blijven staan. `KaartRij` (module 3) volgt deze indeling.
 - Verdeelsleutel (kolom K) volgt uit de budgetten van de delen en is per project samen altijd 100%. Werkelijke uitgaven worden volgens die sleutel over de delen verdeeld (bestond al).
 - Nieuw project met een naam die al bestaat: geweigerd met de melding welke groep gekozen moet worden (`ProjectGroep`). Zo krijgt één project nooit twee projectnummers.
+
+### 14.8 Opmaak nieuwe regels (versie 56)
+- Een nieuw krediet (en een bijdrageregel) krijgt in de Verzamellijst exact dezelfde opmaak als **voorbeeldregel 272** (uitlijning, lettertype, randen, notatie, rijhoogte): `RegelOpmaakAlsVoorbeeld` (module 9), aangeroepen in `KredietToevoegen`.
 
 ---
 
